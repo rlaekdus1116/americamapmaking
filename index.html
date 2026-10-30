@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>아메리카 지도 퍼즐</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+:root{--bg:#fdf6f0;--ink:#4a4458;--pink:#f8d7e3;--mint:#d4f0e6;--lav:#e4dcf7;--yel:#fff1c1;--blue:#d6e9fb;--line:#e8dfe6}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;padding:12px 18px;background:var(--pink)}
+h1{font-size:20px;margin:0}
+.chip{background:#fff;border-radius:999px;padding:4px 12px;font-size:14px;margin-left:4px}
+main{display:grid;grid-template-columns:1fr 1.3fr;gap:14px;padding:14px;max-width:1200px;margin:auto}
+@media(max-width:800px){main{grid-template-columns:1fr}}
+.card{background:#fff;border-radius:18px;padding:14px;box-shadow:0 2px 8px #0001}
+#photo{position:relative;width:100%;height:220px;border-radius:14px;background:var(--lav);overflow:hidden}
+#img{width:100%;height:100%;object-fit:cover;display:block}
+#cap{position:absolute;left:0;bottom:0;right:0;padding:6px 10px;background:#0006;color:#fff;font-size:14px}
+#map{height:460px;border-radius:18px}
+.btn{border:0;border-radius:12px;padding:10px 16px;font-size:15px;background:var(--mint);color:var(--ink);cursor:pointer}
+.btn:hover{filter:brightness(.97)}
+input{font-size:16px;padding:10px;border-radius:10px;border:1px solid var(--line);width:100%}
+.bar{height:12px;background:#eee;border-radius:99px;overflow:hidden}
+.bar>div{height:100%;width:0;background:linear-gradient(90deg,var(--lav),var(--mint));transition:width .4s}
+.msg{min-height:22px;font-weight:600;margin:8px 0}
+.ok{color:#2e8b6b}.ng{color:#c0576d}
+.pieces{display:flex;flex-wrap:wrap;gap:6px}
+.piece{padding:5px 10px;border-radius:10px;background:var(--line);font-size:14px;color:#aaa}
+.piece.on{color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+td,th{padding:9px 6px;border-bottom:1px solid var(--line);text-align:left}
+tr.pick{background:var(--yel)}
+.name{background:none;border:0;font-size:15px;color:var(--ink);cursor:pointer;text-decoration:underline dotted;padding:0}
+.fact{background:var(--blue);border-radius:14px;padding:12px;margin-top:10px;line-height:1.6;display:none}
+.shake{animation:sh .4s}
+@keyframes sh{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+#rank div{padding:4px 0;font-size:15px}
+</style>
+</head>
+<body>
+<header><h1>🗺️ 아메리카 지도 퍼즐</h1><div id="hdr"></div></header>
+<div id="app"></div>
+
+<script>
+/* ===== 설정 ===== */
+// Firebase 설정을 넣으면 실시간 동기화(여러 기기). null이면 이 기기 안에서만 동작(테스트용).
+const FIREBASE_CONFIG = null;
+const COUNTRY_GEO = 'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json';
+
+// 사진은 photos 폴더에 p1.jpg ~ p5.jpg 로 넣기 (공개 라이선스 사진 권장, 출처는 caption 옆에 적기)
+const PROBLEMS = [
+  {photo:'photos/p1.jpg', caption:'안데스 산맥의 높은 봉우리', q:'이 사진 속 산맥의 봉우리를 지도에서 찾아 찍어 보세요.',
+   lat:-32.65, lng:-70.01, tol:250, country:'Argentina',
+   fact:'안데스 산맥은 남아메리카 서쪽을 길게 가로지르는 산맥이에요. 아콩카과(약 6,960m)는 남아메리카에서 가장 높은 산이에요.'},
+  {photo:'photos/p2.jpg', caption:'끝없이 펼쳐진 열대우림', q:'세계에서 가장 넓은 열대우림이 펼쳐진 곳을 찾아 찍어 보세요.',
+   lat:-3.1, lng:-60.0, tol:350, country:'Brazil',
+   fact:'아마존 열대우림은 브라질 땅에 가장 넓게 펼쳐져 있고, 주변 여러 나라에도 걸쳐 있어요.'},
+  {photo:'photos/p3.jpg', caption:'언덕 위의 거대한 예수상', q:'리우데자네이루의 상징인 조각상이 있는 곳을 찾아 찍어 보세요.',
+   lat:-22.95, lng:-43.21, tol:150, country:'Brazil',
+   fact:'코르코바두 예수상은 높이 약 30m이고, 두 팔을 벌린 모습이에요.'},
+  {photo:'photos/p4.jpg', caption:'붉은 암석 협곡', q:'콜로라도 강이 오랜 시간 깎아 만든 거대한 협곡을 찾아 찍어 보세요.',
+   lat:36.1, lng:-112.1, tol:200, country:'United States of America',
+   fact:'그랜드캐니언은 콜로라도 강이 수백만 년에 걸쳐 땅을 깎아 만든 협곡이에요.'},
+  {photo:'photos/p5.jpg', caption:'고원 위에 자리한 대도시', q:'해발 약 2,200m 고원에 자리한 멕시코의 수도를 찾아 찍어 보세요.',
+   lat:19.43, lng:-99.13, tol:150, country:'Mexico',
+   fact:'멕시코시티는 해발 약 2,240m 고원에 있어서 세계에서 손꼽히게 높은 대도시예요.'}
+];
+const COUNTRIES = [
+  {en:'Argentina', ko:'아르헨티나', color:'#f8d7e3'},
+  {en:'Brazil', ko:'브라질', color:'#d4f0e6'},
+  {en:'United States of America', ko:'미국', color:'#e4dcf7'},
+  {en:'Mexico', ko:'멕시코', color:'#fff1c1'}
+];
+
+/* ===== 저장소 (샌드박스/시크릿 모드에서 storage 접근이 막혀도 죽지 않게) ===== */
+function makeStore(kind){
+  const mem = {};
+  let real = null;
+  try { real = window[kind]; real.setItem('__t','1'); real.removeItem('__t'); } catch(e){ real = null; }
+  return {
+    get(k){ try { return real ? real.getItem(k) : (k in mem ? mem[k] : null); } catch(e){ return k in mem ? mem[k] : null; } },
+    set(k,v){ mem[k] = v; try { if (real) real.setItem(k, v); } catch(e){} }
+  };
+}
+const LS = makeStore('localStorage');
+const SS = makeStore('sessionStorage');
+
+/* ===== 기본 ===== */
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const ROOM = params.get('room') || 'demo';
+const TEACHER = params.get('mode') === 'teacher';
+const KEY = 'pz-me-' + ROOM;
+const app = $('app');
+let me = null;
+try { me = JSON.parse(SS.get(KEY) || 'null'); } catch(e){ me = null; }
+let map = null, geo = null, pick = null, target = null, showingFact = null, selId = null, lastAll = {};
+
+let db = null;
+try {
+  if (FIREBASE_CONFIG && window.firebase) { firebase.initializeApp(FIREBASE_CONFIG); db = firebase.database(); }
+} catch(e){ db = null; }
+
+function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function km(a,b,c,d){
+  const R=6371, r=x=>x*Math.PI/180;
+  const dA=r(c-a), dB=r(d-b);
+  const h=Math.sin(dA/2)**2 + Math.cos(r(a))*Math.cos(r(c))*Math.sin(dB/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function chime(){ // 띠링띠링
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ac = new AC();
+    [0, 0.18].forEach((d,i) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'sine'; o.frequency.value = i ? 1318 : 988;
+      const t = ac.currentTime + d;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+      o.connect(g).connect(ac.destination); o.start(t); o.stop(t + 0.45);
+    });
+  }catch(e){}
+}
+
+/* ===== 데이터 동기화 ===== */
+function localAll(){ try { return JSON.parse(LS.get('pz-players-' + ROOM) || '{}'); } catch(e){ return {}; } }
+function publish(){
+  me.t = Date.now();
+  SS.set(KEY, JSON.stringify(me));
+  if (db) db.ref(`rooms/${ROOM}/players/${me.id}`).set(me);
+  else { const all = localAll(); all[me.id] = me; LS.set('pz-players-' + ROOM, JSON.stringify(all)); }
+}
+function watch(cb){
+  if (db) db.ref(`rooms/${ROOM}/players`).on('value', s => { lastAll = s.val() || {}; cb(lastAll); });
+  else { const f = () => { lastAll = localAll(); cb(lastAll); }; f(); setInterval(f, 1000); }
+}
+function ranked(all){
+  return Object.values(all || {}).map(p => ({...p, log: p.log || [], unlocked: p.unlocked || []}))
+    .sort((a,b) => (b.score - a.score) || (b.done - a.done) || ((a.lt||0) - (b.lt||0)));
+}
+
+/* ===== 시작 ===== */
+function start(){
+  if (TEACHER) return renderTeacher();
+  if (!me) return renderJoin();
+  renderStudent();
+}
+function renderJoin(){
+  app.innerHTML = `<main><section class="card" style="grid-column:1/-1;max-width:420px;margin:30px auto">
+    <h3 style="margin-top:0">이름을 입력하고 시작해요</h3>
+    <input id="nm" maxlength="10" placeholder="예: 김민지">
+    <p></p><button class="btn" id="go">시작하기</button></section></main>`;
+  const go = () => {
+    const n = $('nm').value.trim(); if (!n) return;
+    me = {id: Math.random().toString(36).slice(2,9) + Date.now().toString(36), name:n, score:0, done:0, cur:0, tries:0, log:[], unlocked:[], lt:0, t:Date.now()};
+    publish(); renderStudent();
+  };
+  $('go').onclick = go;
+  $('nm').onkeydown = e => { if (e.key === 'Enter') go(); };
+}
+
+/* ===== 학생 화면 ===== */
+function renderStudent(){
+  app.innerHTML = `<main>
+    <section class="card">
+      <div id="photo"><img id="img" alt=""><span id="cap"></span></div>
+      <p id="qtext" style="font-size:17px;font-weight:600;margin:12px 0 4px"></p>
+      <p class="msg" id="msg"></p>
+      <div class="bar"><div id="bar"></div></div>
+      <p style="font-size:14px;margin:12px 0 6px">조각 모으기 (나라 ${COUNTRIES.length}개)</p>
+      <div class="pieces" id="pieces"></div>
+      <div class="fact" id="fact"></div>
+    </section>
+    <section class="card">
+      <div id="map"></div>
+      <h3 style="margin:12px 0 6px">실시간 순위</h3>
+      <div id="rank"></div>
+    </section></main>`;
+  map = L.map('map', {minZoom: 2}).fitBounds([[-56,-168],[72,-34]]);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap'}).addTo(map);
+  map.on('click', onMapClick);
+  fetch(COUNTRY_GEO).then(r => r.json())
+    .then(g => { geo = L.geoJSON(g, {style: styleFor}).addTo(map); })
+    .catch(() => msg('국가 경계를 못 불러왔어요. 인터넷을 확인해 주세요.', 'ng'));
+  $('img').onerror = () => { $('img').style.display = 'none'; };
+  watch(all => { renderHdr(); renderRank(all); });
+  renderProblem();
+  renderHdr();
+}
+function renderHdr(){
+  if (TEACHER) { $('hdr').innerHTML = `<span class="chip">방 코드: ${esc(ROOM)}</span>`; return; }
+  $('hdr').innerHTML = `<span class="chip">👤 ${esc(me.name)}</span><span class="chip">⭐ ${me.score}점</span><span class="chip">🧩 ${me.unlocked.length}/${COUNTRIES.length}</span>`;
+}
+function renderRank(all){
+  const list = ranked(all).slice(0, 10);
+  $('rank').innerHTML = list.length ? list.map((p,i) =>
+    `<div style="${p.id===me.id?'font-weight:700;background:var(--yel);border-radius:8px;padding:4px 8px':''}">${i+1}등 ${esc(p.name)} — ${p.score}점 (${p.done}/${PROBLEMS.length})</div>`).join('')
+    : '아직 아무도 없어요';
+}
+function msg(text, cls=''){ const m = $('msg'); m.textContent = text; m.className = 'msg ' + cls; }
+function styleFor(f){
+  const c = COUNTRIES.find(c => c.en === f.properties.name);
+  const on = c && me && me.unlocked.includes(c.en);
+  return on ? {fillColor:c.color, fillOpacity:.85, color:'#b9a9cf', weight:1}
+            : {fillColor:'#ffffff', fillOpacity:0, color:'#c9bfd6', weight:1};
+}
+function refreshPieces(){
+  $('pieces').innerHTML = COUNTRIES.map(c => {
+    const on = me.unlocked.includes(c.en);
+    return `<span class="piece ${on?'on':''}" style="${on?'background:'+c.color:''}">${on?'🧩 ':'🔒 '}${c.ko}</span>`;
+  }).join('');
+  $('bar').style.width = (me.done / PROBLEMS.length * 100) + '%';
+  if (geo) geo.setStyle(styleFor);
+}
+function renderProblem(){
+  if (pick) { map.removeLayer(pick); pick = null; }
+  if (target) { map.removeLayer(target); target = null; }
+  $('fact').style.display = 'none';
+  const p = PROBLEMS[me.cur];
+  if (!p) return finish();
+  $('img').src = p.photo; $('img').style.display = '';
+  $('cap').textContent = p.caption;
+  $('qtext').textContent = `${me.cur+1}번. ${p.q}`;
+  msg('');
+  refreshPieces();
+}
+function onMapClick(e){
+  if (showingFact) return;
+  const p = PROBLEMS[me.cur]; if (!p) return;
+  if (pick) map.removeLayer(pick);
+  pick = L.circleMarker(e.latlng, {radius:7, color:'#8e7cc3', fillColor:'#c8b6f0', fillOpacity:.9}).addTo(map);
+  const d = km(e.latlng.lat, e.latlng.lng, p.lat, p.lng);
+  if (d <= p.tol) solved(p);
+  else {
+    me.tries++;
+    msg(`아쉬워요! 정답과 약 ${Math.round(d).toLocaleString()}km 떨어져 있어요. 다시 찍어 보세요.`, 'ng');
+    const el = $('map'); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+  }
+}
+function solved(p){
+  const first = me.tries === 0;
+  me.score += first ? 2 : 1; me.done++; me.cur++; me.lt = Date.now(); me.tries = 0;
+  me.log.push({q:p.caption, first});
+  if (!me.unlocked.includes(p.country)) me.unlocked.push(p.country);
+  publish(); chime();
+  target = L.circleMarker([p.lat, p.lng], {radius:9, color:'#2e8b6b', fillColor:'#7fd8b5', fillOpacity:.9}).addTo(map);
+  msg('정답! 🎉', 'ok');
+  const c = COUNTRIES.find(c => c.en === p.country);
+  showingFact = p;
+  const fact = $('fact');
+  fact.style.display = 'block';
+  fact.innerHTML = `<b>${c ? esc(c.ko) : ''} 조각을 얻었어요 🧩</b><br>${esc(p.fact)}<br><br><button class="btn" id="next">${me.cur >= PROBLEMS.length ? '결과 보기 →' : '다음 문제 →'}</button>`;
+  $('next').onclick = () => { showingFact = null; renderProblem(); };
+  renderHdr(); refreshPieces();
+}
+function finish(){
+  $('photo').style.display = 'none';
+  $('qtext').textContent = '🎉 모든 문제를 풀었어요! 아메리카 대륙 지도 퍼즐 완성!';
+  $('bar').style.width = '100%';
+  $('pieces').innerHTML = '';
+  if (geo) geo.setStyle(styleFor);
+}
+
+/* ===== 교사 화면 ===== */
+function renderTeacher(){
+  app.innerHTML = `<main>
+    <section class="card"><h3 style="margin-top:0">실시간 순위</h3><div id="tbl"></div></section>
+    <section class="card" id="detail"><p>학생 이름을 누르면 지금 어느 문제를 풀고 있는지 볼 수 있어요.</p></section></main>`;
+  $('tbl').onclick = e => {
+    const b = e.target.closest('[data-id]');
+    if (b) { selId = b.dataset.id; renderTable(lastAll); renderDetail(lastAll); }
+  };
+  watch(all => { renderHdr(); renderTable(all); renderDetail(all); });
+  renderHdr();
+}
+function renderTable(all){
+  const list = ranked(all);
+  $('tbl').innerHTML = list.length ? `<table><tr><th>#</th><th>이름</th><th>점수</th><th>진도</th></tr>` +
+    list.map((p,i) => `<tr class="${p.id===selId?'pick':''}"><td>${i+1}</td>
+      <td><button class="name" data-id="${esc(p.id)}">${esc(p.name)}</button></td>
+      <td>${p.score}</td><td>${p.done}/${PROBLEMS.length}</td></tr>`).join('') + `</table>`
+    : '아직 접속한 학생이 없어요';
+}
+function renderDetail(all){
+  const p = (all || {})[selId]; if (!p) return;
+  const cur = PROBLEMS[p.cur];
+  const now = cur ? `${p.cur+1}번 — ${esc(cur.caption)} (${esc(cur.q)})` : '모두 완료 🎉';
+  const log = (p.log || []).map((l,i) => `<div>✅ ${i+1}. ${esc(l.q)} ${l.first ? '(한 번에 정답)' : '(재시도 후 정답)'}</div>`).join('');
+  $('detail').innerHTML = `<h3 style="margin-top:0">${esc(p.name)}</h3>
+    <p><b>지금 풀고 있는 문제:</b> ${now}</p>
+    <p>점수 ${p.score} · 진도 ${p.done}/${PROBLEMS.length} · 마지막 활동 ${new Date(p.t).toLocaleTimeString('ko-KR')}</p>
+    <h4>푼 문제</h4>${log || '아직 없음'}`;
+}
+
+start();
+</script>
+</body>
+</html>
