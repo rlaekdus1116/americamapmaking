@@ -3,334 +3,438 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>아메리카 지도 만들기 v3</title>
+<title>아메리카 지도 만들기 v4</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
-:root{--bg:#fdf6f0;--ink:#4a4458;--pink:#f8d7e3;--mint:#d4f0e6;--lav:#e4dcf7;--yel:#fff1c1;--blue:#d6e9fb;--line:#e8dfe6;--red:#c0576d;--green:#2e8b6b}
-*{box-sizing:border-box}body{margin:0;font-family:"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
-header{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;padding:13px 18px;background:var(--pink)}
-h1{font-size:20px;margin:0}#hdr{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.chip{background:#fff;border-radius:999px;padding:5px 12px;font-size:14px}
-main{display:grid;grid-template-columns:minmax(300px,.9fr) minmax(360px,1.1fr);gap:14px;padding:14px;max-width:1400px;margin:auto}
-@media(max-width:850px){main{grid-template-columns:1fr;padding:10px}}
-.card{background:#fff;border-radius:18px;padding:14px;box-shadow:0 2px 8px #0001;min-width:0}
-#photo{position:relative;width:100%;height:245px;border-radius:14px;background:var(--lav);overflow:hidden}
-#img{width:100%;height:100%;object-fit:cover;display:block}#cap{position:absolute;left:0;bottom:0;right:0;padding:8px 11px;background:#0008;color:#fff;font-size:14px}
-#photoCredit{font-size:11px;color:#81798a;margin:6px 2px 10px}#photoCredit a{color:inherit}
-#map{height:520px;border-radius:16px;overflow:hidden}@media(max-width:850px){#map{height:440px}}
-.btn{border:0;border-radius:12px;padding:10px 16px;font-size:15px;background:var(--mint);color:var(--ink);cursor:pointer}
-.btn:hover{filter:brightness(.97)}.btn:disabled{opacity:.45;cursor:not-allowed}.btn.secondary{background:#f0ebf3}
-input{font-size:16px;padding:11px;border-radius:10px;border:1px solid var(--line);width:100%}
-.msg{min-height:24px;font-weight:650;margin:9px 0;color:var(--ink);line-height:1.5}.msg.ok{color:var(--green)}.msg.ng{color:var(--red)}
-.bar{height:12px;background:#eee;border-radius:99px;overflow:hidden}.bar>div{height:100%;width:0;background:linear-gradient(90deg,var(--lav),var(--mint));transition:width .35s}
-.pieces{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.piece{padding:6px 10px;border-radius:10px;background:var(--line);font-size:13px;color:#aaa}.piece.on{color:var(--ink);font-weight:650}
-.fact{background:var(--blue);border-radius:14px;padding:12px;margin-top:10px;line-height:1.65}.fact[hidden]{display:none}
-.wait{display:none;background:var(--yel);border-radius:10px;padding:9px 12px;font-weight:700;text-align:center;margin:8px 0}
-.attempts{font-size:13px;color:#756d80;margin:5px 0}.taskhead{display:flex;justify-content:space-between;gap:8px;align-items:center;margin:8px 0 2px}.taskhead small{color:#81798a}
-#qtext{font-size:17px;font-weight:700;line-height:1.55;margin:8px 0}#rank div{padding:6px 8px;font-size:14px;border-radius:8px}#rank .mine{font-weight:750;background:var(--yel)}
-table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:9px 6px;border-bottom:1px solid var(--line);text-align:left}th{font-weight:700}
-.muted{color:#81798a;font-size:13px;line-height:1.5}.nameBtn{background:none;border:0;color:var(--ink);text-decoration:underline dotted;cursor:pointer;font:inherit;padding:0}
-#teacherActions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.logrow{padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
-.shake{animation:sh .35s}@keyframes sh{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+:root{
+  --bg1:#fff9fb; --bg2:#f7f5ff; --ink:#5a5068; --sub:#8a8099;
+  --pink:#ffd8ea; --pink2:#ffe7f2; --mint:#dff7ee; --lav:#ece6ff; --yel:#fff5c8; --sky:#ddf0ff;
+  --line:#eadff1; --good:#2d9d77; --bad:#d86482; --chip:#ffffff;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;color:var(--ink);
+  background:radial-gradient(circle at top left,#fff 0, var(--bg1) 35%, var(--bg2) 100%)}
+header{position:sticky;top:0;z-index:10;padding:14px 18px;background:rgba(255,250,253,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.headIn{max-width:1320px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+h1{margin:0;font-size:24px;display:flex;align-items:center;gap:10px}.titleBadge{font-size:12px;padding:6px 10px;border-radius:999px;background:var(--lav)}
+#hdr{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{background:var(--chip);border:1px solid var(--line);padding:7px 12px;border-radius:999px;box-shadow:0 4px 14px rgba(128,108,156,.08);font-size:14px}
+main{max-width:1320px;margin:18px auto;padding:0 14px;display:grid;grid-template-columns:420px 1fr;gap:16px}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid var(--line);border-radius:28px;padding:16px;box-shadow:0 10px 30px rgba(131,111,156,.09)}
+.card h2,.card h3{margin:0 0 10px}
+#photoWrap{position:relative;background:linear-gradient(135deg,#f6eeff,#ecfbf6);border-radius:24px;overflow:hidden;height:260px;border:1px solid var(--line)}
+#img{width:100%;height:100%;object-fit:cover;display:block}
+#cap{position:absolute;left:10px;right:10px;bottom:10px;background:rgba(255,255,255,.88);padding:10px 12px;border-radius:18px;font-size:14px;backdrop-filter:blur(8px)}
+#photoCredit{font-size:12px;color:var(--sub);margin-top:8px;min-height:18px}
+#photoCredit a{color:inherit}
+#qbox{background:#fffaf0;border:1px dashed #eddca0;border-radius:22px;padding:14px;margin-top:14px}
+#qtext{font-size:17px;line-height:1.55;font-weight:700}
+.subline{font-size:13px;color:var(--sub);margin:8px 0 0}
+.bar{height:14px;border-radius:999px;background:#f2eef6;overflow:hidden;margin:12px 0 6px;border:1px solid var(--line)}
+.bar>div{height:100%;width:0;background:linear-gradient(90deg,#f7c5e0,#d8f1e7,#d8e6ff);transition:width .35s}
+#pieces{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.piece{padding:8px 12px;border-radius:999px;background:#f5f1f8;border:1px solid var(--line);font-size:13px;color:#9f98aa}
+.piece.on{color:var(--ink);font-weight:700;transform:translateY(-1px)}
+.msg{min-height:25px;font-weight:700;margin:12px 0 0}.ok{color:var(--good)}.ng{color:var(--bad)}
+.waitBox{display:none;margin-top:10px;background:var(--yel);border:1px solid #eedf9d;padding:12px;border-radius:18px;font-weight:700;text-align:center}
+.fact{display:none;background:var(--sky);border:1px solid #c8e0f2;padding:14px;border-radius:20px;margin-top:12px;line-height:1.6}
+.fact b{display:block;margin-bottom:6px}
+.btn{appearance:none;border:0;cursor:pointer;border-radius:999px;padding:12px 18px;background:linear-gradient(180deg,#ffe4f0,#ffd2e5);color:var(--ink);font-weight:800;box-shadow:0 6px 0 #f2bfd7, 0 12px 24px rgba(242,191,215,.35)}
+.btn:hover{transform:translateY(1px)} .btn:active{transform:translateY(2px)} .btn[disabled]{opacity:.5;cursor:not-allowed;transform:none;box-shadow:0 6px 0 #e5dbe0}
+.btn.mint{background:linear-gradient(180deg,#e9fbf4,#d5f5e7);box-shadow:0 6px 0 #bce7d2, 0 12px 24px rgba(188,231,210,.35)}
+input{width:100%;padding:14px 16px;font-size:16px;border:1px solid var(--line);border-radius:18px;outline:none;background:#fff}
+input:focus{box-shadow:0 0 0 4px rgba(221,208,255,.4)}
+#map{height:640px;border-radius:26px;border:1px solid var(--line);overflow:hidden}
+@media(max-width:980px){#map{height:500px}}
+.rankBox{margin-top:14px}
+.rankItem{padding:9px 12px;background:#fff;border:1px solid var(--line);border-radius:18px;margin-top:8px}
+.rankItem.me{background:#fff8cb;font-weight:800}
+.tableWrap{overflow:auto}
+table{width:100%;border-collapse:separate;border-spacing:0 8px} th{font-size:13px;color:var(--sub);font-weight:700;text-align:left;padding:0 10px}
+td{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:10px;font-size:14px}
+td:first-child{border-left:1px solid var(--line);border-radius:14px 0 0 14px} td:last-child{border-right:1px solid var(--line);border-radius:0 14px 14px 0}
+.nameBtn{background:none;border:0;color:var(--ink);font:inherit;font-weight:700;text-decoration:underline dotted;cursor:pointer;padding:0}
+.muted{color:var(--sub);font-size:13px;line-height:1.5}
+.joinWrap{max-width:460px;margin:50px auto}
+.shake{animation:shake .36s}@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.smallPill{display:inline-block;padding:6px 10px;border-radius:999px;background:#f5f1fb;border:1px solid var(--line);font-size:12px;margin-right:6px}
+@media(max-width:980px){main[style*="grid-template-columns"]{grid-template-columns:1fr!important}}
+#photoWrap{margin-top:14px}
+#nextWrap{min-height:18px}
+.btn.secondary{background:#f5f0fc;border:1px solid var(--line)}
 </style>
 </head>
 <body>
-<header><h1>🗺️ 아메리카 지도 만들기 <span style="font-size:12px;font-weight:500">v3 · 약 35분</span></h1><div id="hdr"></div></header>
+<header>
+  <div class="headIn">
+    <h1>🧭 아메리카 지도 만들기 <span class="titleBadge">v5 · 동글동글 30문항</span></h1>
+    <div id="hdr"></div>
+  </div>
+</header>
 <div id="app"></div>
 <script>
-/* americamapmaking 전용 Firebase */
-const FIREBASE_CONFIG = {
-  authDomain:"americamapmaking.firebaseapp.com",
-  databaseURL:"https://americamapmaking-default-rtdb.firebaseio.com",
-  projectId:"americamapmaking",
-  storageBucket:"americamapmaking.firebasestorage.app",
-  messagingSenderId:"260167025585",
-  appId:"1:260167025585:web:6cc4c97234bbd5a04f7390",
-  measurementId:"G-29RE67B58S"
+/* 아메리카 지도 만들기 / Firebase 연결 방식: Firebase Hosting 자동 초기화 URL.
+   GitHub 소스에는 API 키를 직접 넣지 않습니다. */
+const PROJECT_ID = 'americamapmaking';
+const DATABASE_URL = 'https://americamapmaking-default-rtdb.firebaseio.com';
+const COUNTRY_GEO = 'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json';
+const params = new URLSearchParams(location.search);
+const ROOM = params.get('room') || 'demo';
+const TEACHER = params.get('mode') === 'teacher' || params.get('t') === '1';
+const roomKey = encodeURIComponent(ROOM).replace(/\./g,'%2E');
+const PLAYERS_PATH = 'rooms/' + roomKey + '/players';
+const $ = id => document.getElementById(id);
+const app = $('app');
+const localMem = {};
+const store = {
+  get(k){try{return localStorage.getItem(k)}catch(e){return localMem[k]||null}},
+  set(k,v){localMem[k]=v;try{localStorage.setItem(k,v)}catch(e){}},
+  del(k){delete localMem[k];try{localStorage.removeItem(k)}catch(e){}}
 };
-firebase.initializeApp(FIREBASE_CONFIG);
-const db=firebase.database();
-const params=new URLSearchParams(location.search);
-const ROOM=params.get("room")||"demo";
-const TEACHER=params.get("mode")==="teacher"||params.get("t")==="1";
-const roomKey=encodeURIComponent(ROOM).replace(/\./g,"%2E");
-const playersPath="rooms/"+roomKey+"/players";
-const playersRef=db.ref(playersPath);
-const $=id=>document.getElementById(id);
-let serverOffset=0,me=null,playerRef=null,map=null,geo=null,pickMarker=null,targetMarker=null,countdownTimer=null;
-let lastAll={},playerListener=null,renderedState="",submitting=false;
-db.ref(".info/serverTimeOffset").on("value",s=>{serverOffset=s.val()||0;});
+let db = null, playersRef = null, playerRef = null, playerListener = null, playersListener = null;
+let me = null, map = null, geo = null, pick = null, target = null, lastAll = {}, selectedKey = '';
+let countdownTimer = null, photoNonce=0, serverOffset=0, renderedSig='', submitting=false, firebaseState='connecting';
 const serverNow=()=>Date.now()+serverOffset;
+const MAX_TRIES=3, COOLDOWN_MS=10000;
 
-const PROBLEMS=[{"id":"statue-liberty","caption":"뉴욕 항구의 횃불 든 동상","q":"뉴욕 항구의 작은 섬에 세워진, 프랑스가 미국에 선물한 거대한 동상을 찾아보세요.","wiki":"Statue_of_Liberty","lat":40.6892,"lng":-74.0445,"tol":0.8,"country":"United States of America","answerName":"자유의 여신상","fact":"자유의 여신상은 프랑스가 미국 독립 100주년을 기념해 선물한 조각상으로 1886년에 공개되었어요.","photo":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Front_view_of_Statue_of_Liberty_%28cropped%29.jpg/900px-Front_view_of_Statue_of_Liberty_%28cropped%29.jpg","source":"https://en.wikipedia.org/wiki/Statue_of_Liberty","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"horseshoe-falls","caption":"국경을 가로지르는 말발굽 모양 폭포","q":"미국과 캐나다 국경의 나이아가라강에서 말발굽 모양으로 떨어지는 가장 큰 폭포를 찾아보세요.","wiki":"Niagara_Falls","lat":43.0799,"lng":-79.0747,"tol":0.9,"country":"Canada","answerName":"호스슈 폭포","fact":"나이아가라 폭포는 세 폭포로 이루어져 있고, 호스슈 폭포가 가장 큰 부분을 차지해요.","photo":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/3Falls_Niagara.jpg/900px-3Falls_Niagara.jpg","source":"https://en.wikipedia.org/wiki/Niagara_Falls","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"white-house","caption":"미국 수도의 흰색 관저","q":"미국 대통령의 공식 관저이자 집무 공간인 흰색 건물을 찾아보세요.","wiki":"White_House","lat":38.89777778,"lng":-77.03638889,"tol":0.5,"country":"United States of America","answerName":"백악관","fact":"백악관은 워싱턴 D.C.의 펜실베이니아 애비뉴 1600번지에 있어요.","photo":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/White_House_north_and_south_sides.jpg/900px-White_House_north_and_south_sides.jpg","source":"https://en.wikipedia.org/wiki/White_House","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"gateway-arch","caption":"강변의 은색 아치","q":"세인트루이스 미시시피강 서쪽 강변에 세워진 높고 가느다란 은색 아치 조형물을 찾아보세요.","wiki":"Gateway_Arch","lat":38.6247,"lng":-90.1848,"tol":0.5,"country":"United States of America","answerName":"게이트웨이 아치","fact":"게이트웨이 아치는 미국 서부 개척과 세인트루이스의 역사적 역할을 상징해요.","photo":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/St_Louis_night_expblend_cropped.jpg/900px-St_Louis_night_expblend_cropped.jpg","source":"https://en.wikipedia.org/wiki/Gateway_Arch","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"mount-rushmore","caption":"바위산에 새겨진 네 얼굴","q":"사우스다코타주 블랙힐스의 화강암 절벽에 미국 대통령 네 명의 얼굴이 새겨진 기념물을 찾아보세요.","wiki":"Mount_Rushmore","lat":43.8791,"lng":-103.4591,"tol":0.8,"country":"United States of America","answerName":"러시모어산 대통령 조각","fact":"조지 워싱턴, 토머스 제퍼슨, 시어도어 루스벨트, 에이브러햄 링컨의 얼굴이 조각되어 있어요.","photo":"","source":"https://en.wikipedia.org/wiki/Mount_Rushmore","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"old-faithful","caption":"뜨거운 물기둥을 뿜는 간헐천","q":"옐로스톤 국립공원에서 비교적 일정한 간격으로 뜨거운 물을 분출하는 간헐천을 찾아보세요.","wiki":"Old_Faithful","lat":44.46047,"lng":-110.82814,"tol":0.8,"country":"United States of America","answerName":"올드 페이스풀 간헐천","fact":"올드 페이스풀은 비교적 규칙적인 간격으로 물과 수증기를 분출하는 원뿔형 간헐천이에요.","photo":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Yellowstone_National_Park_%28WY%2C_USA%29%2C_Old_Faithful_Geyser_--_2022_--_2599.jpg/900px-Yellowstone_National_Park_%28WY%2C_USA%29%2C_Old_Faithful_Geyser_--_2022_--_2599.jpg","source":"https://en.wikipedia.org/wiki/Old_Faithful","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"mather-point","caption":"깊은 협곡을 내려다보는 전망대","q":"그랜드캐니언 사우스림에서 협곡을 내려다볼 수 있는 대표 전망 지점을 찾아보세요.","wiki":"Mather_Point","lat":36.0616497,"lng":-112.1079463,"tol":0.6,"country":"United States of America","answerName":"매더 포인트","fact":"매더 포인트는 그랜드캐니언 사우스림의 대표 전망 지점이에요.","photo":"","source":"https://en.wikipedia.org/wiki/Mather_Point","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"golden-gate","caption":"바다 위 주홍빛 현수교","q":"샌프란시스코만 입구를 가로지르는 주홍빛 현수교의 남쪽 주탑 위치를 찾아보세요.","wiki":"Golden_Gate_Bridge","lat":37.81972222,"lng":-122.47861111,"tol":0.5,"country":"United States of America","answerName":"골든게이트교 남쪽 주탑","fact":"골든게이트교는 샌프란시스코와 마린 카운티를 연결하는 현수교예요.","photo":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Golden_Gate_Bridge_as_seen_from_Battery_East.jpg/900px-Golden_Gate_Bridge_as_seen_from_Battery_East.jpg","source":"https://en.wikipedia.org/wiki/Golden_Gate_Bridge","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"space-needle","caption":"접시 모양 전망대가 있는 탑","q":"시애틀 세계박람회를 위해 만들어진 접시 모양 전망대가 있는 탑을 찾아보세요.","wiki":"Space_Needle","lat":47.6204,"lng":-122.3491,"tol":0.5,"country":"United States of America","answerName":"스페이스 니들","fact":"스페이스 니들은 1962년 시애틀 세계박람회를 위해 세워진 전망탑이에요.","photo":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Space_Needle_2011-07-04.jpg/900px-Space_Needle_2011-07-04.jpg","source":"https://en.wikipedia.org/wiki/Space_Needle","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"cn-tower","caption":"토론토 도심의 높은 통신탑","q":"캐나다 토론토 도심에 우뚝 솟아 있는 통신·전망용 탑을 찾아보세요.","wiki":"CN_Tower","lat":43.64255556,"lng":-79.38708333,"tol":0.5,"country":"Canada","answerName":"CN 타워","fact":"CN 타워는 토론토를 대표하는 랜드마크이자 통신·전망용 탑이에요.","photo":"","source":"https://en.wikipedia.org/wiki/CN_Tower","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"chichen-itza","caption":"마야 문명의 계단식 피라미드","q":"유카탄반도의 마야 유적 도시에서 네 면에 계단이 있고 꼭대기에 신전이 있는 대표 피라미드를 찾아보세요.","wiki":"Chichen_Itza","lat":20.68305556,"lng":-88.56861111,"tol":0.5,"country":"Mexico","answerName":"치첸이트사 엘 카스티요","fact":"엘 카스티요는 쿠쿨칸 신과 관련된 계단식 피라미드예요.","photo":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Chichen_Itza_3.jpg/900px-Chichen_Itza_3.jpg","source":"https://en.wikipedia.org/wiki/Chichen_Itza","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"pyramid-sun","caption":"고대 도시의 거대한 피라미드","q":"멕시코시티 북동쪽 고대 도시에서 가장 큰 계단식 피라미드를 찾아보세요.","wiki":"Pyramid_of_the_Sun","lat":19.6925,"lng":-98.84388889,"tol":0.5,"country":"Mexico","answerName":"테오티우아칸 태양의 피라미드","fact":"태양의 피라미드는 테오티우아칸에서 가장 큰 건축물 가운데 하나예요.","photo":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/ZA77_Teotihuac%C3%A1n_edo_de_mex_Herberto_de_la_rosa.jpg/900px-ZA77_Teotihuac%C3%A1n_edo_de_mex_Herberto_de_la_rosa.jpg","source":"https://en.wikipedia.org/wiki/Pyramid_of_the_Sun","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"tulum-castle","caption":"바다 절벽 위 마야 건축물","q":"카리브해가 내려다보이는 석회암 절벽 위에 세워진 마야 해안 도시의 성채를 찾아보세요.","wiki":"Tulum_(archaeological_site)","lat":20.2149,"lng":-87.429,"tol":0.5,"country":"Mexico","answerName":"툴룸 엘 카스티요","fact":"툴룸은 마야 문명의 해안 도시였고, 엘 카스티요는 절벽 위에 자리해 있어요.","photo":"","source":"https://en.wikipedia.org/wiki/Tulum_(archaeological_site)","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"temple-inscriptions","caption":"밀림 속 계단식 석조 신전","q":"치아파스주의 밀림 속 마야 도시에서 왕의 무덤과 관련된 계단식 신전을 찾아보세요.","wiki":"Temple_of_the_Inscriptions","lat":17.4842,"lng":-92.0464,"tol":0.5,"country":"Mexico","answerName":"팔렝케 비문의 신전","fact":"비문의 신전은 팔렝케의 대표 건축물로 파칼 왕의 무덤과 관련되어 있어요.","photo":"","source":"https://en.wikipedia.org/wiki/Temple_of_the_Inscriptions","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"havana-capitol","caption":"거대한 돔이 있는 수도의 건물","q":"쿠바 수도 중심부에 있는 거대한 돔과 기둥이 특징인 건물을 찾아보세요.","wiki":"National_Capitol_of_Cuba","lat":23.13528,"lng":-82.35944,"tol":0.5,"country":"Cuba","answerName":"아바나 국회의사당(엘 카피톨리오)","fact":"엘 카피톨리오는 1929년에 완공된 아바나의 대표 건축물이에요.","photo":"","source":"https://en.wikipedia.org/wiki/National_Capitol_of_Cuba","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"blue-hole","caption":"산호초 한가운데의 파란 원형 구멍","q":"벨리즈 앞바다 산호초에 있는 지름 약 300m의 원형 해양 싱크홀을 찾아보세요.","wiki":"Great_Blue_Hole","lat":17.31527778,"lng":-87.53444444,"tol":0.8,"country":"Belize","answerName":"그레이트 블루 홀","fact":"그레이트 블루 홀은 폭 약 318m의 원형 해양 싱크홀로 라이트하우스 리프에 있어요.","photo":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/61/Great_Blue_Hole.jpg/900px-Great_Blue_Hole.jpg","source":"https://en.wikipedia.org/wiki/Great_Blue_Hole","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"miraflores-locks","caption":"배가 수위를 바꾸는 운하 갑문","q":"파나마 운하의 태평양 쪽에서 배가 갑문을 통과하며 수위를 바꾸는 시설을 찾아보세요.","wiki":"Miraflores_Locks","lat":8.9941,"lng":-79.5908,"tol":0.5,"country":"Panama","answerName":"미라플로레스 갑문","fact":"미라플로레스 갑문은 파나마 운하의 태평양 쪽 갑문 시설이에요.","photo":"","source":"https://en.wikipedia.org/wiki/Miraflores_Locks","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"copan-stairway","caption":"상형문자가 새겨진 돌계단","q":"온두라스의 마야 유적에서 왕조 역사를 상형문자로 새긴 계단을 찾아보세요.","wiki":"Copan","lat":14.837,"lng":-89.1416,"tol":0.5,"country":"Honduras","answerName":"코판 마야 유적의 상형문자 계단","fact":"코판의 상형문자 계단에는 마야 왕조 역사를 기록한 비문이 새겨져 있어요.","photo":"","source":"https://en.wikipedia.org/wiki/Copan","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"christ-redeemer","caption":"산 정상의 두 팔 벌린 조각상","q":"브라질 리우데자네이루의 산 정상에서 도시를 내려다보는 두 팔 벌린 거대한 조각상을 찾아보세요.","wiki":"Christ_the_Redeemer_(statue)","lat":-22.9519,"lng":-43.2105,"tol":0.5,"country":"Brazil","answerName":"구세주 그리스도상","fact":"구세주 그리스도상은 1931년에 공개된 리우데자네이루의 상징이에요.","photo":"","source":"https://en.wikipedia.org/wiki/Christ_the_Redeemer_(statue)","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"sugarloaf","caption":"항구 옆에 솟은 둥근 바위산","q":"리우데자네이루 항구 입구에 있으며 케이블카로 오를 수 있는 둥근 바위산을 찾아보세요.","wiki":"Sugarloaf_Mountain","lat":-22.9494,"lng":-43.1567,"tol":0.5,"country":"Brazil","answerName":"슈거로프산","fact":"슈거로프산은 구아나바라만 입구에 있는 높이 약 396m의 바위산이에요.","photo":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/P%C3%A3o_de_A%C3%A7ucar_-_Sugarloaf_Mountain_-_Zuckerhut_-_2022.jpg/900px-P%C3%A3o_de_A%C3%A7ucar_-_Sugarloaf_Mountain_-_Zuckerhut_-_2022.jpg","source":"https://en.wikipedia.org/wiki/Sugarloaf_Mountain","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"devils-throat","caption":"U자형 절벽으로 떨어지는 폭포","q":"아르헨티나와 브라질 국경의 폭포 가운데 U자형 절벽 아래로 물이 쏟아지는 지점을 찾아보세요.","wiki":"Iguazu_Falls","lat":-25.6953,"lng":-54.4367,"tol":0.8,"country":"Argentina","answerName":"이과수 폭포 악마의 목구멍","fact":"악마의 목구멍은 이과수 폭포에서 가장 유명하고 웅장한 구간이에요.","photo":"","source":"https://en.wikipedia.org/wiki/Iguazu_Falls","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"machu-picchu","caption":"산등성이의 잉카 석조 도시","q":"페루 안데스산맥 해발 약 2,400m 산등성이에 있는 잉카 문명의 도시 유적을 찾아보세요.","wiki":"Machu_Picchu","lat":-13.16333333,"lng":-72.54555556,"tol":0.6,"country":"Peru","answerName":"마추픽추 유적","fact":"마추픽추는 15세기 잉카 문명의 산악 도시 유적이에요.","photo":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Machu_Picchu%2C_2023_%28012%29.jpg/900px-Machu_Picchu%2C_2023_%28012%29.jpg","source":"https://en.wikipedia.org/wiki/Machu_Picchu","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"nazca-hummingbird","caption":"사막 위에 그려진 거대한 지상화","q":"페루 남부 사막에서 하늘에서 내려다보아야 형태가 잘 보이는 동물 모양 지상화가 있는 지역을 찾아보세요.","wiki":"Nazca_lines","lat":-14.6975,"lng":-75.135,"tol":0.8,"country":"Peru","answerName":"나스카 벌새 지상화 주변","fact":"나스카 지상화는 사막 표면에 선과 도형을 새겨 만든 거대한 지상 그림이에요.","photo":"","source":"https://en.wikipedia.org/wiki/Nazca_lines","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"incahuasi","caption":"하얀 소금 평원 위의 선인장섬","q":"볼리비아 소금 평원 한가운데 선인장들이 자라는 바위섬을 찾아보세요.","wiki":"Incahuasi_Island","lat":-20.244,"lng":-67.625,"tol":0.8,"country":"Bolivia","answerName":"우유니 소금사막의 잉카와시섬","fact":"잉카와시섬은 우유니 소금사막 한가운데 솟아 있는 섬으로 거대한 선인장들이 자라요.","photo":"","source":"https://en.wikipedia.org/wiki/Incahuasi_Island","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"angel-falls","caption":"테이블산 절벽의 거대한 폭포","q":"베네수엘라 카나이마 국립공원에서 테이블산 절벽 아래로 매우 높게 떨어지는 폭포를 찾아보세요.","wiki":"Angel_Falls","lat":5.9675,"lng":-62.53555556,"tol":1,"country":"Venezuela","answerName":"앙헬 폭포","fact":"앙헬 폭포는 세계에서 가장 높은 단일 낙하 폭포로 알려져 있어요.","photo":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/SaltoAngel1.jpg/900px-SaltoAngel1.jpg","source":"https://en.wikipedia.org/wiki/Angel_Falls","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"pinnacle-rock","caption":"바다 위로 솟은 검은 바위 기둥","q":"갈라파고스 제도의 화산섬 해안에서 바다 위로 뾰족하게 솟은 바위 기둥을 찾아보세요.","wiki":"Bartolome_Island","lat":-0.285,"lng":-90.549,"tol":0.8,"country":"Ecuador","answerName":"갈라파고스 바르톨로메섬 피너클 록","fact":"피너클 록은 바르톨로메섬을 대표하는 화산암 지형이에요.","photo":"","source":"https://en.wikipedia.org/wiki/Bartolome_Island","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"ahu-tongariki","caption":"일렬로 선 거대한 석상들","q":"태평양의 이스터섬에서 거대한 석상 15개가 한 줄로 서 있는 의례용 석단을 찾아보세요.","wiki":"Ahu_Tongariki","lat":-27.12583,"lng":-109.27694,"tol":0.5,"country":"Chile","answerName":"이스터섬 아후 통가리키","fact":"아후 통가리키는 이스터섬에서 가장 큰 아후이며 모아이 15개가 서 있어요.","photo":"","source":"https://en.wikipedia.org/wiki/Ahu_Tongariki","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"perito-moreno","caption":"호수로 밀려드는 푸른 얼음벽","q":"아르헨티나 파타고니아에서 거대한 푸른 얼음벽이 호수로 밀려드는 빙하의 전망 구역을 찾아보세요.","wiki":"Perito_Moreno_Glacier","lat":-50.4766,"lng":-73.0335,"tol":1,"country":"Argentina","answerName":"페리토 모레노 빙하 전망 구역","fact":"페리토 모레노 빙하는 로스 글라시아레스 국립공원에 있는 대표 빙하예요.","photo":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Perito_Moreno_Glacier_2023.jpg/900px-Perito_Moreno_Glacier_2023.jpg","source":"https://en.wikipedia.org/wiki/Perito_Moreno_Glacier","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"torres-paine","caption":"파타고니아의 세 개의 뾰족한 봉우리","q":"칠레 파타고니아에서 세 개의 뾰족한 화강암 봉우리가 나란히 솟아 있는 산군을 찾아보세요.","wiki":"Torres_del_Paine_National_Park","lat":-50.9425,"lng":-73.4062,"tol":1.2,"country":"Chile","answerName":"토레스 델 파이네의 세 봉우리","fact":"토레스 델 파이네의 세 봉우리는 공원을 대표하는 화강암 봉우리들이에요.","photo":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Torres_del_Paine_y_cuernos_del_Paine%2C_montaje.jpg/900px-Torres_del_Paine_y_cuernos_del_Paine%2C_montaje.jpg","source":"https://en.wikipedia.org/wiki/Torres_del_Paine_National_Park","credit":"사진 자료: Wikipedia / Wikimedia Commons"},{"id":"aconcagua","caption":"안데스산맥의 높은 설산","q":"아르헨티나 안데스산맥에 있으며 남아메리카에서 가장 높은 산의 정상을 찾아보세요.","wiki":"Aconcagua","lat":-32.6531,"lng":-70.0117,"tol":1.2,"country":"Argentina","answerName":"아콩카과산 정상","fact":"아콩카과산은 해발 약 6,961m로 남아메리카에서 가장 높은 산이에요.","photo":"","source":"https://en.wikipedia.org/wiki/Aconcagua","credit":"사진 자료: Wikipedia / Wikimedia Commons"}];
-const COUNTRIES=[{"en":"United States of America","ko":"미국","color":"#e4dcf7"},{"en":"Canada","ko":"캐나다","color":"#f8d7e3"},{"en":"Mexico","ko":"멕시코","color":"#fff1c1"},{"en":"Cuba","ko":"쿠바","color":"#d4f0e6"},{"en":"Belize","ko":"벨리즈","color":"#d6e9fb"},{"en":"Panama","ko":"파나마","color":"#f5dfcf"},{"en":"Honduras","ko":"온두라스","color":"#e6e9c8"},{"en":"Brazil","ko":"브라질","color":"#d4f0e6"},{"en":"Argentina","ko":"아르헨티나","color":"#f8d7e3"},{"en":"Peru","ko":"페루","color":"#d6e9fb"},{"en":"Bolivia","ko":"볼리비아","color":"#f4e2b8"},{"en":"Venezuela","ko":"베네수엘라","color":"#f0d9e8"},{"en":"Ecuador","ko":"에콰도르","color":"#e7e0b7"},{"en":"Chile","ko":"칠레","color":"#e4dcf7"}];
-function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function km(a,b,c,d){const R=6371,r=x=>x*Math.PI/180,da=r(c-a),dbb=r(d-b),h=Math.sin(da/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dbb/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
-function nameKey(name){return encodeURIComponent(name.trim().toLocaleLowerCase("ko-KR")).replace(/\./g,"%2E");}
-function refForName(name){return db.ref(playersPath+"/"+nameKey(name));}
-function normalize(p,key,name){
- p=p||{};return {id:key||p.id||"",name:p.name||name||"",score:Number(p.score)||0,done:Number(p.done)||0,cur:Number(p.cur)||0,tries:Number(p.tries)||0,lockUntil:Number(p.lockUntil)||0,unlocked:Array.isArray(p.unlocked)?p.unlocked:[],log:Array.isArray(p.log)?p.log:[],pending:p.pending||null,lastGuess:p.lastGuess||null,t:Number(p.t)||serverNow(),createdAt:Number(p.createdAt)||serverNow()};
+/* 문제는 나라별로 분산시키고, 실제 정답은 특정 건물/유적/지점 좌표로 한정합니다. */
+const PROBLEMS = [
+  {wiki:'Statue_of_Liberty', caption:'자유의 여신상', q:'미국 뉴욕 항구의 리버티섬에 세워진 자유의 여신상을 찾아 찍어 보세요.', lat:40.6892, lng:-74.0445, tol:0.7, country:'United States of America', fact:'자유의 여신상은 프랑스가 미국 독립 100주년을 기념해 선물한 조각상이에요.'},
+  {wiki:'Niagara_Falls', caption:'호스슈 폭포', q:'캐나다와 미국 국경의 나이아가라강에서 말발굽 모양으로 휘어 떨어지는 호스슈 폭포를 찾아보세요.', lat:43.0799, lng:-79.0747, tol:0.9, country:'Canada', fact:'호스슈 폭포는 나이아가라 폭포 가운데 가장 크고 넓은 부분이에요.'},
+  {wiki:'CN_Tower', caption:'CN 타워', q:'캐나다 토론토 도심에 우뚝 솟은 CN 타워를 찾아보세요.', lat:43.6426, lng:-79.3871, tol:0.5, country:'Canada', fact:'CN 타워는 토론토의 대표 랜드마크이자 전망 명소예요.'},
+  {wiki:'Old_Faithful', caption:'올드 페이스풀 간헐천', q:'미국 옐로스톤 국립공원에서 주기적으로 물기둥을 뿜는 올드 페이스풀 간헐천을 찾아보세요.', lat:44.4605, lng:-110.8281, tol:0.8, country:'United States of America', fact:'올드 페이스풀은 비교적 일정한 간격으로 분출하는 간헐천으로 유명해요.'},
+  {wiki:'Mount_Rushmore', caption:'러시모어산 대통령 조각', q:'미국 사우스다코타주의 화강암 절벽에 대통령 네 명의 얼굴이 새겨진 러시모어산을 찾아보세요.', lat:43.8791, lng:-103.4591, tol:0.8, country:'United States of America', fact:'러시모어산에는 미국 대통령 네 명의 얼굴이 거대한 조각으로 새겨져 있어요.'},
+  {wiki:'Chichen_Itza', caption:'치첸이트사의 엘 카스티요', q:'멕시코 유카탄반도의 마야 유적 도시 치첸이트사에 있는 엘 카스티요 피라미드를 찾아보세요.', lat:20.6831, lng:-88.5686, tol:0.6, country:'Mexico', fact:'엘 카스티요는 마야 문명의 대표적인 계단식 피라미드예요.'},
+  {wiki:'Teotihuacan', caption:'태양의 피라미드', q:'멕시코시티 북동쪽의 고대 도시 테오티우아칸에 있는 태양의 피라미드를 찾아보세요.', lat:19.6925, lng:-98.8439, tol:0.6, country:'Mexico', fact:'태양의 피라미드는 테오티우아칸에서 가장 큰 건축물 가운데 하나예요.'},
+  {wiki:'Tulum_(archaeological_site)', caption:'툴룸 엘 카스티요', q:'멕시코 카리브해 절벽 위의 마야 유적 툴룸에 있는 엘 카스티요를 찾아보세요.', lat:20.2149, lng:-87.4290, tol:0.5, country:'Mexico', fact:'툴룸은 바다를 내려다보는 위치 덕분에 마야 해안 도시로 유명해요.'},
+  {wiki:'Great_Blue_Hole', caption:'그레이트 블루 홀', q:'벨리즈 앞바다 산호초 한가운데에 있는 거대한 원형 해양 싱크홀, 그레이트 블루 홀을 찾아보세요.', lat:17.3153, lng:-87.5344, tol:1.0, country:'Belize', fact:'그레이트 블루 홀은 위에서 보면 둥근 짙은 남색 원처럼 보여요.'},
+  {wiki:'Tikal', caption:'티칼 신전 지역', q:'과테말라 밀림 속 고대 마야 도시 티칼의 대표 신전 지역을 찾아보세요.', lat:17.2216, lng:-89.6237, tol:0.8, country:'Guatemala', fact:'티칼은 거대한 피라미드 신전과 열대우림 풍경으로 유명한 마야 유적이에요.'},
+  {wiki:'Copan', caption:'코판 상형문자 계단', q:'온두라스 서부의 코판 마야 유적에서 상형문자 계단이 있는 지점을 찾아보세요.', lat:14.8370, lng:-89.1416, tol:0.6, country:'Honduras', fact:'코판의 상형문자 계단에는 마야 왕조의 역사가 새겨져 있어요.'},
+  {wiki:'Miraflores_Locks', caption:'미라플로레스 갑문', q:'파나마 운하의 태평양 쪽에 있는 미라플로레스 갑문을 찾아보세요.', lat:8.9941, lng:-79.5908, tol:0.5, country:'Panama', fact:'미라플로레스 갑문은 큰 배가 수위를 바꾸며 지나가는 운하 시설이에요.'},
+  {wiki:'National_Capitol_of_Cuba', caption:'아바나 국회의사당', q:'쿠바 아바나 중심부의 거대한 돔 건물인 국회의사당을 찾아보세요.', lat:23.1353, lng:-82.3594, tol:0.5, country:'Cuba', fact:'아바나의 국회의사당은 도시를 대표하는 웅장한 건축물이에요.'},
+  {wiki:'Columbus_Lighthouse', caption:'콜럼버스 등대', q:'도미니카공화국 산토도밍고에 있는 거대한 십자형 기념 건축물, 콜럼버스 등대를 찾아보세요.', lat:18.4794, lng:-69.8685, tol:0.6, country:'Dominican Republic', fact:'콜럼버스 등대는 크리스토퍼 콜럼버스를 기념해 세워진 건축물이에요.'},
+  {wiki:'Dunn%27s_River_Falls', caption:'던스리버 폭포', q:'자메이카의 대표 관광지인 던스리버 폭포를 찾아보세요.', lat:18.4098, lng:-77.1428, tol:0.7, country:'Jamaica', fact:'던스리버 폭포는 계단식으로 바다 쪽으로 흘러내리는 독특한 폭포예요.'},
+  {wiki:'Christ_the_Redeemer_(statue)', caption:'구세주 그리스도상', q:'브라질 리우데자네이루 코르코바두산 정상의 구세주 그리스도상을 찾아보세요.', lat:-22.9519, lng:-43.2105, tol:0.5, country:'Brazil', fact:'구세주 그리스도상은 리우데자네이루를 대표하는 상징적인 조각상이에요.'},
+  {wiki:'Sugarloaf_Mountain', caption:'슈거로프산', q:'브라질 리우데자네이루 항구 입구의 둥근 바위산, 슈거로프산을 찾아보세요.', lat:-22.9494, lng:-43.1567, tol:0.5, country:'Brazil', fact:'슈거로프산은 케이블카를 타고 오르는 전망 명소로 유명해요.'},
+  {wiki:'Iguazu_Falls', caption:'이과수 폭포 악마의 목구멍', q:'아르헨티나와 브라질 국경의 이과수 폭포 중 악마의 목구멍 구역을 찾아보세요.', lat:-25.6953, lng:-54.4367, tol:0.9, country:'Argentina', fact:'악마의 목구멍은 이과수 폭포에서 가장 웅장한 U자형 폭포 구간이에요.'},
+  {wiki:'Perito_Moreno_Glacier', caption:'페리토 모레노 빙하', q:'아르헨티나 파타고니아의 대표 빙하, 페리토 모레노 빙하를 찾아보세요.', lat:-50.4766, lng:-73.0335, tol:1.0, country:'Argentina', fact:'페리토 모레노 빙하는 거대한 얼음벽이 인상적인 파타고니아 빙하예요.'},
+  {wiki:'Aconcagua', caption:'아콩카과산 정상', q:'아르헨티나 안데스산맥의 남아메리카 최고봉, 아콩카과산 정상을 찾아보세요.', lat:-32.6531, lng:-70.0117, tol:1.2, country:'Argentina', fact:'아콩카과산은 해발 약 6,961m로 남아메리카에서 가장 높은 산이에요.'},
+  {wiki:'Machu_Picchu', caption:'마추픽추 유적', q:'페루 안데스산맥 능선에 자리한 마추픽추 유적을 찾아보세요.', lat:-13.1631, lng:-72.5450, tol:0.7, country:'Peru', fact:'마추픽추는 잉카 문명의 대표적인 산악 도시 유적이에요.'},
+  {wiki:'Sacsayhuaman', caption:'삭사이우아만', q:'페루 쿠스코 북쪽 언덕 위의 거대한 석조 유적, 삭사이우아만을 찾아보세요.', lat:-13.5097, lng:-71.9811, tol:0.6, country:'Peru', fact:'삭사이우아만은 거대한 돌을 정교하게 쌓아 만든 잉카 유적이에요.'},
+  {wiki:'Incahuasi_Island', caption:'잉카우아시 섬', q:'볼리비아 우유니 소금사막 한가운데 선인장으로 유명한 잉카우아시 섬을 찾아보세요.', lat:-20.2530, lng:-67.6254, tol:1.0, country:'Bolivia', fact:'잉카우아시 섬은 새하얀 우유니 소금사막 속 바위섬으로 유명해요.'},
+  {wiki:'Ahu_Tongariki', caption:'아후 통가리키', q:'칠레의 이스터섬에서 모아이 15기가 일렬로 서 있는 아후 통가리키를 찾아보세요.', lat:-27.1258, lng:-109.2769, tol:0.6, country:'Chile', fact:'아후 통가리키는 이스터섬에서 가장 유명한 모아이 집단 석상 유적이에요.'},
+  {wiki:'La_Portada', caption:'라 포르타다', q:'칠레 북부 안토파가스타 해안의 바위 아치 지형, 라 포르타다를 찾아보세요.', lat:-23.5064, lng:-70.5564, tol:0.8, country:'Chile', fact:'라 포르타다는 바닷가 절벽과 파도가 만든 자연 아치예요.'},
+  {wiki:'Bartolom%C3%A9_Island', caption:'바르톨로메섬 피너클 록', q:'에콰도르 갈라파고스 제도의 바르톨로메섬 해안에 솟은 피너클 록을 찾아보세요.', lat:-0.2849, lng:-90.5490, tol:0.9, country:'Ecuador', fact:'피너클 록은 바르톨로메섬을 대표하는 뾰족한 화산암 지형이에요.'},
+  {wiki:'Mitad_del_Mundo', caption:'미타드 델 문도', q:'에콰도르 키토 북쪽에 있는 적도 기념비, 미타드 델 문도를 찾아보세요.', lat:0.0023, lng:-78.4558, tol:0.6, country:'Ecuador', fact:'미타드 델 문도는 적도선 근처에 세워진 기념비예요.'},
+  {wiki:'San_Felipe_de_Barajas_Castle', caption:'산펠리페 데 바라하스 성', q:'콜롬비아 카르타헤나의 언덕 위에 세워진 요새, 산펠리페 데 바라하스 성을 찾아보세요.', lat:10.4227, lng:-75.5396, tol:0.6, country:'Colombia', fact:'산펠리페 데 바라하스 성은 스페인 식민지 시대를 대표하는 요새예요.'},
+  {wiki:'Angel_Falls', caption:'앙헬 폭포', q:'베네수엘라 카나이마 국립공원의 테이블산 절벽 아래로 떨어지는 앙헬 폭포를 찾아보세요.', lat:5.9675, lng:-62.5356, tol:1.0, country:'Venezuela', fact:'앙헬 폭포는 세계에서 가장 높은 단일 낙하 폭포로 알려져 있어요.'},
+  {wiki:'La_Mano_de_Punta_del_Este', caption:'라 마노 조각', q:'우루과이 푼타델에스테 해변 모래사장에서 손가락이 솟아오른 조각상, 라 마노를 찾아보세요.', lat:-34.9597, lng:-54.9451, tol:0.5, country:'Uruguay', fact:'라 마노는 우루과이의 유명한 해변 조각 작품이에요.'}
+];
+
+const COUNTRIES = [
+  {en:'United States of America', ko:'미국', color:'#ffe3ef'},
+  {en:'Canada', ko:'캐나다', color:'#e4f2ff'},
+  {en:'Mexico', ko:'멕시코', color:'#e4f8ea'},
+  {en:'Belize', ko:'벨리즈', color:'#fff2cb'},
+  {en:'Guatemala', ko:'과테말라', color:'#efe4ff'},
+  {en:'Honduras', ko:'온두라스', color:'#e4fbff'},
+  {en:'Panama', ko:'파나마', color:'#ffe9dd'},
+  {en:'Cuba', ko:'쿠바', color:'#fbe5ff'},
+  {en:'Dominican Republic', ko:'도미니카공화국', color:'#dff7ee'},
+  {en:'Jamaica', ko:'자메이카', color:'#fff3df'},
+  {en:'Brazil', ko:'브라질', color:'#dff8e3'},
+  {en:'Argentina', ko:'아르헨티나', color:'#dceeff'},
+  {en:'Peru', ko:'페루', color:'#ffe7e7'},
+  {en:'Bolivia', ko:'볼리비아', color:'#f2ecff'},
+  {en:'Chile', ko:'칠레', color:'#e6f5ff'},
+  {en:'Ecuador', ko:'에콰도르', color:'#fff0d9'},
+  {en:'Colombia', ko:'콜롬비아', color:'#fff7cf'},
+  {en:'Venezuela', ko:'베네수엘라', color:'#e6ffe8'},
+  {en:'Uruguay', ko:'우루과이', color:'#e9edff'}
+];
+
+
+
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function km(a,b,c,d){const r=v=>v*Math.PI/180,da=r(c-a),db=r(d-b),h=Math.sin(da/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(db/2)**2;return 12742*Math.asin(Math.min(1,Math.sqrt(h)));}
+function normName(s){return String(s||'').trim().replace(/\s+/g,' ');}
+function nameKey(n){return encodeURIComponent(normName(n).toLowerCase()).replace(/\./g,'%2E');}
+function playerPath(name){return PLAYERS_PATH+'/'+nameKey(name);}
+function fresh(name){return {id:nameKey(name),name:normName(name),score:0,done:0,cur:0,tries:0,coolUntil:0,log:[],unlocked:[],pending:null,t:serverNow(),createdAt:serverNow()};}
+function norm(p,key){p=p||{};return {id:key||p.id||'',name:p.name||'',score:Number(p.score)||0,done:Number(p.done)||0,cur:Number(p.cur)||0,tries:Number(p.tries)||0,coolUntil:Number(p.coolUntil)||0,log:Array.isArray(p.log)?p.log:[],unlocked:Array.isArray(p.unlocked)?p.unlocked:[],pending:p.pending||null,t:Number(p.t)||0,createdAt:Number(p.createdAt)||0};}
+function sig(p){return [p.cur,p.tries,p.coolUntil,p.done,p.score,p.pending?String(p.pending.idx)+p.pending.mode:''].join('|');}
+function ranked(all){return Object.keys(all||{}).map(k=>norm(all[k],k)).sort((a,b)=>(b.score-a.score)||(b.done-a.done)||((a.t||0)-(b.t||0)));}
+function hintStatus(text,cls=''){const el=$('msg');if(el){el.textContent=text;el.className='msg '+cls;}}
+function showConn(){
+  const el=$('conn');if(!el)return;
+  if(firebaseState==='online'){el.textContent='☁️ 실시간 저장';el.title='Firebase Realtime Database';}
+  else if(firebaseState==='connecting'){el.textContent='⏳ 서버 연결 중';}
+  else {el.textContent='⚠️ 서버 미연결';el.title='Firebase Hosting 설정 및 Realtime Database 규칙 확인 필요';}
 }
-function setMsg(text,cls){if(!$("msg"))return;$("msg").textContent=text;$("msg").className="msg "+(cls||"");}
-function stateSig(p){return [p.cur,p.tries,p.lockUntil,p.pending?p.pending.outcome+":"+p.pending.qIndex:"none",p.done].join("|");}
-function ranked(all){return Object.keys(all||{}).map(k=>normalize(all[k],k)).sort((a,b)=>(b.score-a.score)||(b.done-a.done)||(b.t-a.t));}
+function loadScript(url){
+  return new Promise((resolve,reject)=>{
+    const s=document.createElement('script');s.src=url;s.async=true;s.onload=resolve;s.onerror=()=>reject(new Error('자동 설정 주소 불러오기 실패'));document.head.appendChild(s);
+  });
+}
+async function initFirebase(){
+  firebaseState='connecting';showConn();
+  const origins=['https://americamapmaking.web.app','https://americamapmaking.firebaseapp.com'];
+  for(const origin of origins){
+    if(window.firebase && firebase.apps.length)break;
+    try{await loadScript(origin+'/__/firebase/init.js');}catch(e){}
+  }
+  if(!window.firebase || !firebase.apps.length){firebaseState='offline';showConn();return false;}
+  try{
+    const app=firebase.apps[0];
+    if(app.options.projectId!==PROJECT_ID || !app.options.databaseURL || !app.options.databaseURL.startsWith(DATABASE_URL))throw new Error('다른 Firebase 프로젝트 자동 설정 감지');
+    db=firebase.database(app);playersRef=db.ref(PLAYERS_PATH);
+    db.ref('.info/serverTimeOffset').on('value',s=>{serverOffset=Number(s.val())||0;});
+    db.ref('.info/connected').on('value',s=>{firebaseState=s.val()?'online':'connecting';showConn();});
+    return true;
+  }catch(e){firebaseState='offline';db=null;showConn();return false;}
+}
 function watchPlayers(cb){
- playersRef.off("value");
- playersRef.on("value",s=>{lastAll=s.val()||{};cb(lastAll);},err=>{const el=$("rank")||$("teacherTable");if(el)el.textContent="Firebase 읽기 오류: "+err.message+" · Realtime Database 규칙을 확인해 주세요.";});
+  if(!playersRef)return;
+  if(playersListener)playersRef.off('value',playersListener);
+  playersListener=s=>{lastAll=s.val()||{};cb(lastAll);};
+  playersRef.on('value',playersListener,err=>{const node=$('rank')||$('tbl');if(node)node.textContent='Firebase 읽기 실패: '+err.message+' (데이터베이스 규칙을 확인해 주세요.)';});
+}
+function watchMe(){
+  if(!playerRef)return;
+  if(playerListener)playerRef.off('value',playerListener);
+  playerListener=s=>{
+    if(!s.exists())return;
+    const next=norm(s.val(),me?.id);
+    const changed=(!me)||sig(next)!==renderedSig;
+    me=next;renderHdr();
+    if(changed && map)renderProblem();else if(map)refreshPieces();
+  };
+  playerRef.on('value',playerListener,err=>{hintStatus('Firebase에서 진도를 읽지 못했어요: '+err.message,'ng');});
 }
 function renderHdr(){
- if(TEACHER){$("hdr").innerHTML='<span class="chip">교사용 · 방 코드: '+esc(ROOM)+'</span>';return;}
- if(!me)return;
- $("hdr").innerHTML='<span class="chip">👤 '+esc(me.name)+'</span><span class="chip">⭐ '+me.score+'점</span><span class="chip">🧩 '+me.unlocked.length+'/'+COUNTRIES.length+'</span><button class="btn secondary" id="changeName" style="padding:6px 10px;font-size:12px">이름 변경</button>';
- $("changeName").onclick=()=>{try{localStorage.removeItem("amap-name-"+ROOM);}catch(e){}if(playerRef)playerRef.off("value");me=null;renderJoin();};
+  $('hdr').innerHTML=TEACHER?`<span class="chip">👩‍🏫 교사용</span><span class="chip">🏫 방 ${esc(ROOM)}</span><span class="chip" id="conn"></span>`:
+    `<span class="chip">🏫 ${esc(ROOM)}</span>`+(me?`<span class="chip">👤 ${esc(me.name)}</span><span class="chip">⭐ ${me.score}점</span><span class="chip">🧩 ${me.unlocked.length}/${COUNTRIES.length}</span><button class="btn secondary" id="changeName" style="padding:7px 12px;box-shadow:none;font-size:12px">이름 바꾸기</button>`:'')+`<span class="chip" id="conn"></span>`;
+  if($('changeName'))$('changeName').onclick=()=>{store.del('amap-name-'+ROOM);if(playerRef && playerListener)playerRef.off('value',playerListener);playerRef=null;me=null;destroyMap();renderJoin();};
+  showConn();
 }
-function renderRank(all){
- const list=ranked(all).slice(0,10);
- $("rank").innerHTML=list.length?list.map((p,i)=>'<div class="'+(p.id===me.id?"mine":"")+'">'+(i+1)+"등 "+esc(p.name)+" — "+p.score+"점 ("+p.done+"/"+PROBLEMS.length+")</div>").join(""):"아직 참여한 학생이 없어요.";
-}
-function styleFor(f){
- const c=COUNTRIES.find(x=>x.en===f.properties.name),on=c&&me&&me.unlocked.indexOf(c.en)>=0;
- return on?{fillColor:c.color,fillOpacity:.82,color:"#b9a9cf",weight:1}:{fillColor:"#fff",fillOpacity:0,color:"#c9bfd6",weight:1};
-}
+function styleFor(f){const c=COUNTRIES.find(x=>x.en===f.properties.name),active=c&&me&&me.unlocked.includes(c.en);return active?{fillColor:c.color,fillOpacity:.85,color:'#bdb2d8',weight:1}:{fillColor:'#ffffff',fillOpacity:0,color:'#d3cae0',weight:1};}
 function refreshPieces(){
- if(!$("pieces"))return;
- $("pieces").innerHTML=COUNTRIES.map(c=>{const on=me.unlocked.indexOf(c.en)>=0;return '<span class="piece '+(on?"on":"")+'" style="'+(on?"background:"+c.color:"")+'">'+(on?"🧩 ":"🔒 ")+c.ko+"</span>";}).join("");
- $("bar").style.width=(me.done/PROBLEMS.length*100)+"%";
- $("progressText").textContent=me.done+"/"+PROBLEMS.length+"개 장소 완료";
- if(geo)geo.setStyle(styleFor);renderHdr();
+  if(!$('pieces')||!me)return;
+  $('pieces').innerHTML=COUNTRIES.map(c=>{const on=me.unlocked.includes(c.en);return `<span class="piece ${on?'on':''}" style="${on?'background:'+c.color:''}">${on?'🧩':'🔒'} ${c.ko}</span>`;}).join('');
+  $('bar').style.width=(me.done/PROBLEMS.length*100)+'%';
+  $('prog').textContent=`${me.done}/${PROBLEMS.length}개 장소 완료`;
+  $('triesInfo').textContent=me.pending?'':`남은 기회 ${Math.max(0,MAX_TRIES-me.tries)}번`;if(geo)geo.setStyle(styleFor);
 }
-function clearMarkers(){if(pickMarker&&map){map.removeLayer(pickMarker);pickMarker=null;}if(targetMarker&&map){map.removeLayer(targetMarker);targetMarker=null;}}
-function showTarget(p){
- if(targetMarker)map.removeLayer(targetMarker);
- targetMarker=L.circleMarker([p.lat,p.lng],{radius:11,color:"#23865f",weight:3,fillColor:"#7fd8b5",fillOpacity:.95}).addTo(map);
- targetMarker.bindPopup("정답 위치: "+p.caption);
- map.setView([p.lat,p.lng],Math.max(map.getZoom(),7));
+function renderRank(all){if(!$('rank')||!me)return;const list=ranked(all).slice(0,10);$('rank').innerHTML=list.length?list.map((p,i)=>`<div class="rankItem ${p.id===me.id?'me':''}">${i+1}등 · ${esc(p.name)} · ⭐ ${p.score}점 · ${p.done}/${PROBLEMS.length}</div>`).join(''):'<div class="rankItem">아직 참여한 학생이 없어요.</div>';}
+function photoCredit(p){const path='https://en.wikipedia.org/wiki/'+p.wiki;return `<a href="${esc(path)}" target="_blank" rel="noopener noreferrer">📷 위키백과 사진 출처</a>`;}
+const thumbnailCache={};
+function loadProblemPhoto(p){
+  const nonce=++photoNonce,img=$('img'),cap=$('cap'),credit=$('photoCredit');
+  img.style.display='none';img.removeAttribute('src');cap.textContent=p.caption;credit.innerHTML=photoCredit(p);
+  if(thumbnailCache[p.wiki]){img.src=thumbnailCache[p.wiki];img.style.display='block';return;}
+  const api='https://en.wikipedia.org/w/api.php?action=query&redirects=1&prop=pageimages&format=json&pithumbsize=1200&origin=*&titles='+encodeURIComponent(decodeURIComponent(p.wiki));
+  const summary='https://en.wikipedia.org/api/rest_v1/page/summary/'+p.wiki;
+  const fromPageImages=()=>fetch(api).then(r=>{if(!r.ok)throw Error('MediaWiki API');return r.json();}).then(d=>{const pages=Object.values(d.query?.pages||{});const u=pages[0]?.thumbnail?.source;if(!u)throw Error('thumbnail not present');return u;});
+  const fromSummary=()=>fetch(summary).then(r=>{if(!r.ok)throw Error('summary API');return r.json();}).then(d=>{if(!d.thumbnail?.source)throw Error('thumbnail not present');return d.thumbnail.source;});
+  fromPageImages().catch(fromSummary).then(url=>{
+    thumbnailCache[p.wiki]=url;
+    if(nonce!==photoNonce)return;
+    img.onerror=()=>{if(nonce!==photoNonce)return;img.style.display='none';credit.innerHTML=photoCredit(p)+' · 이미지 주소를 불러오지 못했어요';};
+    img.src=url;img.style.display='block';
+  }).catch(()=>{if(nonce!==photoNonce)return;img.style.display='none';credit.innerHTML=photoCredit(p)+' · 이미지 로딩 실패';});
 }
-const photoCache={};
-function loadWikiPhoto(p,img){
- if(photoCache[p.wiki]){img.src=photoCache[p.wiki];return;}
- fetch("https://en.wikipedia.org/api/rest_v1/page/summary/"+encodeURIComponent(p.wiki))
-  .then(r=>{if(!r.ok)throw new Error("photo lookup failed");return r.json();})
-  .then(d=>{
-   const src=(d.thumbnail&&d.thumbnail.source)||(d.originalimage&&d.originalimage.source);
-   if(!src)throw new Error("no article image");
-   photoCache[p.wiki]=src;
-   if(img.dataset.problemId===p.id)img.src=src;
-  })
-  .catch(()=>{if(img.dataset.problemId===p.id){img.style.display="none";$("cap").textContent=p.caption+" (사진을 불러오지 못했어요)";}});
-}
-function setQuestion(p,index){
- $("photo").style.display="block";$("img").style.display="block";$("img").alt=p.caption;
- const img=$("img");img.dataset.problemId=p.id;img.dataset.fallbackDone="0";
- img.onerror=function(){
-  if(this.dataset.fallbackDone!=="1"){this.dataset.fallbackDone="1";loadWikiPhoto(p,this);}
-  else{this.style.display="none";$("cap").textContent=p.caption+" (사진을 불러오지 못했어요)";}
- };
- if(p.photo)img.src=p.photo;else loadWikiPhoto(p,img);
- $("cap").textContent=p.caption;
- $("photoCredit").innerHTML='<a href="'+esc(p.source)+'" target="_blank" rel="noopener">'+esc(p.credit)+' · 사진 출처</a>';
- $("qtext").textContent=(index+1)+"번. "+p.q;
-}
-function enableNext(){if(!$("nextBtn"))return;$("nextBtn").disabled=false;$("nextBtn").textContent=me.cur>=PROBLEMS.length?"최종 결과 보기 →":"다음 문제 →";}
-function startCountdown(){
- clearInterval(countdownTimer);
- const tick=()=>{
-  const left=Math.max(0,Math.ceil((me.lockUntil-serverNow())/1000));
-  if($("wait")){$("wait").style.display=left>0?"block":"none";$("wait").textContent=left>0?"다시 시도할 수 있을 때까지 "+left+"초":"대기 완료!";}
-  if(left<=0){clearInterval(countdownTimer);if(me.pending&&me.pending.outcome==="missed")enableNext();else if(!me.pending)setMsg("대기 끝! 이제 다시 지도에 찍어 보세요.","ok");}
- };
- tick();countdownTimer=setInterval(tick,250);
+function clearMapMarks(){if(map&&pick){map.removeLayer(pick);pick=null;}if(map&&target){map.removeLayer(target);target=null;}}
+function showTarget(p){if(!map)return;if(target)map.removeLayer(target);target=L.circleMarker([p.lat,p.lng],{radius:10,color:'#30a17b',weight:3,fillColor:'#76e0c0',fillOpacity:1}).addTo(map).bindPopup('정답: '+p.caption);map.setView([p.lat,p.lng],Math.max(map.getZoom(),7));}
+function updateCooldownUI(){
+  clearInterval(countdownTimer);
+  const tick=()=>{
+    if(!me)return;const left=Math.max(0,Math.ceil(((me.coolUntil||0)-serverNow())/1000));
+    const box=$('waitBox');if(box){box.style.display=left?'block':'none';box.textContent=left?`⏳ ${left}초 뒤에 다시 시도할 수 있어요`:'';}
+    if($('nextBtn'))$('nextBtn').disabled=left>0;
+    if(!left)clearInterval(countdownTimer);
+  };
+  tick();if(me&&(me.coolUntil||0)>serverNow())countdownTimer=setInterval(tick,250);
 }
 function renderProblem(){
- clearInterval(countdownTimer);clearMarkers();
- $("fact").hidden=true;$("nextBtn").hidden=true;$("wait").style.display="none";
- renderedState=stateSig(me);
- if(me.pending){renderPending();return;}
- if(me.cur>=PROBLEMS.length){finish();return;}
- const p=PROBLEMS[me.cur];setQuestion(p,me.cur);
- $("attempts").textContent="틀린 횟수 "+me.tries+"/3 · 남은 기회 "+(3-me.tries)+"회";
- setMsg(me.tries?"틀린 횟수만큼 대기한 뒤 다시 찍어 보세요.":"지도를 확대해서 장소를 정확하게 찍어 보세요.","");
- refreshPieces();if(me.lockUntil>serverNow())startCountdown();
+  if(!map||!me)return;renderedSig=sig(me);
+  clearInterval(countdownTimer);clearMapMarks();
+  $('fact').style.display='none';$('nextWrap').innerHTML='';$('waitBox').style.display='none';
+  if(me.pending){renderPending();return;}
+  if(me.cur>=PROBLEMS.length){finish();return;}
+  $('photoWrap').style.display='block';$('photoCredit').style.display='block';
+  const p=PROBLEMS[me.cur];loadProblemPhoto(p);$('qtext').textContent=`${me.cur+1}번. ${p.q}`;
+  hintStatus(me.tries?'조금 더 자세히 살펴보고 위치를 찍어 보세요!':'지도를 확대해 위치를 찾아주세요 🌎');
+  refreshPieces();updateCooldownUI();
 }
 function renderPending(){
- const r=me.pending,p=PROBLEMS[r.qIndex];if(!p){me.pending=null;renderProblem();return;}
- setQuestion(p,r.qIndex);$("attempts").textContent=r.outcome==="missed"?"시도 3/3 · 이번 문제 0점":"시도 "+r.attempts+"/3 · 획득 "+r.points+"점";
- const c=COUNTRIES.find(x=>x.en===p.country);
- $("fact").hidden=false;$("fact").innerHTML="<b>"+(c?esc(c.ko):"")+" 지도 조각을 얻었어요 🧩</b><br>"+esc(p.fact);
- showTarget(p);
- if(r.outcome==="missed"){
-  setMsg("3번 모두 틀렸어요. 정답 위치를 공개했어요. 점수는 0점입니다.","ng");
-  $("nextBtn").hidden=false;$("nextBtn").disabled=true;$("nextBtn").textContent="10초 대기 중...";
-  if(me.lockUntil>serverNow())startCountdown();else enableNext();
- }else{
-  setMsg("정답! 🎉 "+r.points+"점을 얻었어요.","ok");
-  $("nextBtn").hidden=false;$("nextBtn").disabled=false;$("nextBtn").textContent=me.cur>=PROBLEMS.length?"최종 결과 보기 →":"다음 문제 →";
- }
- refreshPieces();
+  const r=me.pending,p=PROBLEMS[r.idx];if(!p){hintStatus('이전 문제를 불러오지 못했어요. 새로고침 해주세요.','ng');return;}
+  $('photoWrap').style.display='block';$('photoCredit').style.display='block';loadProblemPhoto(p);
+  $('qtext').textContent=`${r.idx+1}번. ${p.q}`;showTarget(p);
+  $('fact').style.display='block';
+  const c=COUNTRIES.find(x=>x.en===p.country);
+  $('fact').innerHTML=`<b>🧩 ${c?esc(c.ko):''} 나라 조각 획득!</b>${esc(p.fact)}`;
+  if(r.mode==='correct')hintStatus(`정답! 🎉 ${r.points}점을 얻었어요.`,'ok');
+  else hintStatus('3번 모두 틀렸어요. 정답 위치를 보여드려요. 조각은 받지만 점수는 0점이에요.','ng');
+  refreshPieces();$('nextWrap').innerHTML=`<button class="btn mint" id="nextBtn">${me.cur>=PROBLEMS.length?'결과 보기 →':'다음 문제 →'}</button>`;
+  $('nextBtn').onclick=nextProblem;updateCooldownUI();
 }
-async function submitGuess(lat,lng){
- if(!playerRef||!me||submitting)return;
- const qIndex=me.cur,p=PROBLEMS[qIndex],distance=km(lat,lng,p.lat,p.lng);
- if(!p||me.pending||me.lockUntil>serverNow())return;
- submitting=true;setMsg("답을 확인하고 있어요...","");
- try{
-  const result=await playerRef.transaction(current=>{
-   if(!current)return;
-   const x=normalize(current,me.id,me.name),now=serverNow();
-   if(x.cur!==qIndex||x.pending||(x.lockUntil||0)>now||x.tries>=3)return;
-   if(distance<=p.tol){
-    const attemptNo=x.tries+1,points=attemptNo===1?2:1;
-    x.score+=points;x.done++;x.cur++;
-    if(x.unlocked.indexOf(p.country)<0)x.unlocked.push(p.country);
-    x.log.push({id:p.id,caption:p.caption,attempts:attemptNo,result:"correct",points:points,at:now});
-    x.pending={qIndex:qIndex,outcome:"correct",attempts:attemptNo,points:points};
-    x.lockUntil=0;x.lastGuess=null;
-   }else{
-    x.tries++;x.lockUntil=now+10000;
-    x.lastGuess={lat:lat,lng:lng,distanceKm:Math.round(distance*10)/10,at:now};
-    if(x.tries>=3){
-     x.done++;x.cur++;
-     if(x.unlocked.indexOf(p.country)<0)x.unlocked.push(p.country);
-     x.log.push({id:p.id,caption:p.caption,attempts:3,result:"missed",points:0,at:now});
-     x.pending={qIndex:qIndex,outcome:"missed",attempts:3,points:0};
-    }
-   }
-   x.t=now;return x;
-  });
-  if(result.committed){me=normalize(result.snapshot.val(),me.id,me.name);renderHdr();renderProblem();}
-  else{
-   const latest=result.snapshot&&result.snapshot.val();if(latest)me=normalize(latest,me.id,me.name);
-   if(me.pending||me.cur!==qIndex)renderProblem();
-   else if(me.lockUntil>serverNow()){setMsg("이 문제는 다른 탭에서 이미 시도했어요. 현재 진도를 불러왔습니다.","ng");startCountdown();}
-   else setMsg("답을 처리하지 못했어요. 한 번 더 시도해 주세요.","ng");
-  }
- }catch(err){setMsg("저장에 실패했어요. 인터넷 연결 또는 Firebase 규칙을 확인해 주세요.","ng");}
- finally{submitting=false;}
+async function guess(lat,lng){
+  if(!playerRef||!me||submitting||me.pending||me.cur>=PROBLEMS.length)return;
+  if(me.coolUntil>serverNow()){updateCooldownUI();return;}
+  const idx=me.cur,p=PROBLEMS[idx],distance=km(lat,lng,p.lat,p.lng);
+  submitting=true;hintStatus('답을 확인하고 있어요...');
+  try{
+    const tx=await playerRef.transaction(current=>{
+      if(!current)return;
+      const x=norm(current,me.id),now=serverNow();
+      if(x.pending||x.cur!==idx||x.tries>=MAX_TRIES||x.coolUntil>now)return;
+      if(distance<=p.tol){
+        const attempt=x.tries+1,points=attempt===1?2:1;
+        x.score+=points;x.done++;x.cur++;
+        if(!x.unlocked.includes(p.country))x.unlocked.push(p.country);
+        x.log.push({id:p.wiki,q:p.caption,result:'correct',attempts:attempt,score:points,at:now});
+        x.pending={mode:'correct',idx,points};x.tries=0;x.coolUntil=0;
+      }else{
+        x.tries++;x.coolUntil=now+COOLDOWN_MS;
+        if(x.tries>=MAX_TRIES){
+          x.done++;x.cur++;
+          if(!x.unlocked.includes(p.country))x.unlocked.push(p.country);
+          x.log.push({id:p.wiki,q:p.caption,result:'missed',attempts:3,score:0,at:now});
+          x.pending={mode:'giveup',idx,points:0};x.tries=0;
+        }
+      }
+      x.t=now;return x;
+    });
+    if(tx.snapshot.exists()){
+      me=norm(tx.snapshot.val(),me.id);
+      if(tx.committed){renderProblem();if(!me.pending){hintStatus(`아쉬워요! 남은 기회 ${MAX_TRIES-me.tries}번. 10초 대기 후 다시 도전해요.`, 'ng');updateCooldownUI();}}
+      else{renderProblem();if(me.coolUntil>serverNow())hintStatus('다른 탭에서 이미 시도했어요. 기존 시도 횟수가 유지됩니다.','ng');}
+    }else hintStatus('저장에 실패했어요. Firebase 연결을 확인해 주세요.','ng');
+  }catch(e){hintStatus('Firebase 저장 오류: '+e.message+' · 권한/인터넷을 확인해 주세요.','ng');}
+  finally{submitting=false;}
 }
-function onMapClick(e){
- if(!me||me.pending||submitting)return;
- if(me.lockUntil>serverNow()){startCountdown();return;}
- if(me.cur>=PROBLEMS.length)return;
- if(pickMarker)map.removeLayer(pickMarker);
- pickMarker=L.circleMarker(e.latlng,{radius:7,color:"#8e7cc3",weight:2,fillColor:"#c8b6f0",fillOpacity:.95}).addTo(map);
- const m=$("map");m.classList.remove("shake");void m.offsetWidth;m.classList.add("shake");
- submitGuess(e.latlng.lat,e.latlng.lng);
-}
+function onMapClick(e){if(submitting||!me||me.pending)return;if(me.coolUntil>serverNow()){updateCooldownUI();return;}if(!PROBLEMS[me.cur])return;if(pick)map.removeLayer(pick);pick=L.circleMarker(e.latlng,{radius:7,color:'#8f78c7',weight:2,fillColor:'#cdbff7',fillOpacity:.95}).addTo(map);guess(e.latlng.lat,e.latlng.lng);}
 async function nextProblem(){
- if(!playerRef||!me||!me.pending)return;
- if(me.lockUntil>serverNow()){startCountdown();return;}
- try{
-  const result=await playerRef.transaction(current=>{
-   if(!current||!current.pending||(current.lockUntil||0)>serverNow())return;
-   current.pending=null;current.tries=0;current.lockUntil=0;current.lastGuess=null;current.t=serverNow();return current;
-  });
-  if(result.committed){me=normalize(result.snapshot.val(),me.id,me.name);renderProblem();}
-  else{const latest=result.snapshot&&result.snapshot.val();if(latest)me=normalize(latest,me.id,me.name);renderProblem();}
- }catch(err){setMsg("진도 저장에 실패했어요. 다시 눌러 주세요.","ng");}
+  if(!playerRef||!me||!me.pending||me.coolUntil>serverNow())return;
+  if($('nextBtn'))$('nextBtn').disabled=true;
+  try{
+    const tx=await playerRef.transaction(current=>{
+      if(!current||!current.pending||Number(current.coolUntil)>serverNow())return;
+      current.pending=null;current.tries=0;current.coolUntil=0;current.t=serverNow();return current;
+    });
+    if(tx.snapshot.exists()){me=norm(tx.snapshot.val(),me.id);renderProblem();}
+  }catch(e){hintStatus('다음 문제 저장 실패: '+e.message,'ng');if($('nextBtn'))$('nextBtn').disabled=false;}
 }
 function finish(){
- clearMarkers();$("photo").style.display="none";$("photoCredit").style.display="none";
- $("qtext").textContent="🎉 아메리카 지도 만들기 완료!";
- $("attempts").textContent="최종 점수 "+me.score+"점 · "+me.done+"/"+PROBLEMS.length+"개 장소 완료";
- setMsg("모든 장소를 확인했어요. 완성한 나라 조각을 확인해 보세요.","ok");
- $("fact").hidden=false;$("fact").innerHTML="<b>수고했어요!</b><br>아메리카 대륙의 30개 장소를 모두 확인했습니다.";
- $("nextBtn").hidden=true;$("wait").style.display="none";refreshPieces();
+  clearMapMarks();$('photoWrap').style.display='none';$('photoCredit').style.display='none';
+  $('qtext').textContent='🎉 아메리카 지도 만들기 완성!';$('triesInfo').textContent='모든 장소를 탐험했어요!';
+  hintStatus('⭐ 최종 '+me.score+'점! 30문항을 모두 완료했어요.','ok');
+  $('fact').style.display='block';$('fact').innerHTML='<b>수고했어요! 🗺️</b>완성한 나라 조각을 확인해 보세요.';
+  $('nextWrap').innerHTML='';refreshPieces();
 }
+function destroyMap(){clearInterval(countdownTimer);photoNonce++;if(map){map.remove();map=null;geo=null;pick=null;target=null;}}
 function renderStudent(){
- if(map){map.remove();map=null;geo=null;}
- $("app").innerHTML='<main><section class="card">'+
- '<div id="photo"><img id="img" alt=""><span id="cap"></span></div><div id="photoCredit"></div>'+
- '<div class="taskhead"><b>아메리카 장소 찾기</b><small>총 '+PROBLEMS.length+'문제 · 약 35분</small></div><p id="qtext"></p>'+
- '<div class="attempts" id="attempts"></div><p class="msg" id="msg"></p><div class="wait" id="wait"></div>'+
- '<div class="bar"><div id="bar"></div></div><p class="muted" id="progressText" style="margin:7px 0 4px"></p>'+
- '<div class="pieces" id="pieces"></div><div class="fact" id="fact" hidden></div>'+
- '<button class="btn" id="nextBtn" hidden style="margin-top:10px">다음 문제 →</button></section>'+
- '<section class="card"><p class="muted" style="margin:0 0 8px">지도에서 위치를 찍어 보세요. 오답이면 10초 동안 기다려야 하며, 문제마다 기회는 3번입니다.</p>'+
- '<div id="map"></div><h3 style="margin:14px 0 6px">실시간 순위</h3><div id="rank"></div></section></main>';
- map=L.map("map",{minZoom:2,worldCopyJump:true}).fitBounds([[-56,-168],[72,-34]]);
- L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
- map.on("click",onMapClick);$("nextBtn").onclick=nextProblem;
- fetch("https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json").then(r=>{if(!r.ok)throw new Error("경계 요청 실패");return r.json();}).then(g=>{geo=L.geoJSON(g,{style:styleFor}).addTo(map);refreshPieces();}).catch(()=>setMsg("국가 경계를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.","ng"));
- watchPlayers(renderRank);
- if(playerRef){
-  if(playerListener)playerRef.off("value",playerListener);
-  playerListener=s=>{
-   if(!s.exists())return;
-   const remote=normalize(s.val(),me.id,me.name),sig=stateSig(remote);
-   me=remote;renderHdr();
-   if(sig!==renderedState)renderProblem();else refreshPieces();
-  };
-  playerRef.on("value",playerListener);
- }
- renderHdr();renderProblem();
+  destroyMap();
+  app.innerHTML=`<main><section class="card">
+    <div class="smallPill">🌷 30개 장소 탐험</div><div class="smallPill">⭐ 3번 도전 · 10초 대기</div>
+    <div id="photoWrap"><img id="img" alt=""><div id="cap"></div></div><div id="photoCredit"></div>
+    <div id="qbox"><div id="qtext"></div><p class="subline" id="triesInfo"></p></div>
+    <p class="msg" id="msg"></p><div class="waitBox" id="waitBox"></div>
+    <div class="bar"><div id="bar"></div></div><div class="muted" id="prog"></div>
+    <h3 style="margin-top:14px">🧩 나라 조각 모으기 (${COUNTRIES.length}개)</h3>
+    <div id="pieces"></div><div class="fact" id="fact"></div><div id="nextWrap" style="margin-top:12px"></div>
+  </section><section class="card">
+    <div class="smallPill">📍 위치를 정확하게 콕!</div><div class="smallPill">🔍 지도를 확대해 보세요</div>
+    <div id="map"></div><div class="rankBox"><h3>🏆 우리 반 실시간 순위</h3><div id="rank"></div></div>
+  </section></main>`;
+  map=L.map('map',{minZoom:2,zoomControl:true,worldCopyJump:true}).fitBounds([[-56,-168],[72,-34]]);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  map.on('click',onMapClick);
+  fetch(COUNTRY_GEO).then(r=>{if(!r.ok)throw Error('country border');return r.json()}).then(g=>{if(!map)return;geo=L.geoJSON(g,{style:styleFor}).addTo(map);refreshPieces();}).catch(()=>{if($('msg'))hintStatus('지도 경계를 불러오지 못했어요. 인터넷을 확인해 주세요.','ng');});
+  watchPlayers(renderRank);watchMe();renderHdr();renderProblem();
 }
 async function loadStudent(name){
- name=String(name||"").trim().replace(/\s+/g," ");
- if(!name)return renderJoin("이름을 입력해 주세요.");
- playerRef=refForName(name);
- try{
-  const init={name:name,score:0,done:0,cur:0,tries:0,lockUntil:0,unlocked:[],log:[],pending:null,lastGuess:null,t:serverNow(),createdAt:serverNow()};
-  const tx=await playerRef.transaction(current=>current||init);
-  if(!tx.snapshot.exists())throw new Error("학생 기록을 불러오지 못했어요.");
-  me=normalize(tx.snapshot.val(),nameKey(name),name);
-  try{localStorage.setItem("amap-name-"+ROOM,name);}catch(e){}
-  renderStudent();
- }catch(err){renderJoin("Firebase 연결에 실패했어요: "+err.message);}
+  name=normName(name);if(!name)return renderJoin('이름을 입력해 주세요.');
+  if(!db)return renderJoin('Firebase에 연결되지 않았어요. 프로젝트 Hosting 자동 설정을 확인해 주세요.');
+  if($('joinMsg'))$('joinMsg').textContent='진도를 찾고 있어요...';
+  const key=nameKey(name),ref=db.ref(playerPath(name));
+  try{
+    const tx=await ref.transaction(current=>current||fresh(name));
+    if(!tx.snapshot.exists())throw Error('진도 기록을 불러오지 못했어요');
+    playerRef=ref;me=norm(tx.snapshot.val(),key);
+    store.set('amap-name-'+ROOM,name);renderStudent();
+  }catch(e){renderJoin('Firebase 읽기/쓰기 오류: '+e.message+' · 데이터베이스 규칙을 확인해 주세요.');}
 }
-function renderJoin(errorText){
- $("app").innerHTML='<main><section class="card" style="grid-column:1/-1;max-width:440px;margin:35px auto">'+
- '<h2 style="margin-top:0">이름을 입력하고 시작해요</h2>'+
- '<p class="muted">같은 방에서 같은 이름으로 다시 들어오면 저장된 진도부터 이어서 풉니다.</p>'+
- '<input id="nm" maxlength="20" autocomplete="name" placeholder="예: 김민지">'+
- '<p class="msg ng" id="joinError">'+esc(errorText||"")+'</p><button class="btn" id="go" style="width:100%">시작하기</button></section></main>';
- $("go").onclick=()=>loadStudent($("nm").value);
- $("nm").onkeydown=e=>{if(e.key==="Enter")loadStudent($("nm").value);};
- $("nm").focus();
+function renderJoin(error=''){
+  if(playerRef&&playerListener)playerRef.off('value',playerListener);playerRef=null;
+  renderHdr();
+  app.innerHTML=`<div class="joinWrap"><section class="card">
+    <h2>🌷 이름을 입력하고 시작해요</h2>
+    <p class="muted">같은 방에서 같은 이름으로 돌아오면 Firebase에 저장된 진도부터 이어서 풀어요.</p>
+    <input id="nm" maxlength="18" autocomplete="name" placeholder="예: 김민지">
+    <p class="msg ng" id="joinMsg">${esc(error)}</p><button class="btn" id="go">시작하기 ✨</button>
+  </section></div>`;
+  $('go').onclick=()=>loadStudent($('nm').value);
+  $('nm').onkeydown=e=>{if(e.key==='Enter')loadStudent($('nm').value)};
 }
-function csvCell(v){return '"'+String(v==null?"":v).replace(/"/g,'""')+'"';}
+function csvCell(v){return '"'+String(v??'').replace(/"/g,'""')+'"';}
 function exportCSV(){
- const rows=[["이름","점수","완료 문제","전체 문제","현재 문제","현재 오답 횟수","마지막 활동 시각"]];
- for(const p of ranked(lastAll)){
-  const cur=p.cur<PROBLEMS.length?PROBLEMS[p.cur].caption:"완료";
-  rows.push([p.name,p.score,p.done,PROBLEMS.length,cur,p.tries,new Date(p.t).toLocaleString("ko-KR")]);
- }
- rows[0].push(...PROBLEMS.map((p,i)=>"문제"+(i+1)+" 결과"),...PROBLEMS.map((p,i)=>"문제"+(i+1)+" 시도"),...PROBLEMS.map((p,i)=>"문제"+(i+1)+" 제출 시각"));
- for(let i=1;i<rows.length;i++){
-  const p=ranked(lastAll)[i-1],logs=p.log||[];
-  for(const q of PROBLEMS){const l=logs.find(x=>x.id===q.id);rows[i].push(l?(l.result==="correct"?"정답 ("+l.points+"점)":"3회 오답 (0점)"):"미완료");}
-  for(const q of PROBLEMS){const l=logs.find(x=>x.id===q.id);rows[i].push(l?l.attempts:"");}
-  for(const q of PROBLEMS){const l=logs.find(x=>x.id===q.id);rows[i].push(l?new Date(l.at).toLocaleString("ko-KR"):"");}
- }
- const csv="\uFEFF"+rows.map(r=>r.map(csvCell).join(",")).join("\r\n");
- const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
- const a=document.createElement("a");a.href=url;a.download="americamapmaking_"+ROOM+"_진도.csv";a.click();URL.revokeObjectURL(url);
+  const rows=[['이름','점수','완료문제','전체문제','현재상태','마지막 활동',...PROBLEMS.map((_,i)=>(i+1)+'번 결과'),...PROBLEMS.map((_,i)=>(i+1)+'번 시도'),...PROBLEMS.map((_,i)=>(i+1)+'번 제출 시각')]];
+  for(const p of ranked(lastAll)){
+    const row=[p.name,p.score,p.done,PROBLEMS.length,p.pending?'결과 확인 중':(p.cur>=PROBLEMS.length?'완료':(p.cur+1)+'번 진행'),p.t?new Date(p.t).toLocaleString('ko-KR'):''];
+    for(const q of PROBLEMS){const l=p.log.find(x=>x.id===q.wiki);row.push(l?(l.result==='correct'?`정답 ${l.score}점`:'3회 오답 0점'):'미완료')}
+    for(const q of PROBLEMS){const l=p.log.find(x=>x.id===q.wiki);row.push(l?l.attempts:'')}
+    for(const q of PROBLEMS){const l=p.log.find(x=>x.id===q.wiki);row.push(l?new Date(l.at).toLocaleString('ko-KR'):'')}
+    rows.push(row);
+  }
+  const csv='\uFEFF'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  const a=document.createElement('a');a.href=url;a.download='아메리카_지도만들기_'+ROOM+'_학습기록.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
 function renderTeacher(){
- $("app").innerHTML='<main style="grid-template-columns:1fr"><section class="card">'+
- '<h2 style="margin-top:0">학생별 실시간 진도</h2><p class="muted">방 코드: '+esc(ROOM)+' · 같은 방에서 같은 이름은 하나의 기록으로 이어집니다.</p>'+
- '<div id="teacherActions"><button class="btn" id="csv">엑셀용 CSV 내려받기</button></div>'+
- '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>이름</th><th>점수</th><th>진도</th><th>현재 문제</th><th>오답</th><th>마지막 활동</th></tr></thead><tbody id="teacherTable"></tbody></table></div>'+
- '<p class="muted">CSV 파일은 Excel에서 열 수 있습니다. 각 문제의 정답 여부, 시도 횟수, 제출 시각이 포함됩니다.</p></section></main>';
- $("csv").onclick=exportCSV;
- watchPlayers(all=>{
-  const list=ranked(all);
-  $("teacherTable").innerHTML=list.length?list.map((p,i)=>{
-   const cur=p.cur<PROBLEMS.length?PROBLEMS[p.cur].caption:(p.pending?"결과 확인 중":"완료");
-   return "<tr><td>"+(i+1)+"</td><td>"+esc(p.name)+"</td><td>"+p.score+"점</td><td>"+p.done+"/"+PROBLEMS.length+"</td><td>"+esc(cur)+"</td><td>"+p.tries+"/3</td><td>"+new Date(p.t).toLocaleTimeString("ko-KR")+"</td></tr>";
-  }).join(""):'<tr><td colspan="7">아직 참여한 학생이 없습니다.</td></tr>';
- });
- renderHdr();
+  renderHdr();
+  app.innerHTML=`<main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
+    <section class="card"><div class="smallPill">👩‍🏫 교사용 관리</div><h2>🌈 우리 반 탐험 현황</h2>
+      <p class="muted">학생 이름을 누르면 문제별 결과를 확인할 수 있어요.</p>
+      <div style="margin:14px 0"><button class="btn mint" id="csvBtn">📥 엑셀용 CSV 내보내기</button><span class="smallPill" id="studentTotal">참여 0명</span></div>
+      <div class="tableWrap"><table><thead><tr><th>순위</th><th>이름</th><th>점수</th><th>진도</th><th>현재 상태</th></tr></thead><tbody id="tbl"></tbody></table></div>
+    </section><section class="card" id="detail"><h2>🔎 학생 상세</h2><p class="muted">학생을 선택해 주세요.</p></section>
+  </main>`;
+  $('csvBtn').onclick=exportCSV;
+  $('tbl').onclick=e=>{const button=e.target.closest('[data-key]');if(button){selectedKey=button.dataset.key;renderTeacherViews(lastAll)}};
+  watchPlayers(renderTeacherViews);
+}
+function renderTeacherViews(all){
+  const list=ranked(all);$('studentTotal').textContent='참여 '+list.length+'명';
+  $('tbl').innerHTML=list.length?list.map((p,i)=>{
+    const status=p.pending?'결과 확인 중':p.cur>=PROBLEMS.length?'완료 🎉':(p.cur+1)+'번 진행';
+    return `<tr><td>${i+1}</td><td><button class="nameBtn" data-key="${esc(p.id)}">${esc(p.name)}</button></td><td>${p.score}점</td><td>${p.done}/${PROBLEMS.length}</td><td>${status}</td></tr>`;
+  }).join(''):'<tr><td colspan="5">아직 참여한 학생이 없어요.</td></tr>';
+  const p=list.find(x=>x.id===selectedKey)||list[0];
+  if(!p){$('detail').innerHTML='<h2>🔎 학생 상세</h2><p class="muted">아직 학생 기록이 없어요.</p>';return;}
+  const cur=PROBLEMS[p.cur];
+  $('detail').innerHTML=`<h2>🌷 ${esc(p.name)}</h2><div class="smallPill">⭐ ${p.score}점</div><div class="smallPill">🗺️ ${p.done}/${PROBLEMS.length} 완료</div>
+    <p><b>현재 상태</b> ${p.pending?'결과 확인 중':(cur?esc(cur.caption):'모두 완료')}</p>
+    <p class="muted">마지막 활동: ${p.t?new Date(p.t).toLocaleString('ko-KR'):'없음'}</p>
+    <h3>📒 문제별 제출 기록</h3><div>${p.log.length?p.log.map((l,i)=>`<div class="rankItem">${i+1}. ${esc(l.q)} · ${l.result==='correct'?`✅ 정답 ${l.score}점`:'⭕ 3회 오답 0점'} · ${l.attempts}회 · ${new Date(l.at).toLocaleTimeString('ko-KR')}</div>`).join(''):'<p class="muted">아직 푼 문제가 없어요.</p>'}</div>`;
 }
 async function start(){
- if(TEACHER){renderTeacher();return;}
- let saved="";
- try{saved=localStorage.getItem("amap-name-"+ROOM)||"";}catch(e){}
- if(saved)await loadStudent(saved);else renderJoin("");
+  renderHdr();
+  const connected=await initFirebase();
+  if(!connected){
+    app.innerHTML='<div class="joinWrap"><section class="card"><h2>⚠️ Firebase 설정이 필요해요</h2><p>GitHub에는 API 키를 저장하지 않았어요.</p><p class="muted">이 앱은 <b>americamapmaking</b> Firebase Hosting의 자동 초기화 주소를 이용합니다. Firebase Hosting이 활성화되어 있고 웹 앱이 연결되어 있어야 합니다. 현재는 교실 전체 실시간 저장을 시작할 수 없어요.</p><p><button class="btn" onclick="location.reload()">다시 연결하기</button></p></section></div>';
+    return;
+  }
+  if(TEACHER){renderTeacher();return;}
+  const lastName=store.get('amap-name-'+ROOM);
+  if(lastName){await loadStudent(lastName);}else renderJoin();
 }
-start().catch(err=>renderJoin("시작할 수 없어요: "+err.message));
+start().catch(e=>{console.error(e);firebaseState='offline';app.innerHTML='<div class="joinWrap"><section class="card"><h2>연결 오류</h2><p>'+esc(e.message)+'</p></section></div>';renderHdr();});
+
 </script>
 </body>
 </html>
