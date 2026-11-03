@@ -137,8 +137,8 @@ function normName(s){return String(s||'').trim().replace(/\s+/g,' ');}
 function nameKey(n){return encodeURIComponent(normName(n).toLowerCase()).replace(/\./g,'%2E');}
 function playerPath(name){return PLAYERS_PATH+'/'+nameKey(name);}
 function fresh(name){return {id:nameKey(name),name:normName(name),score:0,done:0,cur:0,tries:0,coolUntil:0,log:[],unlocked:[],pending:null,t:serverNow(),createdAt:serverNow(),startedAt:serverNow(),timeSpent:0,paused:false,pausedElapsed:0,schemaVersion:9};}
-function norm(p,key){p=p||{};return {id:key||p.id||'',name:p.name||'',score:Number(p.score)||0,done:Number(p.done)||0,cur:Number(p.cur)||0,tries:Number(p.tries)||0,coolUntil:Number(p.coolUntil)||0,log:Array.isArray(p.log)?p.log:[],unlocked:Array.isArray(p.unlocked)?p.unlocked:[],pending:p.pending||null,t:Number(p.t)||0,createdAt:Number(p.createdAt)||0,startedAt:Number(p.startedAt)||0,timeSpent:Number(p.timeSpent)||0,paused:!!p.paused,pausedElapsed:Number(p.pausedElapsed)||0,schemaVersion:Number(p.schemaVersion)||8};}
-function sig(p){return [p.cur,p.tries,p.coolUntil,p.done,p.score,p.pending?String(p.pending.idx)+p.pending.mode:'',p.paused?'pause':'play'].join('|');}
+function norm(p,key){p=p||{};return {id:key||p.id||'',name:p.name||'',score:Number(p.score)||0,done:Number(p.done)||0,cur:Number(p.cur)||0,tries:Number(p.tries)||0,coolUntil:Number(p.coolUntil)||0,log:Array.isArray(p.log)?p.log:[],unlocked:Array.isArray(p.unlocked)?p.unlocked:[],pending:p.pending||null,t:Number(p.t)||0,createdAt:Number(p.createdAt)||0,startedAt:Number(p.startedAt)||0,timeSpent:Number(p.timeSpent)||0,paused:!!p.paused,pausedElapsed:Number(p.pausedElapsed)||0,schemaVersion:Number(p.schemaVersion)||8,teacherRevision:Number(p.teacherRevision)||0,teacherAdjustments:Array.isArray(p.teacherAdjustments)?p.teacherAdjustments:[],teacherSkipped:Array.isArray(p.teacherSkipped)?p.teacherSkipped:[],questionOrder:Array.isArray(p.questionOrder)?p.questionOrder:null};}
+function sig(p){return [p.cur,p.tries,p.coolUntil,p.done,p.score,p.pending?String(p.pending.idx)+p.pending.mode:'',p.paused?'pause':'play',p.teacherRevision||0].join('|');}
 function ranked(all){return Object.keys(all||{}).map(k=>norm(all[k],k)).sort((a,b)=>(b.score-a.score)||(b.done-a.done)||(totalTime(a)-totalTime(b))||((a.t||0)-(b.t||0)));}
 function hintStatus(text,cls=''){const el=$('msg');if(el){el.textContent=text;el.className='msg '+cls;}}
 function showConn(){
@@ -293,11 +293,18 @@ function watchMe(){
   if(!playerRef)return;
   if(playerListener)playerRef.off('value',playerListener);
   playerListener=s=>{
-    if(!s.exists())return;
+    if(!s.exists()){
+      if(playerRef&&playerListener)playerRef.off('value',playerListener);
+      playerRef=null;me=null;destroyMap();store.del('amap-name-'+ROOM);
+      renderJoin('선생님이 기록을 초기화했어요. 새로 시작하려면 이름을 입력해 주세요.');return;
+    }
     const next=norm(s.val(),me?.id);
+    const teacherMoved=!!me&&next.teacherRevision!==me.teacherRevision;
     const changed=(!me)||sig(next)!==renderedSig;
     me=next;renderHdr();
-    if(changed && map)renderProblem();else if(map)refreshPieces();
+    if(teacherMoved&&$('resultDialog')&&!$('resultDialog').hidden)closeResultDialog();
+    if(changed&&map){renderProblem();if(teacherMoved)hintStatus('선생님이 진도를 조정했어요. 현재 문제부터 다시 시작해요.','ok');}
+    else if(map)refreshPieces();
   };
   playerRef.on('value',playerListener,err=>{hintStatus('Firebase에서 진도를 읽지 못했어요: '+err.message,'ng');});
 }
@@ -697,10 +704,10 @@ function renderJoin(error=''){
 }
 function csvCell(v){return '"'+String(v??'').replace(/"/g,'""')+'"';}
 function exportCSV(){
-  const rows=[['이름','점수','완료문제','전체문제','총 풀이초','현재상태','마지막 활동',...PROBLEMS.map((_,i)=>(i+1)+'번 결과'),...PROBLEMS.map((_,i)=>(i+1)+'번 시도'),...PROBLEMS.map((_,i)=>(i+1)+'번 제출 시각')]];
+  const rows=[['이름','점수','완료문제','전체문제','총 풀이초','현재상태','마지막 활동','교사 진도 조정 횟수','교사가 건너뛴 문제 수',...PROBLEMS.map((_,i)=>(i+1)+'번 결과'),...PROBLEMS.map((_,i)=>(i+1)+'번 시도'),...PROBLEMS.map((_,i)=>(i+1)+'번 제출 시각')]];
   for(const p of ranked(lastAll)){
-    const row=[p.name,p.score,p.done,PROBLEMS.length,p.timeSpent||0,p.pending?'결과 확인 중':(p.cur>=PROBLEMS.length?'완료':(p.cur+1)+'번 진행'),p.t?new Date(p.t).toLocaleString('ko-KR'):''];
-    for(const q of PROBLEMS){const l=p.log.find(x=>x.id===(q.uid||q.wiki));row.push(l?(l.result==='correct'?`정답 ${l.score}점`:'3회 오답 0점'):'미완료')}
+    const row=[p.name,p.score,p.done,PROBLEMS.length,p.timeSpent||0,p.pending?'결과 확인 중':(p.cur>=PROBLEMS.length?'완료':(p.cur+1)+'번 진행'),p.t?new Date(p.t).toLocaleString('ko-KR'):'',p.teacherAdjustments?.length||0,p.teacherSkipped?.length||0];
+    for(const [i,q] of PROBLEMS.entries()){const l=p.log.find(x=>x.id===(q.uid||q.wiki));const ordinal=Array.isArray(p.questionOrder)?p.questionOrder.indexOf(i):i;row.push(l?(l.result==='correct'?`정답 ${l.score}점`:'3회 오답 0점'):(p.teacherSkipped||[]).includes(ordinal)?'교사 진도 복구(0점)':'미완료')}
     for(const q of PROBLEMS){const l=p.log.find(x=>x.id===(q.uid||q.wiki));row.push(l?l.attempts:'')}
     for(const q of PROBLEMS){const l=p.log.find(x=>x.id===(q.uid||q.wiki));row.push(l?new Date(l.at).toLocaleString('ko-KR'):'')}
     rows.push(row);
@@ -709,6 +716,108 @@ function exportCSV(){
   const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   const a=document.createElement('a');a.href=url;a.download='아메리카_지도만들기_'+ROOM+'_학습기록.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
+
+let teacherDraftKey='',teacherDraftProgress=null;
+function teacherStudentPosition(id,p){
+ const idx=PROBLEMS.findIndex(q=>(q.uid||q.wiki)===id);
+ return idx<0?-1:(Array.isArray(p.questionOrder)?p.questionOrder.indexOf(idx):idx);
+}
+function teacherSaveBackup(key){
+ const raw=lastAll[key];if(!raw)return;
+ const blob=new Blob([JSON.stringify({room:ROOM,exportedAt:new Date().toISOString(),record:raw},null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),link=document.createElement('a');
+ link.href=url;link.download='student_backup_'+Date.now()+'.json';
+ document.body.appendChild(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),5000);
+}
+function teacherMessage(s,bad){
+ const el=$('teacherActionStatus');
+ if(el){el.textContent=s;el.style.color=bad?'#aa3158':'#267457';}
+}
+function teacherRenderControls(p){
+ const el=$('teacherControls');if(!el)return;
+ const desired=teacherDraftKey===p.id&&teacherDraftProgress!==null?teacherDraftProgress:p.cur;
+ teacherDraftKey=p.id;
+ const opts=PROBLEMS.map((q,i)=>{
+   const stage=i<COUNTRY_END?'나라':i<CITY_END?'도시':'자연';
+   return '<option value="'+i+'"'+(Number(desired)===i?' selected':'')+'>'+i+'문제 완료 → '+(i+1)+'번 ('+stage+')</option>';
+ }).join('')+'<option value="'+PROBLEMS.length+'"'+(Number(desired)===PROBLEMS.length?' selected':'')+'>모든 문제 완료</option>';
+ el.innerHTML='<h3>학생 기록 관리</h3>'+
+ '<p class="muted">서버에 저장된 학생 한 명의 진행 위치를 복구합니다. 건너뛴 문제는 정답이나 점수로 처리되지 않아요.</p>'+
+ '<label for="teacherProgress">복구할 다음 문제</label>'+
+ '<select id="teacherProgress">'+opts+'</select>'+
+ '<button type="button" class="btn mint" id="teacherProgressApply">진도 복구 적용</button>'+
+ '<p class="muted">뒤로 이동하면 그 이후 제출 기록·점수를 정리합니다. 변경 전 JSON 백업이 다운로드돼요.</p>'+
+ '<div class="teacherActionRow">'+
+ '<button type="button" class="btn secondary" id="teacherBackup">기록 백업</button>'+
+ '<button type="button" class="btn secondary teacherDanger" id="teacherDelete">이 학생 기록 삭제</button></div>'+
+ '<p id="teacherActionStatus" aria-live="polite"></p>'+
+ '<p class="muted">교사 조정 '+(p.teacherAdjustments?.length||0)+'회 · 점수 없이 건너뛴 문항 '+(p.teacherSkipped?.length||0)+'개</p>';
+}
+async function teacherProgressApply(){
+ if(!TEACHER||firebaseState!=='online'||!db)return teacherMessage('서버 연결 상태에서만 수정할 수 있어요.',true);
+ const key=selectedKey||Object.keys(lastAll)[0],student=lastAll[key];
+ if(!student)return teacherMessage('학생을 먼저 선택해 주세요.',true);
+ const to=Number($('teacherProgress')?.value);
+ if(!Number.isInteger(to)||to<0||to>PROBLEMS.length)return teacherMessage('진도 선택이 잘못됐어요.',true);
+ const from=Number(student.cur)||0;
+ if(to===from)return teacherMessage('이미 해당 진도예요.',false);
+ const alert=to<from?'뒤로 이동하면 이후 풀이 기록과 해당 점수를 정리합니다.':'앞으로 이동하면 건너뛴 문제는 점수 없이 처리됩니다.';
+ if(!confirm(student.name+' 학생의 진도를 '+from+'문제 완료 → '+to+'문제 완료로 조정할까요?\n'+alert+'\n변경 전 기록 백업 파일을 저장합니다.'))return;
+ teacherSaveBackup(key);
+ const btn=$('teacherProgressApply');if(btn)btn.disabled=true;
+ try{
+  const ref=db.ref(PLAYERS_PATH+'/'+key);
+  const result=await ref.transaction(raw=>{
+   if(!raw)return;
+   const x=norm(raw,key),old=Number(x.cur)||0,now=serverNow();
+   if(to<old){
+     x.log=x.log.filter(l=>{const position=teacherStudentPosition(l.id,x);return position<0||position<to;});
+     x.score=x.log.reduce((sum,l)=>sum+(Number(l.score)||0),0);
+     x.timeSpent=x.log.reduce((sum,l)=>sum+(Number(l.seconds)||0),0);
+     x.teacherSkipped=x.teacherSkipped.filter(i=>Number(i)<to);
+   }else{
+     const recorded=new Set(x.log.map(l=>teacherStudentPosition(l.id,x)));
+     const skipped=new Set(x.teacherSkipped);
+     for(let i=old;i<to;i++)if(!recorded.has(i))skipped.add(i);
+     x.teacherSkipped=[...skipped].sort((a,b)=>a-b);
+   }
+   x.cur=to;x.done=to;x.pending=null;x.tries=0;x.coolUntil=0;
+   x.paused=false;x.pausedElapsed=0;x.startedAt=now;x.t=now;
+   x.unlocked=[];
+   for(let i=0;i<Math.min(to,COUNTRY_END);i++){
+     const original=Array.isArray(x.questionOrder)?x.questionOrder[i]:i;
+     const country=PROBLEMS[original]?.country;
+     if(country&&!x.unlocked.includes(country))x.unlocked.push(country);
+   }
+   x.teacherRevision=(Number(x.teacherRevision)||0)+1;
+   x.teacherAdjustments=[...x.teacherAdjustments,{from:old,to,at:now}].slice(-30);
+   return x;
+  });
+  if(!result.committed||!result.snapshot.exists())throw Error('변경된 기록을 서버에서 확인하지 못했어요.');
+  teacherDraftProgress=null;
+  teacherMessage(student.name+' 학생 진도를 복구했어요. 건너뛴 문제에 점수는 주지 않았어요.',false);
+ }catch(e){teacherMessage('진도 복구 실패: '+e.message,true);}
+ finally{if(btn)btn.disabled=false;}
+}
+async function teacherDeleteStudent(){
+ if(!TEACHER||firebaseState!=='online'||!db)return teacherMessage('서버 연결 상태에서만 삭제할 수 있어요.',true);
+ const key=selectedKey||Object.keys(lastAll)[0],student=lastAll[key];
+ if(!student)return teacherMessage('삭제할 학생을 선택해 주세요.',true);
+ const typed=prompt(student.name+' 학생의 모든 게임 기록을 삭제합니다.\n학생 이름을 정확히 입력하세요.');
+ if(typed===null)return;
+ if(typed!==student.name)return teacherMessage('이름이 일치하지 않아 삭제하지 않았어요.',true);
+ if(!confirm('정말로 '+student.name+' 학생 기록을 삭제할까요? 학생의 게임도 초기화됩니다.'))return;
+ teacherSaveBackup(key);
+ const btn=$('teacherDelete');if(btn)btn.disabled=true;
+ try{
+  await db.ref(PLAYERS_PATH+'/'+key).remove();
+  selectedKey='';teacherDraftKey='';teacherDraftProgress=null;
+  teacherMessage('기록을 삭제했어요. 자동으로 내려받은 백업 파일은 보관해 주세요.',false);
+ }catch(e){teacherMessage('기록 삭제 실패: '+e.message,true);}
+ finally{if(btn)btn.disabled=false;}
+}
+
 function renderTeacher(){
   renderHdr();
   app.innerHTML=`<main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
@@ -729,7 +838,13 @@ function renderTeacher(){
   const joinLink=classJoinLink();
   $('shareLink').value=joinLink||'이 브라우저에서 Firebase 연결 설정을 찾을 수 없어요.';
   $('shareCopy').onclick=copyClassJoinLink;
-  $('tbl').onclick=e=>{const button=e.target.closest('[data-key]');if(button){selectedKey=button.dataset.key;renderTeacherViews(lastAll)}};
+  $('tbl').onclick=e=>{const button=e.target.closest('[data-key]');if(button){selectedKey=button.dataset.key;teacherDraftProgress=null;renderTeacherViews(lastAll)}};
+  $('detail').onchange=e=>{if(e.target.id==='teacherProgress')teacherDraftProgress=Number(e.target.value);};
+  $('detail').onclick=e=>{
+    if(e.target.closest('#teacherProgressApply'))teacherProgressApply();
+    else if(e.target.closest('#teacherDelete'))teacherDeleteStudent();
+    else if(e.target.closest('#teacherBackup'))teacherSaveBackup(selectedKey);
+  };
   watchPlayers(renderTeacherViews);
 }
 function renderTeacherViews(all){
@@ -739,12 +854,14 @@ function renderTeacherViews(all){
     return `<tr><td>${i+1}</td><td><button class="nameBtn" data-key="${esc(p.id)}">${esc(p.name)}</button></td><td>${p.score}점</td><td>${p.done}/${PROBLEMS.length}</td><td>${status}</td></tr>`;
   }).join(''):'<tr><td colspan="5">아직 참여한 학생이 없어요.</td></tr>';
   const p=list.find(x=>x.id===selectedKey)||list[0];
+  if(p)selectedKey=p.id;
   if(!p){$('detail').innerHTML='<h2>🔎 학생 상세</h2><p class="muted">아직 학생 기록이 없어요.</p>';return;}
   const cur=PROBLEMS[p.cur];
   $('detail').innerHTML=`<h2>${esc(p.name)}</h2><div class="smallPill">${iconArt('star')} ${p.score}점</div><div class="smallPill">${iconArt('map')} ${p.done}/${PROBLEMS.length} 완료</div>
     <p><b>현재 상태</b> ${p.pending?'결과 확인 중':(cur?esc(cur.caption):'모두 완료')}</p>
     <p class="muted">마지막 활동: ${p.t?new Date(p.t).toLocaleString('ko-KR'):'없음'}</p>
-    <h3>📒 문제별 제출 기록</h3><div>${p.log.length?p.log.map((l,i)=>`<div class="rankItem">${i+1}. ${esc(l.q)} · ${l.result==='correct'?`✅ 정답 ${l.score}점`:'⭕ 3회 오답 0점'} · ${l.attempts}회 · ${new Date(l.at).toLocaleTimeString('ko-KR')}</div>`).join(''):'<p class="muted">아직 푼 문제가 없어요.</p>'}</div>`;
+    <h3>📒 문제별 제출 기록</h3><div>${p.log.length?p.log.map((l,i)=>`<div class="rankItem">${i+1}. ${esc(l.q)} · ${l.result==='correct'?`✅ 정답 ${l.score}점`:'⭕ 3회 오답 0점'} · ${l.attempts}회 · ${new Date(l.at).toLocaleTimeString('ko-KR')}</div>`).join(''):'<p class="muted">아직 푼 문제가 없어요.</p>'}</div><section id="teacherControls" class="teacherControls"></section>`;
+  teacherRenderControls(p);
 }
 async function start(){
   readClassLink();
