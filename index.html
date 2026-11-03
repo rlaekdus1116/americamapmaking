@@ -147,6 +147,74 @@ function showConn(){
   else if(firebaseState==='connecting'){el.textContent='서버 연결 중';}
   else {el.textContent='이 기기만 저장 · 실시간 공유 안 됨';el.title='Firebase 자동 연결에 실패해 로컬 모드로 실행 중입니다.';}
 }
+
+/* Firebase 교실 연결 링크: 설정 키를 저장소 코드에 쓰지 않고 링크 조각(#)으로 전달.
+   앱 실행 즉시 URL에서 제거하고 각 기기 브라우저에 보관한다. */
+function readClassLink(){
+ const hash=new URLSearchParams(location.hash.replace(/^#/,''));
+ const key=hash.get('connect');
+ if(!key||!/^AIza[\w-]{20,}$/.test(key))return false;
+ store.set('amap-firebase-key',key);
+ try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
+ return true;
+}
+function getClassFirebaseKey(){
+ const active=window.firebase?.apps?.find(a=>a.options.projectId===PROJECT_ID);
+ return active?.options?.apiKey||store.get('amap-firebase-key')||'';
+}
+function classJoinLink(){
+ const key=getClassFirebaseKey();
+ if(!/^AIza[\w-]{20,}$/.test(key))return '';
+ const link=new URL(location.origin+location.pathname);
+ link.searchParams.set('room',ROOM);
+ link.hash='connect='+encodeURIComponent(key);
+ return link.href;
+}
+async function copyClassJoinLink(){
+ const link=classJoinLink(),msg=$('shareLinkMsg');
+ if(!link){if(msg)msg.textContent='연결 설정을 찾지 못했어요. 이 브라우저의 Firebase 설정을 확인해 주세요.';return;}
+ try{
+  await navigator.clipboard.writeText(link);
+  if(msg)msg.textContent='복사 완료! 학생들에게 이 링크를 보내세요. 같은 기기와 브라우저에서 열면 이전 진도가 옮겨집니다.';
+ }catch(e){
+  const inp=$('shareLink');
+  if(inp){inp.value=link;inp.focus();inp.select();}
+  if(msg)msg.textContent='아래 링크를 선택한 상태예요. Ctrl+C로 복사해 학생들에게 보내세요.';
+ }
+}
+function migrateGameFormat(old){
+ const p={...old};
+ if(Number(p.schemaVersion||8)<9){
+  if(Number(p.cur)>=30)p.cur=Number(p.cur)+5;
+  if(p.pending&&Number(p.pending.idx)>=30)p.pending={...p.pending,idx:Number(p.pending.idx)+5};
+  p.schemaVersion=9;
+ }
+ return p;
+}
+async function restoreOfflineStudent(name){
+ if(!db||firebaseState==='offline')return false;
+ const key=nameKey(name),doneKey='amap-synced-v9-'+ROOM+'-'+key;
+ if(store.get(doneKey)==='yes')return false;
+ let records={};
+ try{records=JSON.parse(store.get('amap-local-v8-'+ROOM)||'{}');}catch(e){}
+ const original=records[key];
+ if(!original)return false;
+ const saved=migrateGameFormat(original);
+ const ref=db.ref(playerPath(name));
+ const tx=await ref.transaction(remote=>{
+  if(!remote)return saved;
+  const old=norm(remote,key),local=norm(saved,key);
+  if(local.cur>old.cur)return saved;
+  if(local.cur===old.cur&&local.score>old.score&&local.done>=old.done)return saved;
+  if(local.cur===old.cur&&local.tries>old.tries&&local.done>=old.done)return saved;
+  return;
+ });
+ if(!tx.snapshot.exists())throw Error('학생의 이전 기록을 서버에 올리지 못했어요.');
+ // Keep local copy intact as backup. Only remember success when a server record exists.
+ store.set(doneKey,'yes');
+ return true;
+}
+
 function loadScript(url){
   return new Promise((resolve,reject)=>{
     const s=document.createElement('script');s.src=url;s.async=true;s.onload=resolve;s.onerror=()=>reject(new Error('자동 설정 주소 불러오기 실패'));document.head.appendChild(s);
@@ -595,6 +663,7 @@ async function loadStudent(name){
   if($('joinMsg'))$('joinMsg').textContent='진도를 찾고 있어요...';
   const key=nameKey(name),ref=db.ref(playerPath(name));
   try{
+    const recovered=await restoreOfflineStudent(name);
     const tx=await ref.transaction(current=>{
       if(!current)return fresh(name);
       const now=serverNow();
@@ -611,7 +680,8 @@ async function loadStudent(name){
     if(!tx.snapshot.exists())throw Error('진도 기록을 불러오지 못했어요');
     playerRef=ref;me=norm(tx.snapshot.val(),key);
     store.set('amap-name-'+ROOM,name);renderStudent();
-  }catch(e){renderJoin('Firebase 읽기/쓰기 오류: '+e.message+' · 데이터베이스 규칙을 확인해 주세요.');}
+    if(recovered)hintStatus('이전에 이 기기에 저장된 진도와 점수를 Firebase로 옮겼어요.','ok');
+  }catch(e){renderJoin('기록 연결에 실패했어요. 원래 기기에 남은 기록은 삭제되지 않았어요. '+e.message);}
 }
 function renderJoin(error=''){
   if(playerRef&&playerListener)playerRef.off('value',playerListener);playerRef=null;
@@ -644,11 +714,21 @@ function renderTeacher(){
   app.innerHTML=`<main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
     <section class="card"><div class="smallPill">${iconArt("book")} 교사용 관리</div><h2>우리 반 탐험 현황</h2>
       <p class="muted">학생 이름을 누르면 문제별 결과를 확인할 수 있어요.</p>
+      <div class="teacherShare">
+        <div class="smallPill">학생 실시간 연결 링크</div>
+        <p class="muted">학생들이 지금 풀던 <b>같은 기기의 같은 브라우저</b>로 이 링크를 열면 기존 진도를 Firebase로 옮겨요. 학생은 API 키를 입력할 필요가 없어요.</p>
+        <input type="text" id="shareLink" aria-label="학생 실시간 연결 링크" readonly>
+        <button class="btn mint" id="shareCopy" type="button">학생 연결 링크 복사</button>
+        <p id="shareLinkMsg" class="muted" aria-live="polite"></p>
+      </div>
       <div style="margin:14px 0"><button class="btn mint" id="csvBtn">CSV 내보내기</button><span class="smallPill" id="studentTotal">참여 0명</span></div>
       <div class="tableWrap"><table><thead><tr><th>순위</th><th>이름</th><th>점수</th><th>진도</th><th>현재 상태</th></tr></thead><tbody id="tbl"></tbody></table></div>
     </section><section class="card" id="detail"><h2>학생 상세</h2><p class="muted">학생을 선택해 주세요.</p></section>
   </main>`;
   $('csvBtn').onclick=exportCSV;
+  const joinLink=classJoinLink();
+  $('shareLink').value=joinLink||'이 브라우저에서 Firebase 연결 설정을 찾을 수 없어요.';
+  $('shareCopy').onclick=copyClassJoinLink;
   $('tbl').onclick=e=>{const button=e.target.closest('[data-key]');if(button){selectedKey=button.dataset.key;renderTeacherViews(lastAll)}};
   watchPlayers(renderTeacherViews);
 }
@@ -667,6 +747,7 @@ function renderTeacherViews(all){
     <h3>📒 문제별 제출 기록</h3><div>${p.log.length?p.log.map((l,i)=>`<div class="rankItem">${i+1}. ${esc(l.q)} · ${l.result==='correct'?`✅ 정답 ${l.score}점`:'⭕ 3회 오답 0점'} · ${l.attempts}회 · ${new Date(l.at).toLocaleTimeString('ko-KR')}</div>`).join(''):'<p class="muted">아직 푼 문제가 없어요.</p>'}</div>`;
 }
 async function start(){
+  readClassLink();
   renderHdr();
   const connected=await initFirebase();
   if(!connected){db=offlineDb();playersRef=db.ref(PLAYERS_PATH);firebaseState='offline';}

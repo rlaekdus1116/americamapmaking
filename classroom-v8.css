@@ -129,3 +129,15 @@ main{grid-template-columns:minmax(440px,550px) minmax(0,1fr);max-width:1480px}
   #resultMap{height:clamp(220px,31vh,260px)!important}
   .result-panel #nextBtn{padding:12px!important}
 }
+
+/* Classroom recovery controls · realtime connection shared by teacher link */
+.teacherShare{
+ margin:12px 0;padding:13px 15px;border-radius:20px;
+ background:linear-gradient(125deg,#ecf7ff,#f4edff);
+ border:1px solid rgba(155,186,229,.55)
+}
+.teacherShare .smallPill{margin:0}
+.teacherShare p{font-size:13px;line-height:1.65;margin:8px 0}
+.teacherShare input{width:100%;max-width:100%;font-size:12px!important;background:white!important;margin-bottom:8px;padding:8px 10px!important}
+.teacherShare .btn{padding:9px 15px!important;font-size:14px}
+#shareLinkMsg{font-size:12px;color:#335d82}
