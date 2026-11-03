@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Gowun+Dodum&family=Jua&display=swap');
+:root{--ink:#26354d;--sub:#65738b}
+body{font-family:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+h1,h2,h3,.smallPill,.btn,.titleBadge{font-family:"Jua","Gowun Dodum",sans-serif;font-weight:400}
+#qtext{font-family:"Gowun Dodum",sans-serif;font-size:19px;line-height:1.75;letter-spacing:-.3px;user-select:none;-webkit-user-select:none}
+#qbox{user-select:none;-webkit-user-select:none}
+.sketch-icon{vertical-align:-5px;margin-right:5px;transform:rotate(-8deg);flex:none}
+main{grid-template-columns:minmax(440px,550px) minmax(0,1fr);max-width:1480px}
+.card{overflow:visible}
+#photoWrap{height:430px!important;border-radius:28px!important;overflow:hidden;position:relative;background:linear-gradient(125deg,#e9e1fa,#e1f6f2);margin-top:12px}
+#img{width:100%;height:100%;object-fit:contain;cursor:zoom-in}
+#cap{font-weight:700;font-size:15px}
+.photo-zoom-hint{position:absolute;top:10px;right:12px;border:1px solid #fff8;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700;color:#283b57;background:#ffffffd0;pointer-events:none}
+.photo-modal,.stage-modal{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:16px;background:#132a49bd;backdrop-filter:blur(12px)}
+.photo-modal[hidden],.stage-modal[hidden]{display:none!important}
+.photo-panel{position:relative;display:flex;align-items:center;justify-content:center;padding:52px 12px 14px;max-width:98vw;max-height:94vh;background:#ffffffc9;border:1px solid white;border-radius:28px;box-shadow:0 30px 70px #071e4470}
+.photo-panel img{max-width:93vw;max-height:78vh;object-fit:contain;border-radius:15px}
+.modal-close{position:absolute;right:12px;top:10px;border:1px solid #fff;background:#ffffffda;padding:8px 14px;border-radius:99px;font:700 14px "Gowun Dodum",sans-serif;color:#29405e;cursor:pointer}
+.stage-panel{max-width:460px;width:100%;padding:32px 26px;text-align:center;border-radius:32px;background:linear-gradient(140deg,#fffffff4,#e9f5ffeb);border:2px solid #fff;box-shadow:inset 0 2px 1px #fff,0 20px 56px #152e5566}
+.stage-panel h2{font-size:29px;color:#243653}
+.stage-panel p{line-height:1.9;font-size:17px}
+.stage-icon{display:flex;justify-content:center;color:#4575b7}
+.stage-icon svg{width:72px;height:72px;stroke-width:1.8}
+#pieces{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px 2px}
+.puzzle-tile{position:relative;min-width:0;height:83px;display:flex;align-items:center;flex-direction:column;justify-content:center;transition:transform .18s}
+.puzzle-tile .puzzle-svg{width:69px;height:62px;max-width:100%;filter:drop-shadow(0 5px 3px #43587930);transform:rotate(-3deg)}
+.puzzle-tile:nth-child(3n) .puzzle-svg{transform:rotate(5deg)}
+.puzzle-tile.locked{opacity:.42;filter:grayscale(1)}
+.puzzle-tile.solved:hover{transform:translateY(-3px)}
+.puzzle-tile span{font:700 12px "Gowun Dodum",sans-serif;color:#273d5b;text-shadow:0 1px #fff;margin-top:-7px;z-index:1;text-align:center}
+#map{background:#dceef9!important;min-height:590px}
+.leaflet-container{background:#dceef9!important}
+.country-label{background:transparent!important;border:0!important;pointer-events:none!important;text-align:center}
+.country-label span{display:inline-block;white-space:nowrap;padding:3px 7px;border-radius:9px;color:#223d60;font:700 12px "Gowun Dodum",sans-serif;background:#fff9;text-shadow:0 1px #fff,1px 0 #fff,-1px 0 #fff;box-shadow:0 1px 7px #405a7a2e}
+.leaflet-tooltip.country-hover-tooltip{background:#fffffff2;border:1px solid #fff;border-radius:20px;padding:7px;box-shadow:0 10px 22px #23375342}
+.country-hover{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:110px;font-size:15px;color:#1c395a}
+.country-hover img{height:100px;width:168px;border-radius:13px;object-fit:cover}
+.timer-line{font:700 16px "Gowun Dodum",sans-serif;display:flex;align-items:center;margin-top:12px;color:#4a5d80}
+#answerInput{font:600 18px "Gowun Dodum",sans-serif}
+#photoCredit a{color:#4a5d80}
+@media(max-width:1020px){main{grid-template-columns:1fr;max-width:780px}#photoWrap{height:400px!important}#map{min-height:480px}}
+@media(max-width:600px){#photoWrap{height:320px!important}#pieces{grid-template-columns:repeat(4,1fr)}.puzzle-tile{height:77px}.card{padding:14px}h1{font-size:19px}}
+@media(prefers-reduced-motion:reduce){.puzzle-tile,.btn{transition:none}}
