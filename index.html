@@ -86,7 +86,7 @@ const params = new URLSearchParams(location.search);
 const ROOM = params.get('room') || 'demo';
 const TEACHER = params.get('mode') === 'teacher' || params.get('t') === '1';
 const roomKey = encodeURIComponent(ROOM).replace(/\./g,'%2E');
-const PLAYERS_PATH = 'rooms/' + roomKey + '/players';
+const PLAYERS_PATH = 'rooms/' + roomKey + '/v6/players';
 const $ = id => document.getElementById(id);
 const app = $('app');
 const localMem = {};
@@ -103,59 +103,382 @@ const MAX_TRIES=3, COOLDOWN_MS=10000;
 
 /* 문제는 나라별로 분산시키고, 실제 정답은 특정 건물/유적/지점 좌표로 한정합니다. */
 const PROBLEMS = [
-  {wiki:'Statue_of_Liberty', caption:'자유의 여신상', q:'미국 뉴욕 항구의 리버티섬에 세워진 자유의 여신상을 찾아 찍어 보세요.', lat:40.6892, lng:-74.0445, tol:0.7, country:'United States of America', fact:'자유의 여신상은 프랑스가 미국 독립 100주년을 기념해 선물한 조각상이에요.'},
-  {wiki:'Niagara_Falls', caption:'호스슈 폭포', q:'캐나다와 미국 국경의 나이아가라강에서 말발굽 모양으로 휘어 떨어지는 호스슈 폭포를 찾아보세요.', lat:43.0799, lng:-79.0747, tol:0.9, country:'Canada', fact:'호스슈 폭포는 나이아가라 폭포 가운데 가장 크고 넓은 부분이에요.'},
-  {wiki:'CN_Tower', caption:'CN 타워', q:'캐나다 토론토 도심에 우뚝 솟은 CN 타워를 찾아보세요.', lat:43.6426, lng:-79.3871, tol:0.5, country:'Canada', fact:'CN 타워는 토론토의 대표 랜드마크이자 전망 명소예요.'},
-  {wiki:'Old_Faithful', caption:'올드 페이스풀 간헐천', q:'미국 옐로스톤 국립공원에서 주기적으로 물기둥을 뿜는 올드 페이스풀 간헐천을 찾아보세요.', lat:44.4605, lng:-110.8281, tol:0.8, country:'United States of America', fact:'올드 페이스풀은 비교적 일정한 간격으로 분출하는 간헐천으로 유명해요.'},
-  {wiki:'Mount_Rushmore', caption:'러시모어산 대통령 조각', q:'미국 사우스다코타주의 화강암 절벽에 대통령 네 명의 얼굴이 새겨진 러시모어산을 찾아보세요.', lat:43.8791, lng:-103.4591, tol:0.8, country:'United States of America', fact:'러시모어산에는 미국 대통령 네 명의 얼굴이 거대한 조각으로 새겨져 있어요.'},
-  {wiki:'Chichen_Itza', caption:'치첸이트사의 엘 카스티요', q:'멕시코 유카탄반도의 마야 유적 도시 치첸이트사에 있는 엘 카스티요 피라미드를 찾아보세요.', lat:20.6831, lng:-88.5686, tol:0.6, country:'Mexico', fact:'엘 카스티요는 마야 문명의 대표적인 계단식 피라미드예요.'},
-  {wiki:'Teotihuacan', caption:'태양의 피라미드', q:'멕시코시티 북동쪽의 고대 도시 테오티우아칸에 있는 태양의 피라미드를 찾아보세요.', lat:19.6925, lng:-98.8439, tol:0.6, country:'Mexico', fact:'태양의 피라미드는 테오티우아칸에서 가장 큰 건축물 가운데 하나예요.'},
-  {wiki:'Tulum_(archaeological_site)', caption:'툴룸 엘 카스티요', q:'멕시코 카리브해 절벽 위의 마야 유적 툴룸에 있는 엘 카스티요를 찾아보세요.', lat:20.2149, lng:-87.4290, tol:0.5, country:'Mexico', fact:'툴룸은 바다를 내려다보는 위치 덕분에 마야 해안 도시로 유명해요.'},
-  {wiki:'Great_Blue_Hole', caption:'그레이트 블루 홀', q:'벨리즈 앞바다 산호초 한가운데에 있는 거대한 원형 해양 싱크홀, 그레이트 블루 홀을 찾아보세요.', lat:17.3153, lng:-87.5344, tol:1.0, country:'Belize', fact:'그레이트 블루 홀은 위에서 보면 둥근 짙은 남색 원처럼 보여요.'},
-  {wiki:'Tikal', caption:'티칼 신전 지역', q:'과테말라 밀림 속 고대 마야 도시 티칼의 대표 신전 지역을 찾아보세요.', lat:17.2216, lng:-89.6237, tol:0.8, country:'Guatemala', fact:'티칼은 거대한 피라미드 신전과 열대우림 풍경으로 유명한 마야 유적이에요.'},
-  {wiki:'Copan', caption:'코판 상형문자 계단', q:'온두라스 서부의 코판 마야 유적에서 상형문자 계단이 있는 지점을 찾아보세요.', lat:14.8370, lng:-89.1416, tol:0.6, country:'Honduras', fact:'코판의 상형문자 계단에는 마야 왕조의 역사가 새겨져 있어요.'},
-  {wiki:'Miraflores_Locks', caption:'미라플로레스 갑문', q:'파나마 운하의 태평양 쪽에 있는 미라플로레스 갑문을 찾아보세요.', lat:8.9941, lng:-79.5908, tol:0.5, country:'Panama', fact:'미라플로레스 갑문은 큰 배가 수위를 바꾸며 지나가는 운하 시설이에요.'},
-  {wiki:'National_Capitol_of_Cuba', caption:'아바나 국회의사당', q:'쿠바 아바나 중심부의 거대한 돔 건물인 국회의사당을 찾아보세요.', lat:23.1353, lng:-82.3594, tol:0.5, country:'Cuba', fact:'아바나의 국회의사당은 도시를 대표하는 웅장한 건축물이에요.'},
-  {wiki:'Columbus_Lighthouse', caption:'콜럼버스 등대', q:'도미니카공화국 산토도밍고에 있는 거대한 십자형 기념 건축물, 콜럼버스 등대를 찾아보세요.', lat:18.4794, lng:-69.8685, tol:0.6, country:'Dominican Republic', fact:'콜럼버스 등대는 크리스토퍼 콜럼버스를 기념해 세워진 건축물이에요.'},
-  {wiki:'Dunn%27s_River_Falls', caption:'던스리버 폭포', q:'자메이카의 대표 관광지인 던스리버 폭포를 찾아보세요.', lat:18.4098, lng:-77.1428, tol:0.7, country:'Jamaica', fact:'던스리버 폭포는 계단식으로 바다 쪽으로 흘러내리는 독특한 폭포예요.'},
-  {wiki:'Christ_the_Redeemer_(statue)', caption:'구세주 그리스도상', q:'브라질 리우데자네이루 코르코바두산 정상의 구세주 그리스도상을 찾아보세요.', lat:-22.9519, lng:-43.2105, tol:0.5, country:'Brazil', fact:'구세주 그리스도상은 리우데자네이루를 대표하는 상징적인 조각상이에요.'},
-  {wiki:'Sugarloaf_Mountain', caption:'슈거로프산', q:'브라질 리우데자네이루 항구 입구의 둥근 바위산, 슈거로프산을 찾아보세요.', lat:-22.9494, lng:-43.1567, tol:0.5, country:'Brazil', fact:'슈거로프산은 케이블카를 타고 오르는 전망 명소로 유명해요.'},
-  {wiki:'Iguazu_Falls', caption:'이과수 폭포 악마의 목구멍', q:'아르헨티나와 브라질 국경의 이과수 폭포 중 악마의 목구멍 구역을 찾아보세요.', lat:-25.6953, lng:-54.4367, tol:0.9, country:'Argentina', fact:'악마의 목구멍은 이과수 폭포에서 가장 웅장한 U자형 폭포 구간이에요.'},
-  {wiki:'Perito_Moreno_Glacier', caption:'페리토 모레노 빙하', q:'아르헨티나 파타고니아의 대표 빙하, 페리토 모레노 빙하를 찾아보세요.', lat:-50.4766, lng:-73.0335, tol:1.0, country:'Argentina', fact:'페리토 모레노 빙하는 거대한 얼음벽이 인상적인 파타고니아 빙하예요.'},
-  {wiki:'Aconcagua', caption:'아콩카과산 정상', q:'아르헨티나 안데스산맥의 남아메리카 최고봉, 아콩카과산 정상을 찾아보세요.', lat:-32.6531, lng:-70.0117, tol:1.2, country:'Argentina', fact:'아콩카과산은 해발 약 6,961m로 남아메리카에서 가장 높은 산이에요.'},
-  {wiki:'Machu_Picchu', caption:'마추픽추 유적', q:'페루 안데스산맥 능선에 자리한 마추픽추 유적을 찾아보세요.', lat:-13.1631, lng:-72.5450, tol:0.7, country:'Peru', fact:'마추픽추는 잉카 문명의 대표적인 산악 도시 유적이에요.'},
-  {wiki:'Sacsayhuaman', caption:'삭사이우아만', q:'페루 쿠스코 북쪽 언덕 위의 거대한 석조 유적, 삭사이우아만을 찾아보세요.', lat:-13.5097, lng:-71.9811, tol:0.6, country:'Peru', fact:'삭사이우아만은 거대한 돌을 정교하게 쌓아 만든 잉카 유적이에요.'},
-  {wiki:'Incahuasi_Island', caption:'잉카우아시 섬', q:'볼리비아 우유니 소금사막 한가운데 선인장으로 유명한 잉카우아시 섬을 찾아보세요.', lat:-20.2530, lng:-67.6254, tol:1.0, country:'Bolivia', fact:'잉카우아시 섬은 새하얀 우유니 소금사막 속 바위섬으로 유명해요.'},
-  {wiki:'Ahu_Tongariki', caption:'아후 통가리키', q:'칠레의 이스터섬에서 모아이 15기가 일렬로 서 있는 아후 통가리키를 찾아보세요.', lat:-27.1258, lng:-109.2769, tol:0.6, country:'Chile', fact:'아후 통가리키는 이스터섬에서 가장 유명한 모아이 집단 석상 유적이에요.'},
-  {wiki:'La_Portada', caption:'라 포르타다', q:'칠레 북부 안토파가스타 해안의 바위 아치 지형, 라 포르타다를 찾아보세요.', lat:-23.5064, lng:-70.5564, tol:0.8, country:'Chile', fact:'라 포르타다는 바닷가 절벽과 파도가 만든 자연 아치예요.'},
-  {wiki:'Bartolom%C3%A9_Island', caption:'바르톨로메섬 피너클 록', q:'에콰도르 갈라파고스 제도의 바르톨로메섬 해안에 솟은 피너클 록을 찾아보세요.', lat:-0.2849, lng:-90.5490, tol:0.9, country:'Ecuador', fact:'피너클 록은 바르톨로메섬을 대표하는 뾰족한 화산암 지형이에요.'},
-  {wiki:'Mitad_del_Mundo', caption:'미타드 델 문도', q:'에콰도르 키토 북쪽에 있는 적도 기념비, 미타드 델 문도를 찾아보세요.', lat:0.0023, lng:-78.4558, tol:0.6, country:'Ecuador', fact:'미타드 델 문도는 적도선 근처에 세워진 기념비예요.'},
-  {wiki:'San_Felipe_de_Barajas_Castle', caption:'산펠리페 데 바라하스 성', q:'콜롬비아 카르타헤나의 언덕 위에 세워진 요새, 산펠리페 데 바라하스 성을 찾아보세요.', lat:10.4227, lng:-75.5396, tol:0.6, country:'Colombia', fact:'산펠리페 데 바라하스 성은 스페인 식민지 시대를 대표하는 요새예요.'},
-  {wiki:'Angel_Falls', caption:'앙헬 폭포', q:'베네수엘라 카나이마 국립공원의 테이블산 절벽 아래로 떨어지는 앙헬 폭포를 찾아보세요.', lat:5.9675, lng:-62.5356, tol:1.0, country:'Venezuela', fact:'앙헬 폭포는 세계에서 가장 높은 단일 낙하 폭포로 알려져 있어요.'},
-  {wiki:'La_Mano_de_Punta_del_Este', caption:'라 마노 조각', q:'우루과이 푼타델에스테 해변 모래사장에서 손가락이 솟아오른 조각상, 라 마노를 찾아보세요.', lat:-34.9597, lng:-54.9451, tol:0.5, country:'Uruguay', fact:'라 마노는 우루과이의 유명한 해변 조각 작품이에요.'}
+  {
+    "wiki": "Statue_of_Liberty",
+    "caption": "자유의 여신상",
+    "q": "프랑스가 미국 독립 100주년을 기념해 선물한, 횃불을 든 거대한 조각상이 있어요. 이 조각상이 있는 나라는?",
+    "answer": "미국",
+    "country": "United States of America",
+    "lat": 40.6892,
+    "lng": -74.0445,
+    "fact": "프랑스가 선물한 자유의 여신상은 뉴욕 리버티섬에 있어요.",
+    "stage": "country",
+    "aliases": []
+  },
+  {
+    "wiki": "Canadian_Rockies",
+    "caption": "로키산맥",
+    "q": "북아메리카 서부의 거대한 산맥 중 밴프 국립공원이 있는 부분의 사진이에요. 이곳이 있는 나라는?",
+    "answer": "캐나다",
+    "country": "Canada",
+    "lat": 51.4968,
+    "lng": -115.9281,
+    "fact": "로키산맥은 캐나다와 미국에 걸쳐 있고 사진은 캐나다 로키산맥을 대표해요.",
+    "stage": "country",
+    "aliases": [
+      "캐나다"
+    ]
+  },
+  {
+    "wiki": "Andes",
+    "caption": "안데스산맥",
+    "q": "태평양 연안을 따라 남북으로 뻗는 긴 산맥이에요. 사진 속 토레스 델 파이네가 있는 나라는?",
+    "answer": "칠레",
+    "country": "Chile",
+    "lat": -50.9425,
+    "lng": -73.4062,
+    "fact": "안데스산맥은 여러 남미 국가에 걸쳐 있으며 이 문제의 배경은 칠레예요.",
+    "stage": "country",
+    "aliases": []
+  },
+  {
+    "wiki": "Atacama_Desert",
+    "caption": "아타카마 사막",
+    "q": "세계에서 가장 건조한 사막 가운데 하나예요. 이 사막이 주로 자리 잡은 나라는?",
+    "answer": "칠레",
+    "country": "Chile",
+    "lat": -23.061,
+    "lng": -68.201,
+    "fact": "아타카마 사막은 주로 칠레 북부에 펼쳐져 있어요.",
+    "stage": "country",
+    "aliases": []
+  },
+  {
+    "wiki": "Paramaribo",
+    "caption": "수리남",
+    "q": "남아메리카 북동부에 있는 작은 국가의 수도 파라마리보 풍경이에요. 이 나라는?",
+    "answer": "수리남",
+    "country": "Suriname",
+    "lat": 5.852,
+    "lng": -55.2038,
+    "fact": "수리남은 대서양과 접한 남아메리카 북동부의 나라예요.",
+    "stage": "country",
+    "aliases": []
+  },
+  {
+    "wiki": "Mississippi_River",
+    "caption": "미시시피강",
+    "q": "북아메리카 중앙을 남북으로 흐르며 멕시코만으로 흘러드는 큰 강이에요. 이 강이 흐르는 나라는?",
+    "answer": "미국",
+    "country": "United States of America",
+    "lat": 35.1495,
+    "lng": -90.0489,
+    "fact": "미시시피강은 미국을 남북으로 가로지르는 대표적인 강이에요.",
+    "stage": "country",
+    "aliases": []
+  },
+  {
+    "wiki": "Amazon_River",
+    "caption": "아마존강",
+    "q": "세계에서 유량이 가장 많은 강이에요. 사진은 마나우스 부근 강줄기입니다. 이곳의 나라는?",
+    "answer": "브라질",
+    "country": "Brazil",
+    "lat": -3.119,
+    "lng": -60.0217,
+    "fact": "아마존강은 여러 나라를 거쳐 흐르며, 마나우스는 브라질에 있어요.",
+    "stage": "country",
+    "aliases": []
+  },
+  {
+    "wiki": "Appalachian_Mountains",
+    "caption": "애팔래치아산맥",
+    "q": "북아메리카 동부에 펼쳐진 오래된 산맥이에요. 사진 속 그레이트스모키산맥 국립공원이 있는 나라는?",
+    "answer": "미국",
+    "country": "United States of America",
+    "lat": 35.6131,
+    "lng": -83.4895,
+    "fact": "애팔래치아산맥은 미국과 캐나다에 걸쳐 있고 이 문제는 미국의 국립공원을 가리켜요.",
+    "stage": "country",
+    "aliases": []
+  },
+  {
+    "wiki": "Salar_de_Uyuni",
+    "caption": "우유니 소금사막",
+    "q": "비가 내리면 거대한 거울처럼 하늘을 비추는 흰 소금 평원이 있어요. 이곳의 나라는?",
+    "answer": "볼리비아",
+    "country": "Bolivia",
+    "lat": -20.1338,
+    "lng": -67.4891,
+    "fact": "우유니 소금사막은 볼리비아 고지대에 있는 광대한 소금 평원이예요.",
+    "stage": "country",
+    "aliases": [
+      "볼리비아"
+    ]
+  },
+  {
+    "wiki": "Grand_Canyon",
+    "caption": "그랜드캐니언",
+    "q": "콜로라도강이 오랜 시간 깎아 만든 깊고 붉은 협곡이에요. 이곳의 나라는?",
+    "answer": "미국",
+    "country": "United States of America",
+    "lat": 36.0616,
+    "lng": -112.108,
+    "fact": "그랜드캐니언은 미국 애리조나주에 있어요.",
+    "stage": "country",
+    "aliases": []
+  },
+  {
+    "wiki": "Iguazu_Falls",
+    "caption": "이구아수 폭포",
+    "q": "거대한 물줄기가 여러 갈래로 떨어지는 폭포예요. 악마의 목구멍 쪽 전망로가 있는 나라로 답해 보세요.",
+    "answer": "아르헨티나",
+    "country": "Argentina",
+    "lat": -25.6953,
+    "lng": -54.4367,
+    "fact": "이구아수 폭포는 아르헨티나와 브라질의 국경에 있어요. 문제는 아르헨티나 쪽을 기준으로 해요.",
+    "stage": "country",
+    "aliases": []
+  },
+  {
+    "wiki": "Panama_Canal",
+    "caption": "파나마 운하",
+    "q": "대서양과 태평양을 연결하며 배가 갑문을 통과하는 유명한 인공 수로예요. 어느 나라에 있나요?",
+    "answer": "파나마",
+    "country": "Panama",
+    "lat": 9.0808,
+    "lng": -79.6811,
+    "fact": "파나마 운하는 파나마의 지협을 가로질러 두 대양을 연결해요.",
+    "stage": "country",
+    "aliases": []
+  },
+  {
+    "wiki": "Galapagos_Islands",
+    "caption": "갈라파고스 제도",
+    "q": "다윈의 진화론 연구에 영향을 준 거북과 이구아나가 사는 화산섬들이에요. 어느 나라 영토인가요?",
+    "answer": "에콰도르",
+    "country": "Ecuador",
+    "lat": -0.73,
+    "lng": -90.31,
+    "fact": "갈라파고스 제도는 에콰도르 영토예요.",
+    "stage": "country",
+    "aliases": []
+  },
+  {
+    "wiki": "Angel_Falls",
+    "caption": "앙헬 폭포",
+    "q": "테이블산 절벽에서 떨어지는 세계적으로 높은 폭포예요. 어느 나라에 있나요?",
+    "answer": "베네수엘라",
+    "country": "Venezuela",
+    "lat": 5.9675,
+    "lng": -62.5356,
+    "fact": "앙헬 폭포는 베네수엘라 카나이마 국립공원에 있어요.",
+    "stage": "country",
+    "aliases": []
+  },
+  {
+    "wiki": "Tikal",
+    "caption": "티칼",
+    "q": "울창한 열대우림 위로 거대한 마야 피라미드 신전들이 솟아 있어요. 이 유적이 있는 나라는?",
+    "answer": "과테말라",
+    "country": "Guatemala",
+    "lat": 17.2216,
+    "lng": -89.6237,
+    "fact": "티칼은 과테말라 북부 열대우림에 있는 마야 유적지예요.",
+    "stage": "country",
+    "aliases": []
+  },
+  {
+    "wiki": "Chichen_Itza",
+    "caption": "치첸이트사",
+    "q": "마야 문명의 계단식 피라미드 엘 카스티요가 있는 고대 도시의 이름은?",
+    "answer": "치첸이트사",
+    "country": "Mexico",
+    "lat": 20.6831,
+    "lng": -88.5686,
+    "fact": "치첸이트사는 멕시코 유카탄반도의 마야 유적이에요.",
+    "stage": "place",
+    "aliases": []
+  },
+  {
+    "wiki": "CN_Tower",
+    "caption": "CN 타워",
+    "q": "캐나다 토론토에 있는, 하늘로 높이 뻗은 방송·전망 탑의 이름은?",
+    "answer": "CN타워",
+    "country": "Canada",
+    "lat": 43.6426,
+    "lng": -79.3871,
+    "fact": "CN 타워는 토론토의 상징적인 전망탑이에요.",
+    "stage": "place",
+    "aliases": [
+      "씨엔타워",
+      "cn타워"
+    ]
+  },
+  {
+    "wiki": "New_York_City",
+    "caption": "뉴욕",
+    "q": "자유의 여신상, 타임스스퀘어와 맨해튼 고층 건물이 유명한 도시 이름은?",
+    "answer": "뉴욕",
+    "country": "United States of America",
+    "lat": 40.7128,
+    "lng": -74.006,
+    "fact": "뉴욕은 미국 동부의 세계적인 대도시예요.",
+    "stage": "place",
+    "aliases": []
+  },
+  {
+    "wiki": "Mexico_City",
+    "caption": "멕시코시티",
+    "q": "멕시코의 수도로, 높은 고원에 자리하고 소칼로 광장이 유명한 도시는?",
+    "answer": "멕시코시티",
+    "country": "Mexico",
+    "lat": 19.4326,
+    "lng": -99.1332,
+    "fact": "멕시코시티는 멕시코의 수도로 고원에 자리해 있어요.",
+    "stage": "place",
+    "aliases": []
+  },
+  {
+    "wiki": "Toronto",
+    "caption": "토론토",
+    "q": "온타리오호 연안에 있고 CN 타워가 서 있는 캐나다 최대 도시의 이름은?",
+    "answer": "토론토",
+    "country": "Canada",
+    "lat": 43.6532,
+    "lng": -79.3832,
+    "fact": "토론토는 온타리오호 연안에 있는 캐나다의 대도시예요.",
+    "stage": "place",
+    "aliases": []
+  },
+  {
+    "wiki": "Chicago",
+    "caption": "시카고",
+    "q": "미시간호 연안에 있고 윌리스 타워와 구름문 조각으로 유명한 도시는?",
+    "answer": "시카고",
+    "country": "United States of America",
+    "lat": 41.8781,
+    "lng": -87.6298,
+    "fact": "시카고는 미국 오대호 지역의 대표적인 대도시예요.",
+    "stage": "place",
+    "aliases": []
+  },
+  {
+    "wiki": "Cusco",
+    "caption": "쿠스코",
+    "q": "과거 잉카 제국의 수도였고 마추픽추로 가는 관문이 되는 안데스 고산 도시의 이름은?",
+    "answer": "쿠스코",
+    "country": "Peru",
+    "lat": -13.5319,
+    "lng": -71.9675,
+    "fact": "쿠스코는 잉카 제국의 중심지였던 페루의 역사 도시예요.",
+    "stage": "place",
+    "aliases": []
+  },
+  {
+    "wiki": "Machu_Picchu",
+    "caption": "마추픽추",
+    "q": "안데스산맥 높은 능선 위에 자리한 잉카 문명의 대표 유적지 이름은?",
+    "answer": "마추픽추",
+    "country": "Peru",
+    "lat": -13.1631,
+    "lng": -72.545,
+    "fact": "마추픽추는 페루에 있는 잉카 문명의 대표 유적지예요.",
+    "stage": "place",
+    "aliases": [
+      "마추피추"
+    ]
+  },
+  {
+    "wiki": "Christ_the_Redeemer_(statue)",
+    "caption": "구세주 그리스도상",
+    "q": "리우데자네이루의 산 위에서 두 팔을 벌리고 있는 거대한 조각상 이름은?",
+    "answer": "구세주그리스도상",
+    "country": "Brazil",
+    "lat": -22.9519,
+    "lng": -43.2105,
+    "fact": "구세주 그리스도상은 브라질 리우데자네이루의 상징이에요.",
+    "stage": "place",
+    "aliases": [
+      "예수상",
+      "구세주 예수상"
+    ]
+  },
+  {
+    "wiki": "Easter_Island",
+    "caption": "이스터섬",
+    "q": "태평양의 섬에 거대한 사람 얼굴 모양 석상들이 서 있어요. 이 섬의 이름은?",
+    "answer": "이스터섬",
+    "country": "Chile",
+    "lat": -27.1167,
+    "lng": -109.3667,
+    "fact": "이스터섬은 칠레 영토이며 모아이 석상으로 유명해요.",
+    "stage": "place",
+    "aliases": [
+      "이스터 아일랜드"
+    ]
+  },
+  {
+    "wiki": "Havana",
+    "caption": "아바나",
+    "q": "오래된 미국산 자동차와 식민지 시대 건축물로 유명한 쿠바 수도의 이름은?",
+    "answer": "아바나",
+    "country": "Cuba",
+    "lat": 23.1136,
+    "lng": -82.3666,
+    "fact": "아바나는 쿠바의 수도이자 대표 항구 도시예요.",
+    "stage": "place",
+    "aliases": []
+  },
+  {
+    "wiki": "Bogota",
+    "caption": "보고타",
+    "q": "안데스산맥 고원에 자리하고 몬세라테 언덕으로 유명한 콜롬비아 수도의 이름은?",
+    "answer": "보고타",
+    "country": "Colombia",
+    "lat": 4.711,
+    "lng": -74.0721,
+    "fact": "보고타는 콜롬비아의 수도로 해발이 높은 곳에 있어요.",
+    "stage": "place",
+    "aliases": []
+  },
+  {
+    "wiki": "La_Paz",
+    "caption": "라파스",
+    "q": "안데스 고원에 자리하고 케이블카 도시 교통으로 유명한 볼리비아의 행정수도는?",
+    "answer": "라파스",
+    "country": "Bolivia",
+    "lat": -16.4897,
+    "lng": -68.1193,
+    "fact": "라파스는 볼리비아의 행정수도예요. 헌법상 수도는 수크레예요.",
+    "stage": "place",
+    "aliases": []
+  },
+  {
+    "wiki": "Lima",
+    "caption": "리마",
+    "q": "태평양 연안에 위치하고 역사 지구가 유명한 페루 수도의 이름은?",
+    "answer": "리마",
+    "country": "Peru",
+    "lat": -12.0464,
+    "lng": -77.0428,
+    "fact": "리마는 태평양 연안에 있는 페루의 수도예요.",
+    "stage": "place",
+    "aliases": []
+  },
+  {
+    "wiki": "Buenos_Aires",
+    "caption": "부에노스아이레스",
+    "q": "탱고와 오벨리스코, 5월 광장으로 유명한 아르헨티나 수도의 이름은?",
+    "answer": "부에노스아이레스",
+    "country": "Argentina",
+    "lat": -34.6037,
+    "lng": -58.3816,
+    "fact": "부에노스아이레스는 아르헨티나의 수도예요.",
+    "stage": "place",
+    "aliases": []
+  }
 ];
-
-const COUNTRIES = [
-  {en:'United States of America', ko:'미국', color:'#ffe3ef'},
-  {en:'Canada', ko:'캐나다', color:'#e4f2ff'},
-  {en:'Mexico', ko:'멕시코', color:'#e4f8ea'},
-  {en:'Belize', ko:'벨리즈', color:'#fff2cb'},
-  {en:'Guatemala', ko:'과테말라', color:'#efe4ff'},
-  {en:'Honduras', ko:'온두라스', color:'#e4fbff'},
-  {en:'Panama', ko:'파나마', color:'#ffe9dd'},
-  {en:'Cuba', ko:'쿠바', color:'#fbe5ff'},
-  {en:'Dominican Republic', ko:'도미니카공화국', color:'#dff7ee'},
-  {en:'Jamaica', ko:'자메이카', color:'#fff3df'},
-  {en:'Brazil', ko:'브라질', color:'#dff8e3'},
-  {en:'Argentina', ko:'아르헨티나', color:'#dceeff'},
-  {en:'Peru', ko:'페루', color:'#ffe7e7'},
-  {en:'Bolivia', ko:'볼리비아', color:'#f2ecff'},
-  {en:'Chile', ko:'칠레', color:'#e6f5ff'},
-  {en:'Ecuador', ko:'에콰도르', color:'#fff0d9'},
-  {en:'Colombia', ko:'콜롬비아', color:'#fff7cf'},
-  {en:'Venezuela', ko:'베네수엘라', color:'#e6ffe8'},
-  {en:'Uruguay', ko:'우루과이', color:'#e9edff'}
-];
+const COUNTRIES = [{"en":"United States of America","ko":"미국","color":"#ffe3ef"},{"en":"Canada","ko":"캐나다","color":"#e4f2ff"},{"en":"Chile","ko":"칠레","color":"#e4f8ea"},{"en":"Suriname","ko":"수리남","color":"#fff2cb"},{"en":"Brazil","ko":"브라질","color":"#efe4ff"},{"en":"Bolivia","ko":"볼리비아","color":"#e4fbff"},{"en":"Argentina","ko":"아르헨티나","color":"#ffe9dd"},{"en":"Panama","ko":"파나마","color":"#fbe5ff"},{"en":"Ecuador","ko":"에콰도르","color":"#dff7ee"},{"en":"Venezuela","ko":"베네수엘라","color":"#fff3df"},{"en":"Guatemala","ko":"과테말라","color":"#ffe3ef"},{"en":"Mexico","ko":"멕시코","color":"#e4f2ff"},{"en":"Peru","ko":"페루","color":"#e4f8ea"},{"en":"Cuba","ko":"쿠바","color":"#fff2cb"},{"en":"Colombia","ko":"콜롬비아","color":"#efe4ff"}];
 
 
 
@@ -234,7 +557,7 @@ function photoCredit(p){const path='https://en.wikipedia.org/wiki/'+p.wiki;retur
 const thumbnailCache={};
 function loadProblemPhoto(p){
   const nonce=++photoNonce,img=$('img'),cap=$('cap'),credit=$('photoCredit');
-  img.style.display='none';img.removeAttribute('src');cap.textContent=p.caption;credit.innerHTML=photoCredit(p);
+  img.style.display='none';img.removeAttribute('src');cap.textContent='🖼️ 사진 속 장소는 어디일까요?';credit.innerHTML=photoCredit(p);
   if(thumbnailCache[p.wiki]){img.src=thumbnailCache[p.wiki];img.style.display='block';return;}
   const api='https://en.wikipedia.org/w/api.php?action=query&redirects=1&prop=pageimages&format=json&pithumbsize=1200&origin=*&titles='+encodeURIComponent(decodeURIComponent(p.wiki));
   const summary='https://en.wikipedia.org/api/rest_v1/page/summary/'+p.wiki;
@@ -259,6 +582,14 @@ function updateCooldownUI(){
   };
   tick();if(me&&(me.coolUntil||0)>serverNow())countdownTimer=setInterval(tick,250);
 }
+function answerUI(){
+  if(!$('answerWrap'))return;
+  $('answerWrap').style.display=me.pending||me.cur>=PROBLEMS.length?'none':'block';
+  const p=PROBLEMS[me.cur];if(!p)return;
+  $('answerLabel').textContent=p.stage==='country'?'🌎 사진·설명을 읽고 나라 이름을 입력하세요':'🏙️ 사진·설명을 읽고 도시·랜드마크 이름을 입력하세요';
+  $('answerInput').value='';$('answerInput').placeholder=p.stage==='country'?'나라 이름':'도시 또는 랜드마크 이름';
+  $('stageLabel').textContent=p.stage==='country'?'1단계 · 나라 맞히기 + 지도 조각':'2단계 · 도시·랜드마크 찾기';
+}
 function renderProblem(){
   if(!map||!me)return;renderedSig=sig(me);
   clearInterval(countdownTimer);clearMapMarks();
@@ -266,33 +597,40 @@ function renderProblem(){
   if(me.pending){renderPending();return;}
   if(me.cur>=PROBLEMS.length){finish();return;}
   $('photoWrap').style.display='block';$('photoCredit').style.display='block';
-  const p=PROBLEMS[me.cur];loadProblemPhoto(p);$('qtext').textContent=`${me.cur+1}번. ${p.q}`;
-  hintStatus(me.tries?'조금 더 자세히 살펴보고 위치를 찍어 보세요!':'지도를 확대해 위치를 찾아주세요 🌎');
+  const p=PROBLEMS[me.cur];loadProblemPhoto(p);
+  $('qtext').textContent=(me.cur+1)+'번. '+p.q;
+  answerUI();
+  hintStatus(me.tries?'설명을 다시 읽고 답을 적어보세요.':'정답을 입력하고 확인해 보세요 🌷');
   refreshPieces();updateCooldownUI();
 }
 function renderPending(){
-  const r=me.pending,p=PROBLEMS[r.idx];if(!p){hintStatus('이전 문제를 불러오지 못했어요. 새로고침 해주세요.','ng');return;}
+  const r=me.pending,p=PROBLEMS[r.idx];if(!p)return;
   $('photoWrap').style.display='block';$('photoCredit').style.display='block';loadProblemPhoto(p);
-  $('qtext').textContent=`${r.idx+1}번. ${p.q}`;showTarget(p);
+  $('qtext').textContent=(r.idx+1)+'번. '+p.q;
+  $('answerWrap').style.display='none';
+  $('stageLabel').textContent=p.stage==='country'?'1단계 · 나라 맞히기':'2단계 · 도시·랜드마크';
   $('fact').style.display='block';
-  const c=COUNTRIES.find(x=>x.en===p.country);
-  $('fact').innerHTML=`<b>🧩 ${c?esc(c.ko):''} 나라 조각 획득!</b>${esc(p.fact)}`;
-  if(r.mode==='correct')hintStatus(`정답! 🎉 ${r.points}점을 얻었어요.`,'ok');
-  else hintStatus('3번 모두 틀렸어요. 정답 위치를 보여드려요. 조각은 받지만 점수는 0점이에요.','ng');
-  refreshPieces();$('nextWrap').innerHTML=`<button class="btn mint" id="nextBtn">${me.cur>=PROBLEMS.length?'결과 보기 →':'다음 문제 →'}</button>`;
+  const co=COUNTRIES.find(x=>x.en===p.country);
+  $('fact').innerHTML='<b>✅ 정답: '+esc(p.answer)+'</b><p>'+esc(p.fact)+'</p><b>🧩 '+(co?esc(co.ko):'')+' 지도 조각 획득!</b>';
+  if(r.mode==='correct')hintStatus('정답! 🎉 '+r.points+'점을 얻었어요.','ok');
+  else hintStatus('3번 모두 틀렸어요. 정답을 공개해요. 조각은 받고 점수는 0점이에요.','ng');
+  refreshPieces();$('nextWrap').innerHTML='<button class="btn mint" id="nextBtn">'+(me.cur>=PROBLEMS.length?'결과 보기 →':'다음 문제 →')+'</button>';
   $('nextBtn').onclick=nextProblem;updateCooldownUI();
 }
-async function guess(lat,lng){
+function cleanAnswer(s){return String(s||'').toLowerCase().normalize('NFKC').replace(/[\\s\\-_.·()]/g,'');}
+async function guessTyped(){
   if(!playerRef||!me||submitting||me.pending||me.cur>=PROBLEMS.length)return;
   if(me.coolUntil>serverNow()){updateCooldownUI();return;}
-  const idx=me.cur,p=PROBLEMS[idx],distance=km(lat,lng,p.lat,p.lng);
+  const idx=me.cur,p=PROBLEMS[idx],given=$('answerInput').value.trim();
+  if(!given){hintStatus('답을 입력해 주세요.','ng');return;}
+  const correct=[p.answer,...(p.aliases||[])].some(s=>cleanAnswer(given)===cleanAnswer(s));
   submitting=true;hintStatus('답을 확인하고 있어요...');
   try{
     const tx=await playerRef.transaction(current=>{
       if(!current)return;
       const x=norm(current,me.id),now=serverNow();
       if(x.pending||x.cur!==idx||x.tries>=MAX_TRIES||x.coolUntil>now)return;
-      if(distance<=p.tol){
+      if(correct){
         const attempt=x.tries+1,points=attempt===1?2:1;
         x.score+=points;x.done++;x.cur++;
         if(!x.unlocked.includes(p.country))x.unlocked.push(p.country);
@@ -311,13 +649,12 @@ async function guess(lat,lng){
     });
     if(tx.snapshot.exists()){
       me=norm(tx.snapshot.val(),me.id);
-      if(tx.committed){renderProblem();if(!me.pending){hintStatus(`아쉬워요! 남은 기회 ${MAX_TRIES-me.tries}번. 10초 대기 후 다시 도전해요.`, 'ng');updateCooldownUI();}}
-      else{renderProblem();if(me.coolUntil>serverNow())hintStatus('다른 탭에서 이미 시도했어요. 기존 시도 횟수가 유지됩니다.','ng');}
+      renderProblem();
+      if(tx.committed&&!me.pending){hintStatus('아쉬워요! 남은 기회 '+(MAX_TRIES-me.tries)+'번. 10초 뒤 다시 입력하세요.','ng');updateCooldownUI();}
     }else hintStatus('저장에 실패했어요. Firebase 연결을 확인해 주세요.','ng');
-  }catch(e){hintStatus('Firebase 저장 오류: '+e.message+' · 권한/인터넷을 확인해 주세요.','ng');}
+  }catch(e){hintStatus('Firebase 저장 오류: '+e.message,'ng');}
   finally{submitting=false;}
 }
-function onMapClick(e){if(submitting||!me||me.pending)return;if(me.coolUntil>serverNow()){updateCooldownUI();return;}if(!PROBLEMS[me.cur])return;if(pick)map.removeLayer(pick);pick=L.circleMarker(e.latlng,{radius:7,color:'#8f78c7',weight:2,fillColor:'#cdbff7',fillOpacity:.95}).addTo(map);guess(e.latlng.lat,e.latlng.lng);}
 async function nextProblem(){
   if(!playerRef||!me||!me.pending||me.coolUntil>serverNow())return;
   if($('nextBtn'))$('nextBtn').disabled=true;
@@ -331,7 +668,7 @@ async function nextProblem(){
 }
 function finish(){
   clearMapMarks();$('photoWrap').style.display='none';$('photoCredit').style.display='none';
-  $('qtext').textContent='🎉 아메리카 지도 만들기 완성!';$('triesInfo').textContent='모든 장소를 탐험했어요!';
+  $('answerWrap').style.display='none';$('qtext').textContent='🎉 아메리카 지도 만들기 완성!';$('triesInfo').textContent='모든 장소를 탐험했어요!';
   hintStatus('⭐ 최종 '+me.score+'점! 30문항을 모두 완료했어요.','ok');
   $('fact').style.display='block';$('fact').innerHTML='<b>수고했어요! 🗺️</b>완성한 나라 조각을 확인해 보세요.';
   $('nextWrap').innerHTML='';refreshPieces();
@@ -342,18 +679,18 @@ function renderStudent(){
   app.innerHTML=`<main><section class="card">
     <div class="smallPill">🌷 30개 장소 탐험</div><div class="smallPill">⭐ 3번 도전 · 10초 대기</div>
     <div id="photoWrap"><img id="img" alt=""><div id="cap"></div></div><div id="photoCredit"></div>
-    <div id="qbox"><div id="qtext"></div><p class="subline" id="triesInfo"></p></div>
+    <div class="smallPill" id="stageLabel">1단계 · 나라 맞히기</div><div id="qbox"><div id="qtext"></div><p class="subline" id="triesInfo"></p></div><div id="answerWrap" style="margin-top:12px"><label id="answerLabel" for="answerInput" style="display:block;margin-bottom:9px;font-weight:700">답을 입력하세요</label><input id="answerInput" autocomplete="off" placeholder="정답 입력"><button class="btn mint" id="answerBtn" style="margin-top:10px;width:100%">정답 확인 ✨</button></div>
     <p class="msg" id="msg"></p><div class="waitBox" id="waitBox"></div>
     <div class="bar"><div id="bar"></div></div><div class="muted" id="prog"></div>
     <h3 style="margin-top:14px">🧩 나라 조각 모으기 (${COUNTRIES.length}개)</h3>
     <div id="pieces"></div><div class="fact" id="fact"></div><div id="nextWrap" style="margin-top:12px"></div>
   </section><section class="card">
-    <div class="smallPill">📍 위치를 정확하게 콕!</div><div class="smallPill">🔍 지도를 확대해 보세요</div>
+    <div class="smallPill">🧩 정답을 맞힐수록 나라 조각이 완성돼요</div>
     <div id="map"></div><div class="rankBox"><h3>🏆 우리 반 실시간 순위</h3><div id="rank"></div></div>
   </section></main>`;
   map=L.map('map',{minZoom:2,zoomControl:true,worldCopyJump:true}).fitBounds([[-56,-168],[72,-34]]);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
-  map.on('click',onMapClick);
+  $('answerBtn').onclick=guessTyped;$('answerInput').onkeydown=e=>{if(e.key==='Enter')guessTyped();};
   fetch(COUNTRY_GEO).then(r=>{if(!r.ok)throw Error('country border');return r.json()}).then(g=>{if(!map)return;geo=L.geoJSON(g,{style:styleFor}).addTo(map);refreshPieces();}).catch(()=>{if($('msg'))hintStatus('지도 경계를 불러오지 못했어요. 인터넷을 확인해 주세요.','ng');});
   watchPlayers(renderRank);watchMe();renderHdr();renderProblem();
 }
