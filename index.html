@@ -276,15 +276,12 @@ function onCountryFeature(f,layer){
  });
  layer.on('mouseout',()=>{enter++;layer.closeTooltip()});
 }
+
 function refreshPieces(){
- if(!$('pieces')||!me)return;
- $('pieces').innerHTML=COUNTRIES.map(co=>{
-  const on=me.unlocked.includes(co.en);
-  return '<div class="puzzle-tile '+(on?'solved':'locked')+'">'+puzzleArt(on?co.color:'#d6dce7')+'<span>'+(on?esc(co.ko):'')+'</span></div>';
- }).join('');
- $('bar').style.width=(me.done/PROBLEMS.length*100)+'%';
- $('prog').textContent=phaseName(Math.min(me.cur,PROBLEMS.length-1))+' · '+me.done+'/'+PROBLEMS.length+' 완료';
- $('triesInfo').textContent=me.pending?'':'남은 기회 '+Math.max(0,MAX_TRIES-me.tries)+'회';
+ if(!me)return;
+ if($('bar'))$('bar').style.width=(me.done/PROBLEMS.length*100)+'%';
+ if($('prog'))$('prog').textContent=phaseName(Math.min(me.cur,PROBLEMS.length-1))+' · '+me.done+'/'+PROBLEMS.length+'문제 완료 · 나라 '+me.unlocked.length+'/30';
+ if($('triesInfo'))$('triesInfo').textContent=me.pending?'':'남은 기회 '+Math.max(0,MAX_TRIES-me.tries)+'회';
  if(geo){geo.setStyle(styleFor);rebuildLabels();}
 }
 function renderRank(all){
@@ -331,6 +328,7 @@ function updateCooldownUI(){
     if(!me)return;const left=Math.max(0,Math.ceil(((me.coolUntil||0)-serverNow())/1000));
     const box=$('waitBox');if(box){box.style.display=left?'block':'none';box.textContent=left?`⏳ ${left}초 뒤에 다시 시도할 수 있어요`:'';}
     if($('nextBtn'))$('nextBtn').disabled=left>0;
+    if($('resultCountdown'))$('resultCountdown').textContent=(me.pending&&left>0)?left+'초 뒤 다음 문제로 넘어갈 수 있어요.':'';
     if(!left)clearInterval(countdownTimer);
   };
   tick();if(me&&(me.coolUntil||0)>serverNow())countdownTimer=setInterval(tick,250);
@@ -361,7 +359,7 @@ function maybeStagePopup(){
 function renderProblem(){
   if(!map||!me)return;renderedSig=sig(me);
   clearInterval(countdownTimer);clearMapMarks();
-  $('fact').style.display='none';$('nextWrap').innerHTML='';$('waitBox').style.display='none';
+  closeResultDialog();$('waitBox').style.display='none';
   if(me.pending){renderPending();return;}
   if(me.cur>=PROBLEMS.length){finish();return;}
   $('photoWrap').style.display='block';$('photoCredit').style.display='block';
@@ -371,20 +369,60 @@ function renderProblem(){
   hintStatus(me.tries?'설명을 다시 읽고 답을 적어보세요.':'정답을 입력하고 확인해 보세요 🌷');
   refreshPieces();updateCooldownUI();
 }
+
+function openResultDialog(p,result){
+ const modal=$('resultDialog');if(!modal)return;
+ const co=COUNTRIES.find(x=>x.en===p.country);
+ $('resultTitle').textContent=result.mode==='correct'?'정답을 맞혔어요!':'정답을 확인해 봐요';
+ $('resultAnswer').textContent=p.answer;
+ $('resultExplanation').textContent=p.fact;
+ $('resultCountry').textContent=(co?co.ko:'')+' · 지도에서 위치 확인';
+ $('resultPoints').textContent=result.mode==='correct'?'+'+result.points+'점':'0점 · 3번의 도전 완료';
+ $('resultReward').textContent=p.stage==='country'?'이 나라의 지도 조각이 채워졌어요':'도시·랜드마크 / 자연환경 단계는 점수만 획득해요';
+ const next=$('nextBtn');
+ next.textContent=me.cur>=PROBLEMS.length?'최종 결과 보기':'다음 문제';
+ next.onclick=nextProblem;
+ modal.hidden=false;
+ setTimeout(()=>drawResultMap(p),0);
+ updateCooldownUI();
+ next.focus();
+}
+let resultMiniMap=null;
+function closeResultDialog(){
+ if(resultMiniMap){resultMiniMap.remove();resultMiniMap=null;}
+ const modal=$('resultDialog');if(modal)modal.hidden=true;
+}
+function drawResultMap(p){
+ if(!$('resultMap')||!window.L||$('resultDialog').hidden)return;
+ if(resultMiniMap){resultMiniMap.remove();resultMiniMap=null;}
+ resultMiniMap=L.map('resultMap',{zoomControl:false,attributionControl:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,keyboard:false,dragging:false});
+ const co=COUNTRIES.find(x=>x.en===p.country);
+ const aliases={'The Bahamas':'Bahamas','United States':'United States of America','Dominican Rep.':'Dominican Republic'};
+ let selected=null;
+ if(geo){
+   const all=geo.toGeoJSON();
+   L.geoJSON(all,{style:f=>{
+      const name=aliases[f.properties?.name]||f.properties?.name;
+      return name===p.country?{color:'#ffffff',weight:2.2,fillColor:co?.color||'#fc709b',fillOpacity:1}:{color:'#c1cddd',weight:.65,fillColor:'#e1e9f2',fillOpacity:.95};
+   },onEachFeature:(f,layer)=>{const name=aliases[f.properties?.name]||f.properties?.name;if(name===p.country)selected=layer;}}).addTo(resultMiniMap);
+ }
+ if(selected&&selected.getBounds&&selected.getBounds().isValid()){
+   resultMiniMap.fitBounds(selected.getBounds().pad(0.75),{maxZoom:4,animate:false});
+ }else{
+   resultMiniMap.setView([co?.labelLat??p.lat,co?.labelLng??p.lng],4,{animate:false});
+   L.circleMarker([co?.labelLat??p.lat,co?.labelLng??p.lng],{radius:15,color:'#fff',weight:3,fillColor:co?.color||'#fc709b',fillOpacity:1}).addTo(resultMiniMap);
+ }
+ if(p.stage!=='country'){
+   L.circleMarker([p.lat,p.lng],{radius:7,color:'#fff',weight:2,fillColor:'#eb4176',fillOpacity:1}).addTo(resultMiniMap);
+ }
+ resultMiniMap.invalidateSize();
+}
 function renderPending(){
-  const r=me.pending,p=PROBLEMS[r.idx];if(!p)return;
-  $('photoWrap').style.display='block';$('photoCredit').style.display='block';loadProblemPhoto(p);
-  $('qtext').textContent=(r.idx+1)+'번. '+p.q;
-  $('answerWrap').style.display='none';
-  $('stageLabel').textContent=phaseName(r.idx);
-  $('fact').style.display='block';
-  const co=COUNTRIES.find(x=>x.en===p.country);
-  $('fact').innerHTML='<b>정답: '+esc(p.answer)+'</b><p>'+esc(p.fact)+'</p><b>'+(p.stage==='country'?'지도 조각 획득: '+(co?esc(co.ko):''):'점수 획득 · 지도 조각 없음')+'</b>';
-  $('photoCredit').innerHTML=photoCredit(p,true);updateClock();
-  if(r.mode==='correct')hintStatus('정답! 🎉 '+r.points+'점을 얻었어요.','ok');
-  else hintStatus('3번 모두 틀렸어요. 정답을 공개해요. 조각은 받고 점수는 0점이에요.','ng');
-  refreshPieces();$('nextWrap').innerHTML='<button class="btn mint" id="nextBtn">'+(me.cur>=PROBLEMS.length?'결과 보기 →':'다음 문제 →')+'</button>';
-  $('nextBtn').onclick=nextProblem;updateCooldownUI();
+ const r=me.pending,p=PROBLEMS[r.idx];if(!p)return;
+ $('stageLabel').textContent=phaseName(r.idx);
+ $('answerWrap').style.display='none';
+ refreshPieces();updateClock();
+ openResultDialog(p,r);
 }
 function cleanAnswer(s){return String(s||'').toLowerCase().normalize('NFKC').replace(/[\s\-_.·()]/g,'');}
 async function guessTyped(){
@@ -436,31 +474,38 @@ async function nextProblem(){
       if(!current||!current.pending||Number(current.coolUntil)>serverNow())return;
       current.pending=null;current.tries=0;current.coolUntil=0;current.startedAt=serverNow();current.t=serverNow();return current;
     });
-    if(tx.snapshot.exists()){me=norm(tx.snapshot.val(),me.id);renderProblem();}
+    if(tx.snapshot.exists()){me=norm(tx.snapshot.val(),me.id);closeResultDialog();renderProblem();}
   }catch(e){hintStatus('다음 문제 저장 실패: '+e.message,'ng');if($('nextBtn'))$('nextBtn').disabled=false;}
 }
 function finish(){
-  clearMapMarks();$('photoWrap').style.display='none';$('photoCredit').style.display='none';
+  clearMapMarks();closeResultDialog();$('photoWrap').style.display='none';$('photoCredit').style.display='none';
   $('answerWrap').style.display='none';$('qtext').textContent='아메리카 지도 만들기 완성!';$('triesInfo').textContent='모든 장소를 탐험했어요!';
   hintStatus('최종 '+me.score+'점! '+PROBLEMS.length+'문제를 모두 완료했어요.','ok');
-  $('fact').style.display='block';$('fact').innerHTML='<b>모든 단계 완료!</b>30개 나라 퍼즐과 도시·자연환경 문제를 모두 풀었어요.';
-  $('nextWrap').innerHTML='';refreshPieces();
+  $('resultDialog').hidden=true;
+  refreshPieces();
 }
-function destroyMap(){clearInterval(countdownTimer);clearInterval(questionClock);photoNonce++;if(map){map.remove();map=null;geo=null;labelLayer=null;pick=null;target=null;}}
+function destroyMap(){clearInterval(countdownTimer);clearInterval(questionClock);closeResultDialog();photoNonce++;if(map){map.remove();map=null;geo=null;labelLayer=null;pick=null;target=null;}}
 function renderStudent(){
   destroyMap();
   app.innerHTML=`<main><section class="card">
-    <div class="smallPill">${iconArt("compass")} 나라 30개 · 도시 8개 · 자연환경 9개</div><div class="smallPill">${iconArt("clock")} 3번 도전 · 시간 점수</div>
+    <div class="smallPill">${iconArt("compass")} 나라 30 · 도시 8 · 자연 9</div><div class="smallPill">${iconArt("clock")} 3회 도전</div>
     <div id="photoWrap"><img id="img" alt="문제 사진. 클릭하여 확대하기"><div id="cap"></div><span class="photo-zoom-hint">사진을 누르면 크게 보여요</span></div><div id="photoCredit"></div>
     <div class="smallPill" id="stageLabel">1단계 · 나라 맞히기</div><p class="muted" id="stageInstruction">나라를 맞히면 지도 조각을 얻어요.</p><div id="qbox"><div id="qtext"></div><p class="subline" id="triesInfo"></p></div><div id="answerWrap" style="margin-top:12px"><label id="answerLabel" for="answerInput" style="display:block;margin-bottom:9px;font-weight:700">답을 입력하세요</label><input id="answerInput" autocomplete="off" placeholder="정답 입력"><button class="btn mint" id="answerBtn" style="margin-top:10px;width:100%">정답 확인</button></div>
     <p class="msg" id="msg"></p><div class="waitBox" id="waitBox"></div>
     <div class="timer-line">${iconArt("clock")} <span id="elapsedClock">소요 시간 00:00</span></div><div class="bar"><div id="bar"></div></div><div class="muted" id="prog"></div>
-    <h3 style="margin-top:14px">${iconArt("puzzle")} 지도 퍼즐 · ${COUNTRIES.length}개 나라</h3><p class="muted">정답을 맞힌 나라만 색과 이름이 나타나요.</p>
-    <div id="pieces"></div><div class="fact" id="fact"></div><div id="nextWrap" style="margin-top:12px"></div>
   </section><section class="card">
     <div class="smallPill">${iconArt("map")} 맞힌 나라를 마우스로 가리키면 사진이 보여요</div>
-    <div id="map"></div><div class="rankBox"><h3>${iconArt("star")} 우리 반 실시간 순위</h3><div id="rank"></div></div>
-  </section></main><div id="photoLightbox" class="photo-modal" hidden><div class="photo-panel"><button class="modal-close" id="photoLightboxClose" aria-label="확대 사진 닫기">닫기 ×</button><img id="zoomedPhoto" alt="문제 사진 크게 보기"></div></div><div id="stageDialog" class="stage-modal" hidden><div class="stage-panel"><div class="stage-icon">${iconArt("compass")}</div><h2 id="stageDialogTitle">다음 단계</h2><p id="stageDialogText"></p><button class="btn mint" id="stageDialogClose">새 단계 시작</button></div></div>`;
+    <div id="map"></div><details class="rankDetails"><summary>${iconArt("star")} 실시간 순위 펼쳐보기</summary><div id="rank"></div></details>
+  </section></main><div id="photoLightbox" class="photo-modal" hidden><div class="photo-panel"><button class="modal-close" id="photoLightboxClose" aria-label="확대 사진 닫기">닫기 ×</button><img id="zoomedPhoto" alt="문제 사진 크게 보기"></div></div><div id="resultDialog" class="stage-modal result-modal" role="dialog" aria-modal="true" aria-labelledby="resultTitle" hidden>
+  <div class="result-panel">
+    <div class="result-top"><span class="result-kicker">결과 확인</span><span class="result-score" id="resultPoints"></span></div>
+    <h2 id="resultTitle">정답!</h2><div class="result-answer" id="resultAnswer"></div>
+    <p class="result-explanation" id="resultExplanation"></p>
+    <div class="result-map-caption" id="resultCountry">지도에서 위치 확인</div><div id="resultMap" aria-label="정답 국가가 색칠된 지도"></div>
+    <p class="result-reward" id="resultReward"></p><p class="result-countdown" id="resultCountdown"></p>
+    <button class="btn mint" id="nextBtn">다음 문제</button>
+  </div>
+</div><div id="stageDialog" class="stage-modal" hidden><div class="stage-panel"><div class="stage-icon">${iconArt("compass")}</div><h2 id="stageDialogTitle">다음 단계</h2><p id="stageDialogText"></p><button class="btn mint" id="stageDialogClose">새 단계 시작</button></div></div>`;
   map=L.map('map',{minZoom:2,zoomControl:true,worldCopyJump:true}).fitBounds([[-56,-168],[72,-34]]);
   // 이 지도는 정답이 미리 써 있는 배경 지도 대신 나라 경계 퍼즐만 보여줍니다.
   $('answerBtn').onclick=guessTyped;$('answerInput').onkeydown=e=>{if(e.key==='Enter')guessTyped();};
@@ -475,7 +520,7 @@ function renderStudent(){
   $('qtext').addEventListener('contextmenu',e=>e.preventDefault());
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('photoLightbox'))$('photoLightbox').hidden=true;}});
 
-  fetch(COUNTRY_GEO).then(r=>{if(!r.ok)throw Error('country border');return r.json()}).then(g=>{if(!map)return;geo=L.geoJSON(g,{style:styleFor,onEachFeature:onCountryFeature}).addTo(map);refreshPieces();}).catch(()=>{if($('msg'))hintStatus('지도 경계를 불러오지 못했어요. 인터넷을 확인해 주세요.','ng');});
+  fetch(COUNTRY_GEO).then(r=>{if(!r.ok)throw Error('country border');return r.json()}).then(g=>{if(!map)return;geo=L.geoJSON(g,{style:styleFor,onEachFeature:onCountryFeature}).addTo(map);refreshPieces();if(me?.pending)drawResultMap(PROBLEMS[me.pending.idx]);}).catch(()=>{if($('msg'))hintStatus('지도 경계를 불러오지 못했어요. 인터넷을 확인해 주세요.','ng');});
   watchPlayers(renderRank);watchMe();renderHdr();renderProblem();
 }
 async function loadStudent(name){

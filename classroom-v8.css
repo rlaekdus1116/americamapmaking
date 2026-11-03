@@ -41,3 +41,64 @@ main{grid-template-columns:minmax(440px,550px) minmax(0,1fr);max-width:1480px}
 @media(max-width:1020px){main{grid-template-columns:1fr;max-width:780px}#photoWrap{height:400px!important}#map{min-height:480px}}
 @media(max-width:600px){#photoWrap{height:320px!important}#pieces{grid-template-columns:repeat(4,1fr)}.puzzle-tile{height:77px}.card{padding:14px}h1{font-size:19px}}
 @media(prefers-reduced-motion:reduce){.puzzle-tile,.btn{transition:none}}
+
+
+/* v9 · 학생 화면 간결화 · 정답 해설/국가 위치 팝업 */
+@media(min-width:1021px){
+  main {grid-template-columns:minmax(395px,46%) minmax(0,54%);max-width:1500px;gap:14px;margin:10px auto;padding:0 12px;}
+  main>.card {padding:14px 16px;}
+  #photoWrap {height:clamp(205px,33vh,310px)!important;margin-top:8px;}
+  #map {height:clamp(420px,72vh,690px)!important;min-height:0;}
+  #qbox {padding:12px 14px;margin-top:9px;}
+  #qtext {font-size:clamp(15px,1.45vw,18px);line-height:1.55;}
+  #answerWrap {margin-top:8px!important;}
+  #answerWrap>label {margin-bottom:5px!important;font-size:14px;}
+  #answerInput {padding:10px 14px;font-size:16px;}
+  #answerBtn {margin-top:7px!important;padding:10px;}
+  .smallPill {padding:5px 8px;font-size:12px;margin-right:2px;}
+  #stageInstruction {margin:6px 0 2px;}
+  #photoCredit {margin-top:3px;min-height:0;font-size:11px;}
+  .msg {min-height:0;margin:6px 0 3px;}
+  .timer-line {margin-top:6px;font-size:13px;}
+  .bar {height:9px;margin:7px 0 4px;}
+  .rankDetails {margin-top:10px;}
+}
+.rankDetails {border-radius:15px;background:rgba(255,255,255,.47);border:1px solid rgba(255,255,255,.9);padding:8px 12px;}
+.rankDetails summary {cursor:pointer;font-family:"Gowun Dodum",sans-serif;font-weight:700;color:#365073;list-style:disclosure-closed;}
+.rankDetails[open] summary {list-style:disclosure-open;}
+.rankDetails #rank {max-height:150px;overflow:auto;}
+.rankDetails .rankItem {padding:6px 10px;margin-top:5px;font-size:13px;}
+.stage-modal.result-modal {z-index:10070;overflow:auto;}
+.result-panel {
+  width:min(475px,95vw);max-height:min(94dvh,860px);overflow-y:auto;
+  padding:18px 22px 20px;border:1px solid rgba(255,255,255,.96);
+  border-radius:30px;background:linear-gradient(150deg,rgba(255,255,255,.96),rgba(225,242,255,.97));
+  box-shadow:0 24px 70px rgba(23,46,91,.38),inset 0 2px 1px #fff;
+  text-align:left;
+}
+.result-top {display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.result-kicker {color:#617590;font-family:"Gowun Dodum",sans-serif;font-size:13px;}
+.result-score {font:700 18px "Jua",sans-serif;background:#d9f9ee;border:1px solid #fff;padding:6px 11px;border-radius:999px;color:#146955;}
+.result-panel h2 {margin:5px 0 4px;font:400 27px "Jua",sans-serif;color:#234567;}
+.result-answer {font:400 24px "Jua",sans-serif;color:#dc5485;}
+.result-explanation {font:400 15px/1.75 "Gowun Dodum",sans-serif;margin:7px 0 11px;color:#3f516c;}
+.result-map-caption {font:700 14px "Gowun Dodum",sans-serif;color:#355474;margin:6px 0;}
+#resultMap {height:245px;width:100%;border:2px solid white;border-radius:22px;background:#eaf3fb;overflow:hidden;box-shadow:0 6px 22px rgba(43,71,114,.12);}
+.result-reward {margin:10px 0;font-size:13px;color:#60718c;}
+.result-panel #nextBtn {width:100%;padding:12px 18px;margin-top:0;font-size:17px;}
+.result-panel #nextBtn:disabled {opacity:.55;cursor:wait;}
+@media(max-width:1020px){
+  #photoWrap {height:clamp(215px,34vh,340px)!important;}
+  main>.card {padding:13px;}
+  #map {height:clamp(330px,54vh,490px)!important;min-height:0;}
+  #answerWrap {margin-top:8px!important;}
+}
+@media(max-width:600px){
+  header {position:static;}
+  .result-panel {padding:15px 15px 16px;}
+  .result-panel h2 {font-size:24px;}
+  #resultMap {height:min(28dvh,220px);}
+  .result-explanation {font-size:14px;}
+  .stage-modal.result-modal {padding:10px;}
+  .card .smallPill {margin-bottom:4px;}
+}
