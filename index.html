@@ -186,11 +186,19 @@ function showConn(){
 /* Firebase 교실 연결 링크: 설정 키를 저장소 코드에 쓰지 않고 링크 조각(#)으로 전달.
    앱 실행 즉시 URL에서 제거하고 각 기기 브라우저에 보관한다. */
 function readClassLink(){
+ // iOS Safari and some in-app browsers can lose URL fragments during link transfer.
+ // Accept an ordinary query parameter, too, and keep compatibility with older hash links.
+ const search=new URLSearchParams(location.search);
  const hash=new URLSearchParams(location.hash.replace(/^#/,''));
- const key=hash.get('connect');
+ const key=search.get('connect')||hash.get('connect');
  if(!key||!/^AIza[\w-]{20,}$/.test(key))return false;
  store.set('amap-firebase-key',key);
- try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
+ try{
+   const clean=new URL(location.href);
+   clean.searchParams.delete('connect');
+   clean.hash='';
+   history.replaceState(null,'',clean.pathname+clean.search);
+ }catch(e){}
  return true;
 }
 function getClassFirebaseKey(){
@@ -202,7 +210,7 @@ function classJoinLink(){
  if(!/^AIza[\w-]{20,}$/.test(key))return '';
  const link=new URL(location.origin+location.pathname);
  link.searchParams.set('room',ROOM);
- link.hash='connect='+encodeURIComponent(key);
+ link.searchParams.set('connect',key);
  return link.href;
 }
 async function copyClassJoinLink(){
@@ -210,7 +218,7 @@ async function copyClassJoinLink(){
  if(!link){if(msg)msg.textContent='연결 설정을 찾지 못했어요. 이 브라우저의 Firebase 설정을 확인해 주세요.';return;}
  try{
   await navigator.clipboard.writeText(link);
-  if(msg)msg.textContent='복사 완료! 학생들에게 이 링크를 보내세요. 같은 기기와 브라우저에서 열면 이전 진도가 옮겨집니다.';
+  if(msg)msg.textContent='복사 완료! 학생들은 이 링크로 접속하면 서버 연결 정보를 자동 설정해요. 기존 로컬 기록 복구는 처음 사용한 기기·브라우저에서만 가능해요.';
  }catch(e){
   const inp=$('shareLink');
   if(inp){inp.value=link;inp.focus();inp.select();}
