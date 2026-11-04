@@ -787,6 +787,60 @@ function exportCSV(){
   const a=document.createElement('a');a.href=url;a.download='아메리카_지도만들기_'+ROOM+'_학습기록.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
 
+
+/* Separate each class in rooms/<room>/v8/players while preserving legacy demo records. */
+const CLASS_ROOMS=Array.from({length:12},(_,i)=>({id:'class-'+(i+1),label:(i+1)+'반'}));
+function roomTitle(id){
+ const r=CLASS_ROOMS.find(x=>x.id===id);
+ return r?r.label:(id==='demo'?'기존 전체 기록 (demo)':id);
+}
+function classRoomOptions(current,includeDemo=true){
+ const known=CLASS_ROOMS.slice();
+ if(includeDemo)known.unshift({id:'demo',label:'기존 전체 기록 (demo)'});
+ if(current&&!known.some(x=>x.id===current))known.push({id:current,label:current});
+ return known.map(r=>'<option value="'+esc(r.id)+'"'+(r.id===current?' selected':'')+'>'+esc(r.label)+'</option>').join('');
+}
+function changeClassRoom(id){
+ if(!id||id===ROOM)return;
+ const url=new URL(location.href);
+ url.searchParams.set('room',id);
+ url.searchParams.delete('connect');url.hash='';
+ location.assign(url.href);
+}
+function customClassRoom(){
+ const raw=prompt('학년과 반을 입력해 주세요. 예: 2-3 또는 3학년2반\n반마다 고유한 이름으로 구분돼요.');
+ if(raw===null)return;
+ const id=raw.trim().replace(/\s+/g,'-');
+ if(!id||id.length>36||!(/^[\p{L}\p{N}_-]+$/u.test(id))){alert('한글·영문·숫자·하이픈(-)으로 36자 이내로 입력해 주세요.');return;}
+ changeClassRoom(id);
+}
+function playerPathForRoom(room,key){
+ const safeRoom=encodeURIComponent(room).replace(/\./g,'%2E');
+ return 'rooms/'+safeRoom+'/v8/players/'+key;
+}
+async function teacherMoveStudent(){
+ if(!TEACHER||!db||firebaseState!=='online'||!serverVerified)return teacherMessage('서버 연결 후에 이동할 수 있어요.',true);
+ const key=selectedKey,student=lastAll[key],to=$('teacherMoveRoom')?.value;
+ if(!key||!student||!to||to===ROOM)return teacherMessage('이동할 학생과 다른 반을 선택해 주세요.',true);
+ const destination=playerPathForRoom(to,key),source=PLAYERS_PATH+'/'+key;
+ if(!confirm(student.name+' 학생의 기록을 '+roomTitle(ROOM)+' → '+roomTitle(to)+'으로 옮길까요?\n학생이 기존 화면에서 문제를 풀고 있다면 먼저 종료해야 합니다.\n이동 후에는 새 반 링크로 접속해야 합니다.'))return;
+ const btn=$('teacherMoveButton');if(btn)btn.disabled=true;
+ try{
+   const destSnapshot=await db.ref(destination).once('value');
+   if(destSnapshot.exists())throw Error('도착 반에 같은 이름의 기록이 이미 있어요. 덮어쓰지 않았습니다.');
+   const sourceSnapshot=await db.ref(source).once('value');
+   if(!sourceSnapshot.exists())throw Error('기존 학생 기록을 찾지 못했어요.');
+   teacherSaveBackup(key);
+   // Atomic multi-path update: either both writes succeed or neither does.
+   await db.ref().update({[destination]:sourceSnapshot.val(),[source]:null});
+   selectedKey='';teacherDraftKey='';teacherDraftProgress=null;
+   // The selected detail area is rerendered by live subscription, so show a notice in the class panel.
+   const msg=$('classRoomMessage');
+   if(msg)msg.textContent=student.name+' 학생을 '+roomTitle(to)+'으로 이동했어요. 해당 반 링크로 접속하도록 안내해 주세요.';
+ }catch(e){teacherMessage('반 이동 실패: '+e.message,true);}
+ finally{if(btn)btn.disabled=false;}
+}
+
 let teacherDraftKey='',teacherDraftProgress=null;
 function teacherStudentPosition(id,p){
  const idx=PROBLEMS.findIndex(q=>(q.uid||q.wiki)===id);
@@ -820,7 +874,7 @@ function teacherRenderControls(p){
  '<p class="muted">뒤로 이동하면 그 이후 제출 기록·점수를 정리합니다. 변경 전 JSON 백업이 다운로드돼요.</p>'+
  '<div class="teacherActionRow">'+
  '<button type="button" class="btn secondary" id="teacherBackup">기록 백업</button>'+
- '<button type="button" class="btn secondary teacherDanger" id="teacherDelete">이 학생 기록 삭제</button></div>'+
+ '<button type="button" class="btn secondary teacherDanger" id="teacherDelete">이 학생 기록 삭제</button></div>'+'<div class="teacherMovePanel"><label for="teacherMoveRoom">학생 기록을 다른 반으로 이동</label>'+'<select id="teacherMoveRoom"><option value="">이동할 반 선택</option>'+classRoomOptions('',true)+'</select>'+'<button type="button" class="btn secondary" id="teacherMoveButton">선택한 반으로 옮기기</button>'+'<p class="muted">도착 반에 같은 이름이 있으면 덮어쓰지 않고 중단해요. 이동 전 기록을 백업합니다.</p></div>'+
  '<p id="teacherActionStatus" aria-live="polite"></p>'+
  '<p class="muted">교사 조정 '+(p.teacherAdjustments?.length||0)+'회 · 점수 없이 건너뛴 문항 '+(p.teacherSkipped?.length||0)+'개</p>';
 }
@@ -891,11 +945,15 @@ async function teacherDeleteStudent(){
 function renderTeacher(){
   renderHdr();
   app.innerHTML=`<main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
-    <section class="card"><div class="smallPill">${iconArt("book")} 교사용 관리</div><h2>우리 반 탐험 현황</h2>
+    <section class="card"><div class="smallPill">${iconArt("book")} 교사용 관리</div><h2>${esc(roomTitle(ROOM))} 탐험 현황</h2>
       <p class="muted">학생 이름을 누르면 문제별 결과를 확인할 수 있어요.</p>
       <div class="teacherShare">
         <div class="smallPill">학생 실시간 연결 링크</div>
-        <p class="muted">Firebase 연결 정보 입력 없이 학생 링크로 접속하도록 변경했어요. 이전에 기기에만 저장된 진도는 <b>당시 사용한 기기와 브라우저</b>에서만 복구할 수 있어요.</p>
+        <p class="muted">선택한 반의 학생만 표시돼요. 예전 전체 기록은 <b>demo</b>에서 확인할 수 있고, 학생별로 해당 반으로 옮길 수 있어요.</p>
+        <div class="classRoomControls"><label for="teacherClassRoom">확인할 반</label>
+          <div class="classRoomRow"><select id="teacherClassRoom">${classRoomOptions(ROOM)}</select>
+          <button type="button" class="btn secondary" id="customClassRoom">다른 학년·반</button></div></div>
+        <p class="muted" id="classRoomMessage">현재 ${esc(roomTitle(ROOM))} 학생 기록을 보고 있어요.</p>
         <input type="text" id="shareLink" aria-label="학생 실시간 연결 링크" readonly>
         <button class="btn mint" id="shareCopy" type="button">학생 연결 링크 복사</button>
         <p id="shareLinkMsg" class="muted" aria-live="polite"></p>
@@ -905,6 +963,8 @@ function renderTeacher(){
     </section><section class="card" id="detail"><h2>학생 상세</h2><p class="muted">학생을 선택해 주세요.</p></section>
   </main>`;
   $('csvBtn').onclick=exportCSV;
+  $('teacherClassRoom').onchange=e=>changeClassRoom(e.target.value);
+  $('customClassRoom').onclick=customClassRoom;
   const joinLink=classJoinLink();
   $('shareLink').value=joinLink;
   $('shareCopy').onclick=copyClassJoinLink;
@@ -914,6 +974,7 @@ function renderTeacher(){
     if(e.target.closest('#teacherProgressApply'))teacherProgressApply();
     else if(e.target.closest('#teacherDelete'))teacherDeleteStudent();
     else if(e.target.closest('#teacherBackup'))teacherSaveBackup(selectedKey);
+    else if(e.target.closest('#teacherMoveButton'))teacherMoveStudent();
   };
   watchPlayers(renderTeacherViews);
 }

@@ -168,3 +168,15 @@ main{grid-template-columns:minmax(440px,550px) minmax(0,1fr);max-width:1480px}
 }
 #serverBlocker strong{border-radius:22px 22px 0 0;padding:20px 20px 4px;font:400 26px "Jua",sans-serif}
 #serverBlocker p{margin:0;border-radius:0 0 22px 22px;padding:8px 20px 22px;line-height:1.7;font:15px "Gowun Dodum",sans-serif}
+
+/* Class-separated room navigation and safe migration of legacy demo records */
+.classRoomControls{margin:12px 0 8px}
+.classRoomControls label,.teacherMovePanel label{display:block;font-weight:750;font-size:14px;margin:0 0 6px}
+.classRoomRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.classRoomRow select,.teacherMovePanel select{min-width:140px;flex:1;padding:11px 12px;border-radius:14px;border:1px solid var(--line,#eadff1);background:#fff;color:inherit;font-size:15px}
+.classRoomRow .btn{box-shadow:none;padding:10px 14px;white-space:nowrap}
+.teacherMovePanel{margin:15px 0 10px;padding:13px 14px;background:#fff;border-radius:15px;border:1px solid var(--line,#eadff1)}
+.teacherMovePanel select{display:block;width:100%;margin:9px 0}
+.teacherMovePanel button{box-shadow:none}
+#classRoomMessage{font-weight:700;min-height:18px}
+@media(max-width:640px){.classRoomRow select{width:100%;flex-basis:100%}}
