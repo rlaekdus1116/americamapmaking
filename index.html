@@ -206,11 +206,8 @@ function getClassFirebaseKey(){
  return active?.options?.apiKey||store.get('amap-firebase-key')||'';
 }
 function classJoinLink(){
- const key=getClassFirebaseKey();
- if(!/^AIza[\w-]{20,}$/.test(key))return '';
  const link=new URL(location.origin+location.pathname);
  link.searchParams.set('room',ROOM);
- link.searchParams.set('connect',key);
  return link.href;
 }
 async function copyClassJoinLink(){
@@ -218,7 +215,7 @@ async function copyClassJoinLink(){
  if(!link){if(msg)msg.textContent='연결 설정을 찾지 못했어요. 이 브라우저의 Firebase 설정을 확인해 주세요.';return;}
  try{
   await navigator.clipboard.writeText(link);
-  if(msg)msg.textContent='복사 완료! 학생들은 이 링크로 접속하면 서버 연결 정보를 자동 설정해요. 기존 로컬 기록 복구는 처음 사용한 기기·브라우저에서만 가능해요.';
+  if(msg)msg.textContent='복사 완료! 별도의 연결 키 없이 학생용 링크로 접속해요. 기존 기기에만 저장된 기록은 같은 기기·브라우저에서 복구할 수 있어요.';
  }catch(e){
   const inp=$('shareLink');
   if(inp){inp.value=link;inp.focus();inp.select();}
@@ -293,9 +290,9 @@ async function initFirebase(){
   if(!window.firebase){firebaseState='offline';showConn();return false;}
   let app=firebase.apps.find(x=>x.options.projectId===PROJECT_ID);
   const savedKey=store.get('amap-firebase-key');
-  if(!app&&savedKey){
+  if(!app){
     try{app=firebase.initializeApp({
-      apiKey:savedKey,
+      ...(savedKey?{apiKey:savedKey}:{}),
       authDomain:'americamapmaking.firebaseapp.com',
       databaseURL:DATABASE_URL,
       projectId:PROJECT_ID,
@@ -304,12 +301,6 @@ async function initFirebase(){
       appId:'1:260167025585:web:6cc4c97234bbd5a04f7390',
       measurementId:'G-29RE67B58S'
     });}catch(e){console.warn('Firebase local config error',e.message);}
-  }
-  if(!app){
-    const origins=['https://americamapmaking.web.app','https://americamapmaking.firebaseapp.com'];
-    for(const origin of origins){
-      try{await loadScript(origin+'/__/firebase/init.js');app=firebase.apps.find(x=>x.options.projectId===PROJECT_ID);if(app)break;}catch(e){}
-    }
   }
   if(!app){firebaseState='offline';showConn();return false;}
   try{
@@ -345,40 +336,13 @@ function renderServerGate(reason){
  if(playerRef&&playerListener)playerRef.off('value',playerListener);
  playerRef=null;me=null;
  renderHdr();
- const hasKey=/^AIza[\w-]{20,}$/.test(getClassFirebaseKey());
- const tip=TEACHER
-  ?(hasKey?'연결 설정은 있지만 Firebase 서버 응답이나 읽기 권한을 확인하지 못했어요.':'먼저 기존 Firebase 웹 API 키로 연결하면 학생 실시간 연결 링크를 만들 수 있어요.')
-  :(hasKey?'연결 정보는 저장됐어요. 인터넷 연결 또는 데이터베이스 읽기 권한을 확인해 주세요.':'선생님이 보내 준 실시간 연결 링크를 열어 주세요. 일반 링크만으로는 기록을 저장할 수 없어요.');
- app.innerHTML='<div class="joinWrap"><section class="card"><h2>서버 연결 후 시작할 수 있어요</h2>'+
- '<p><b>Firebase 실시간 연결과 기록 읽기가 확인되지 않아 게임을 시작하지 않았어요.</b></p>'+
- '<p class="msg ng">'+esc(reason||'서버에 연결되지 않았어요.')+'</p>'+
- '<p class="muted">'+tip+' 기존에 저장된 기록은 삭제하지 않습니다.</p>'+
- '<div class="connectionGateActions"><button class="btn mint" id="tryServerAgain" type="button">서버 다시 연결</button>'+
- (TEACHER?'<button class="btn secondary" id="teacherFirebaseSetup" type="button">'+(hasKey?'Firebase 연결 정보 다시 입력':'기존 Firebase 연결하기')+'</button>':'')+
- '</div></section></div>';
+ app.innerHTML='<div class="joinWrap"><section class="card"><h2>서버 연결을 확인해 주세요</h2>'+
+ '<p><b>Firebase 서버 연결과 기록 읽기가 확인돼야 게임을 시작할 수 있어요.</b></p>'+
+ '<p class="msg ng">'+esc(reason||'서버에 연결하지 못했어요.')+'</p>'+
+ '<p class="muted">설정 키를 직접 입력할 필요는 없어요. 계속 실패하면 인터넷 연결이나 Firebase 데이터베이스 규칙을 확인해야 해요. 기존 기록은 지우지 않았어요.</p>'+
+ '<button class="btn mint" id="tryServerAgain" type="button">서버 다시 연결</button></section></div>';
  $('tryServerAgain').onclick=()=>{firebaseState='connecting';start();};
- if($('teacherFirebaseSetup'))$('teacherFirebaseSetup').onclick=firebaseSetup;
 }
-
-function firebaseSetup(){
-  app.innerHTML=`<div class="joinWrap"><section class="card">
-    <h2>🔑 기존 Firebase 연결하기</h2>
-    <p class="muted">GitHub 코드에 API 키를 다시 올리지 않고, <b>americamapmaking</b>의 기존 웹 API 키를 이 브라우저에 한 번만 입력해 주세요.</p>
-    <label for="firebaseApiKey">Firebase 웹 API 키</label>
-    <input id="firebaseApiKey" type="password" autocomplete="off" placeholder="기존 웹 API 키 입력" style="margin-top:9px">
-    <p class="muted">키는 이 기기의 브라우저에만 저장됩니다. 수업에 사용하는 다른 기기에서도 최초 1회 설정이 필요할 수 있습니다.</p>
-    <p class="msg ng" id="firebaseApiError"></p>
-    <button class="btn mint" id="firebaseKeySubmit">기존 키로 연결 ✨</button>
-  </section></div>`;
-  const connect=()=>{
-    const key=$('firebaseApiKey').value.trim();
-    if(!/^AIza[\w-]{20,}$/.test(key)){$('firebaseApiError').textContent='Firebase 웹 API 키 형식을 확인해 주세요.';return;}
-    store.set('amap-firebase-key',key);location.reload();
-  };
-  $('firebaseKeySubmit').onclick=connect;
-  $('firebaseApiKey').onkeydown=e=>{if(e.key==='Enter')connect();};
-}
-
 function offlineDb(){
  const storage='amap-local-v8-'+ROOM, watchers=new Map();
  const read=()=>{try{return JSON.parse(store.get(storage)||'{}')}catch(e){return {}}};
@@ -931,7 +895,7 @@ function renderTeacher(){
       <p class="muted">학생 이름을 누르면 문제별 결과를 확인할 수 있어요.</p>
       <div class="teacherShare">
         <div class="smallPill">학생 실시간 연결 링크</div>
-        <p class="muted">연결에 실패했던 기존 기록을 복구하려면 <b>당시 사용한 기기와 브라우저</b>에서 링크를 열어 주세요. Firebase에 정상 저장된 뒤에는 다른 기기에서도 이어서 풀 수 있어요.</p>
+        <p class="muted">Firebase 연결 정보 입력 없이 학생 링크로 접속하도록 변경했어요. 이전에 기기에만 저장된 진도는 <b>당시 사용한 기기와 브라우저</b>에서만 복구할 수 있어요.</p>
         <input type="text" id="shareLink" aria-label="학생 실시간 연결 링크" readonly>
         <button class="btn mint" id="shareCopy" type="button">학생 연결 링크 복사</button>
         <p id="shareLinkMsg" class="muted" aria-live="polite"></p>
@@ -942,7 +906,7 @@ function renderTeacher(){
   </main>`;
   $('csvBtn').onclick=exportCSV;
   const joinLink=classJoinLink();
-  $('shareLink').value=joinLink||'이 브라우저에서 Firebase 연결 설정을 찾을 수 없어요.';
+  $('shareLink').value=joinLink;
   $('shareCopy').onclick=copyClassJoinLink;
   $('tbl').onclick=e=>{const button=e.target.closest('[data-key]');if(button){selectedKey=button.dataset.key;teacherDraftProgress=null;renderTeacherViews(lastAll)}};
   $('detail').onchange=e=>{if(e.target.id==='teacherProgress')teacherDraftProgress=Number(e.target.value);};
