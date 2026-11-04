@@ -157,3 +157,14 @@ main{grid-template-columns:minmax(440px,550px) minmax(0,1fr);max-width:1480px}
 .teacherActionRow .btn{font-size:13px;box-shadow:none}
 .teacherActionRow .teacherDanger {background:#fff0f1;border:1px solid #e7abb6;color:#ae3655}
 #teacherActionStatus{font-size:13px;line-height:1.6;font-weight:700}
+
+/* Server-only study gate · after classroom connection verification */
+#serverBlocker {
+ position:fixed;z-index:10090;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+ padding:24px;background:rgba(28,48,73,.76);backdrop-filter:blur(7px);text-align:center;color:#1d3652;
+}
+#serverBlocker strong,#serverBlocker p{
+ width:min(470px,90vw);background:#fff;box-shadow:0 14px 35px rgba(19,37,56,.24);
+}
+#serverBlocker strong{border-radius:22px 22px 0 0;padding:20px 20px 4px;font:400 26px "Jua",sans-serif}
+#serverBlocker p{margin:0;border-radius:0 0 22px 22px;padding:8px 20px 22px;line-height:1.7;font:15px "Gowun Dodum",sans-serif}

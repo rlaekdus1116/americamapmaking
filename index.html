@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>아메리카 지도 만들기 · 35나라 퍼즐 + 17문항 탐험</title>
+<title>아메리카 지도 만들기 · 20나라 + 랜드마크 8곳 + 자연환경 5곳</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -73,7 +73,7 @@ td:first-child{border-left:1px solid var(--line);border-radius:14px 0 0 14px} td
 <body>
 <header>
   <div class="headIn">
-    <h1>아메리카 지도 만들기 <span class="titleBadge">나라 35 · 도시 8 · 자연 9</span></h1>
+    <h1>아메리카 지도 만들기 <span class="titleBadge">나라 20 · 랜드마크 8 · 자연 5</span></h1>
     <div id="hdr"></div>
   </div>
 </header>
@@ -99,12 +99,12 @@ const store = {
 };
 let db = null, playersRef = null, playerRef = null, playerListener = null, playersListener = null;
 let me = null, map = null, geo = null, pick = null, target = null, lastAll = {}, selectedKey = '';
-let countdownTimer = null, photoNonce=0, serverOffset=0, renderedSig='', submitting=false, firebaseState='connecting';
+let countdownTimer = null, photoNonce=0, serverOffset=0, renderedSig='', submitting=false, firebaseState='connecting', serverVerified=false;
 const serverNow=()=>Date.now()+serverOffset;
-const MAX_TRIES=3, COOLDOWN_MS=10000, COUNTRY_END=35, CITY_END=43;
+const MAX_TRIES=3, COOLDOWN_MS=10000, COUNTRY_END=20, CITY_END=28;
 let questionClock=null, labelLayer=null;
 const phaseAt = i => i<COUNTRY_END?'country':i<CITY_END?'city':'nature';
-const phaseName = i => i<COUNTRY_END?'1단계: 나라 퍼즐':i<CITY_END?'2단계: 도시·랜드마크':'3단계: 자연환경';
+const phaseName = i => i<COUNTRY_END?'1단계: 나라 퍼즐':i<CITY_END?'2단계: 랜드마크':'3단계: 자연환경';
 function secondsInQuestion(){return !me?0:Math.max(0,Math.floor((Number(me.pausedElapsed)||0)+(me.paused?0:(serverNow()-(me.startedAt||serverNow()))/1000)));}
 function updateClock(){
   const el=$('elapsedClock');if(!el||!me)return;
@@ -128,24 +128,59 @@ function iconArt(type){
 
 
 /* 문제는 나라별로 분산시키고, 실제 정답은 특정 건물/유적/지점 좌표로 한정합니다. */
-const PROBLEMS = [{"wiki":"Statue_of_Liberty","caption":"미국 나라 퀴즈","q":"프랑스가 미국의 독립을 기념해 선물한 거대한 횃불 든 동상이 항구에 서 있어요. 어느 나라일까요?","answer":"미국","country":"United States of America","lat":39.3,"lng":-98.5,"fact":"자유의 여신상은 뉴욕 항구 리버티섬에 있어요.","stage":"country","aliases":[],"uid":"country-1"},{"wiki":"Canadian_Rockies","caption":"캐나다 나라 퀴즈","q":"로키산맥의 밴프 국립공원, 오대호 그리고 단풍잎 국기로 유명한 북쪽의 넓은 나라예요.","answer":"캐나다","country":"Canada","lat":55,"lng":-109,"fact":"밴프 국립공원은 북아메리카의 캐나다 로키산맥에 있어요.","stage":"country","aliases":[],"uid":"country-2"},{"wiki":"Chichen_Itza","caption":"멕시코 나라 퀴즈","q":"유카탄반도에 마야 문명의 계단식 피라미드가 남아 있고 수도가 높은 고원에 자리한 나라예요.","answer":"멕시코","country":"Mexico","lat":23.4,"lng":-102.3,"fact":"치첸이트사는 유카탄반도에 있는 마야 유적이에요.","stage":"country","aliases":[],"uid":"country-3"},{"wiki":"Tikal","caption":"과테말라 나라 퀴즈","q":"열대우림 속 고대 마야 피라미드 신전 '티칼'이 있는 중앙아메리카 나라예요.","answer":"과테말라","country":"Guatemala","lat":15.8,"lng":-90.4,"fact":"티칼은 이 나라 북부에 남아 있는 마야 유적이에요.","stage":"country","aliases":[],"uid":"country-4"},{"wiki":"Great_Blue_Hole","caption":"벨리즈 나라 퀴즈","q":"해안 산호초 안에 거대한 둥근 해양 싱크홀 '그레이트 블루 홀'이 있는 나라예요.","answer":"벨리즈","country":"Belize","lat":17.2,"lng":-88.7,"fact":"그레이트 블루 홀은 이 나라 바다에 있어요.","stage":"country","aliases":[],"uid":"country-5"},{"wiki":"Santa_Ana_Volcano","caption":"엘살바도르 나라 퀴즈","q":"중앙아메리카에서 국토가 가장 작은 나라로, 산타아나 화산의 푸른 분화구 호수가 유명해요.","answer":"엘살바도르","country":"El Salvador","lat":13.8,"lng":-88.9,"fact":"산타아나 화산은 이 나라 서부에 있어요.","stage":"country","aliases":[],"uid":"country-6"},{"wiki":"Copan","caption":"온두라스 나라 퀴즈","q":"마야 왕조의 역사가 새겨진 상형문자 계단과 '코판' 유적이 있는 나라예요.","answer":"온두라스","country":"Honduras","lat":14.8,"lng":-86.8,"fact":"코판의 상형문자 계단은 마야 문명의 유산이에요.","stage":"country","aliases":[],"uid":"country-7"},{"wiki":"Ometepe","caption":"니카라과 나라 퀴즈","q":"중앙아메리카의 큰 호수 한가운데 두 화산이 만든 오메테페섬이 있는 나라예요.","answer":"니카라과","country":"Nicaragua","lat":12.7,"lng":-85,"fact":"오메테페섬은 니카라과 호수의 화산섬이에요.","stage":"country","aliases":[],"uid":"country-8"},{"wiki":"Arenal_Volcano","caption":"코스타리카 나라 퀴즈","q":"군대가 없고 화산·열대우림 생태 관광으로 유명한 중앙아메리카 나라예요.","answer":"코스타리카","country":"Costa Rica","lat":9.8,"lng":-84.2,"fact":"아레날 화산은 이 나라의 대표 자연경관이에요.","stage":"country","aliases":[],"uid":"country-9"},{"wiki":"Panama_Canal","caption":"파나마 나라 퀴즈","q":"대서양과 태평양을 배가 오갈 수 있도록 갑문이 있는 거대한 운하를 건설한 나라예요.","answer":"파나마","country":"Panama","lat":8.6,"lng":-80,"fact":"운하는 중미의 지협을 가로질러 두 대양을 연결해요.","stage":"country","aliases":[],"uid":"country-10"},{"wiki":"Havana","caption":"쿠바 나라 퀴즈","q":"카리브해의 큰 섬나라로, 수도에 올드카와 스페인 식민지 시대 건물이 많이 남아 있어요.","answer":"쿠바","country":"Cuba","lat":21.5,"lng":-79.4,"fact":"아바나는 카리브해에 있는 이 나라의 수도예요.","stage":"country","aliases":[],"uid":"country-11"},{"wiki":"Dunn%27s_River_Falls","caption":"자메이카 나라 퀴즈","q":"레게 음악과 계단처럼 흘러내리는 던스리버 폭포가 유명한 카리브해 섬나라예요.","answer":"자메이카","country":"Jamaica","lat":18.1,"lng":-77.3,"fact":"던스리버 폭포는 이 나라 북부 해안에 있어요.","stage":"country","aliases":[],"uid":"country-12"},{"wiki":"Citadelle_Laferri%C3%A8re","caption":"아이티 나라 퀴즈","q":"히스파니올라섬 서쪽을 차지하며 독립 혁명 이후 높은 산에 거대한 라페리에르 요새를 지은 나라예요.","answer":"아이티","country":"Haiti","lat":19,"lng":-72.7,"fact":"라페리에르 요새는 이 나라의 역사적 유적이에요.","stage":"country","aliases":[],"uid":"country-13"},{"wiki":"Columbus_Lighthouse","caption":"도미니카공화국 나라 퀴즈","q":"히스파니올라섬 동쪽을 차지하며 수도 산토도밍고에 콜럼버스 등대가 있는 나라예요.","answer":"도미니카공화국","country":"Dominican Republic","lat":19,"lng":-70.4,"fact":"콜럼버스 등대는 수도 산토도밍고에 있어요.","stage":"country","aliases":["도미니카 공화국"],"uid":"country-14"},{"wiki":"Nassau,_Bahamas","caption":"바하마 나라 퀴즈","q":"플로리다 동쪽 대서양에 수많은 산호섬이 있고, 수도 나소의 알록달록한 건물로 유명한 나라예요.","answer":"바하마","country":"Bahamas","lat":24.8,"lng":-77.5,"fact":"나소는 이 섬나라의 수도예요.","stage":"country","aliases":[],"uid":"country-15"},{"wiki":"Bridgetown","caption":"바베이도스 나라 퀴즈","q":"카리브해 동쪽 끝에 있는 섬나라로, 역사 도시 브리지타운과 해변이 유명해요.","answer":"바베이도스","country":"Barbados","lat":13.2,"lng":-59.55,"fact":"브리지타운은 이 섬나라의 수도예요.","stage":"country","aliases":[],"uid":"country-16"},{"wiki":"Port_of_Spain","caption":"트리니다드 토바고 나라 퀴즈","q":"카리브해의 맨 남쪽, 베네수엘라 바로 북쪽에 있는 두 섬의 나라예요. 국기는 빨간 바탕에 흰 테두리가 있는 검은 사선이 있고, 스틸팬 음악과 카니발이 유명해요. 이름은 '트리○다드 토○고'예요. 어느 나라일까요?","answer":"트리니다드 토바고","country":"Trinidad and Tobago","lat":10.5,"lng":-61.05,"fact":"트리니다드 토바고는 베네수엘라 바로 북쪽 카리브해에 있어요. 두 주요 섬의 이름을 합쳐 부르며, 스틸팬 음악과 화려한 카니발로 유명해요.","stage":"country","aliases":["트리니다드토바고"],"uid":"country-17"},{"wiki":"St._George%27s,_Grenada","caption":"그레나다 나라 퀴즈","q":"카리브해 남동쪽 작은 섬나라로, 육두구 등 향신료와 알록달록한 세인트조지스 항구가 유명해요.","answer":"그레나다","country":"Grenada","lat":12.1,"lng":-61.7,"fact":"세인트조지스는 이 나라의 수도예요.","stage":"country","aliases":[],"uid":"country-18"},{"wiki":"Christ_the_Redeemer_(statue)","caption":"브라질 나라 퀴즈","q":"남아메리카에서 가장 넓은 나라로, 대도시의 산 위에 두 팔을 벌린 거대한 예수상이 있어요.","answer":"브라질","country":"Brazil","lat":-10.8,"lng":-53,"fact":"구세주 그리스도상은 리우데자네이루에 있어요.","stage":"country","aliases":[],"uid":"country-19"},{"wiki":"Perito_Moreno_Glacier","caption":"아르헨티나 나라 퀴즈","q":"탱고의 발상지로 유명하고, 파타고니아의 거대한 페리토 모레노 빙하를 볼 수 있는 나라예요.","answer":"아르헨티나","country":"Argentina","lat":-36.2,"lng":-64.1,"fact":"페리토 모레노 빙하는 남쪽 파타고니아에 있어요.","stage":"country","aliases":[],"uid":"country-20"},{"wiki":"Atacama_Desert","caption":"칠레 나라 퀴즈","q":"태평양 연안을 따라 남북으로 아주 길게 뻗었고, 북부의 아타카마 사막으로 유명한 나라예요.","answer":"칠레","country":"Chile","lat":-33.5,"lng":-71,"fact":"아타카마 사막은 이 나라 북부에 있어요.","stage":"country","aliases":[],"uid":"country-21"},{"wiki":"Machu_Picchu","caption":"페루 나라 퀴즈","q":"안데스산맥 높은 곳에 잉카 제국의 석조 산악 도시 마추픽추가 남아 있는 나라예요.","answer":"페루","country":"Peru","lat":-10.3,"lng":-75.2,"fact":"마추픽추는 잉카 문명의 대표 유적이에요.","stage":"country","aliases":[],"uid":"country-22"},{"wiki":"Salar_de_Uyuni","caption":"볼리비아 나라 퀴즈","q":"안데스 고원에 비가 내리면 거울처럼 하늘이 비치는 거대한 우유니 소금사막이 있는 나라예요.","answer":"볼리비아","country":"Bolivia","lat":-17.1,"lng":-64.1,"fact":"우유니 소금사막은 이 나라 서부 고지대에 있어요.","stage":"country","aliases":[],"uid":"country-23"},{"wiki":"Gal%C3%A1pagos_Islands","caption":"에콰도르 나라 퀴즈","q":"국토를 적도가 지나며, 다윈의 연구로 유명한 갈라파고스 제도를 가진 나라예요.","answer":"에콰도르","country":"Ecuador","lat":-1.5,"lng":-78.9,"fact":"갈라파고스 제도는 이 나라 영토예요.","stage":"country","aliases":[],"uid":"country-24"},{"wiki":"Cartagena,_Colombia","caption":"콜롬비아 나라 퀴즈","q":"카리브해 연안의 역사 도시 카르타헤나와 안데스 고원 수도로 유명한 나라예요.","answer":"콜롬비아","country":"Colombia","lat":4.3,"lng":-73.8,"fact":"카르타헤나는 이 나라의 카리브해 항구 도시예요.","stage":"country","aliases":[],"uid":"country-25"},{"wiki":"Angel_Falls","caption":"베네수엘라 나라 퀴즈","q":"테이블산 절벽에서 매우 높게 떨어지는 앙헬 폭포로 유명한 남아메리카 나라예요.","answer":"베네수엘라","country":"Venezuela","lat":7.1,"lng":-66,"fact":"앙헬 폭포는 카나이마 국립공원에 있어요.","stage":"country","aliases":[],"uid":"country-26"},{"wiki":"Paramaribo","caption":"수리남 나라 퀴즈","q":"남아메리카 북동부의 작은 나라로 네덜란드어를 공용어로 사용하고 수도에 목조 건물이 많아요.","answer":"수리남","country":"Suriname","lat":4.2,"lng":-56,"fact":"파라마리보는 네덜란드 식민지 시대 목조 건물이 남은 수도예요.","stage":"country","aliases":[],"uid":"country-27"},{"wiki":"Kaieteur_Falls","caption":"가이아나 나라 퀴즈","q":"남아메리카 북동부에 있으며 영어를 공용어로 사용하고 거대한 카이에투르 폭포가 있는 나라예요.","answer":"가이아나","country":"Guyana","lat":4.8,"lng":-58.9,"fact":"카이에투르 폭포는 이 나라 열대우림에 있어요.","stage":"country","aliases":[],"uid":"country-28"},{"wiki":"Asunci%C3%B3n","caption":"파라과이 나라 퀴즈","q":"남아메리카 내륙에 있으며 과라니어와 스페인어를 공용어로 사용하고 수도가 아순시온인 나라예요.","answer":"파라과이","country":"Paraguay","lat":-23.5,"lng":-58,"fact":"아순시온은 이 내륙국의 수도예요.","stage":"country","aliases":[],"uid":"country-29"},{"wiki":"La_Mano_de_Punta_del_Este","caption":"우루과이 나라 퀴즈","q":"남아메리카 남동쪽 해안에 있으며 모래사장에서 손가락이 솟은 조각상 '라 마노'가 유명한 나라예요.","answer":"우루과이","country":"Uruguay","lat":-32.5,"lng":-56,"fact":"라 마노는 푼타델에스테 해변에 있어요.","stage":"country","aliases":[],"uid":"country-30"},{"wiki":"Antigua_and_Barbuda","caption":"나라 맞히기","q":"카리브해 동쪽에 있는 섬나라예요. 이름은 '앤티가'와 '바부다'라는 두 섬 이름을 합친 것이고, 수도는 세인트존스예요. 이 나라 이름은?","answer":"앤티가 바부다","country":"Antigua and Barbuda","lat":17.08,"lng":-61.8,"fact":"앤티가 바부다는 카리브해의 두 주요 섬과 작은 섬들로 이루어진 나라예요.","stage":"country","aliases":["안티가 바부다","앤티가바부다"],"uid":"country-31"},{"wiki":"Dominica","caption":"나라 맞히기","q":"카리브해의 작은 화산섬 나라예요. 국기에는 초록색 바탕과 앵무새가 있어요. '도미니카공화국'과는 다른 나라로, 이름에 '연방'이 붙어요. 어느 나라일까요?","answer":"도미니카 연방","country":"Dominica","lat":15.4167,"lng":-61.35,"fact":"도미니카 연방은 도미니카공화국과 다른 독립국이에요. 화산과 열대우림, 국기의 시서루앵무새가 유명해요.","stage":"country","aliases":["도미니카","도미니카연방"],"uid":"country-32"},{"wiki":"Saint_Kitts_and_Nevis","caption":"나라 맞히기","q":"카리브해의 두 작은 섬으로 이루어진 나라예요. 첫 섬의 이름은 '세인트키츠', 두 번째 섬은 '네비스'예요. 두 섬의 이름을 함께 부르는 이 나라는?","answer":"세인트키츠 네비스","country":"Saint Kitts and Nevis","lat":17.28,"lng":-62.72,"fact":"세인트키츠 네비스는 카리브해에서 두 주요 섬으로 이루어진 나라예요.","stage":"country","aliases":["세인트키츠네비스","세인트키츠 앤드 네비스","세인트키츠와 네비스"],"uid":"country-33"},{"wiki":"Saint_Lucia","caption":"나라 맞히기","q":"카리브해 동쪽의 섬나라로, 바다 옆에 쌍둥이처럼 솟은 '피통' 봉우리 두 개가 유명해요. 이름이 '세인트루○아'로 시작해요. 어느 나라일까요?","answer":"세인트루시아","country":"Saint Lucia","lat":13.91,"lng":-60.98,"fact":"세인트루시아는 카리브해의 섬나라예요. 아름다운 피통 봉우리로 유명해요.","stage":"country","aliases":["세인트 루시아"],"uid":"country-34"},{"wiki":"Saint_Vincent_and_the_Grenadines","caption":"나라 맞히기","q":"카리브해 동쪽의 섬나라예요. 큰 섬인 '세인트빈센트'와 작은 섬들인 '그레나딘'의 이름을 합쳐 부르는 나라 이름은?","answer":"세인트빈센트 그레나딘","country":"Saint Vincent and the Grenadines","lat":13.26,"lng":-61.2,"fact":"세인트빈센트 그레나딘은 큰 섬인 세인트빈센트와 여러 작은 섬으로 이루어진 나라예요.","stage":"country","aliases":["세인트빈센트그레나딘","세인트빈센트와 그레나딘","세인트 빈센트 그레나딘"],"uid":"country-35"},{"wiki":"New_York_City","caption":"도시·랜드마크 문제","q":"타임스스퀘어·맨해튼 고층 건물·센트럴파크로 유명한 미국 동부 대도시의 이름은?","answer":"뉴욕","country":"United States of America","lat":40.7128,"lng":-74.006,"fact":"뉴욕은(는) 해당 지역을 대표하는 도시·랜드마크예요.","stage":"city","aliases":["뉴욕시"],"uid":"city-1"},{"wiki":"Mexico_City","caption":"도시·랜드마크 문제","q":"해발 약 2,200m 고원에 자리하고 소칼로 광장이 유명한 멕시코 수도는?","answer":"멕시코시티","country":"Mexico","lat":19.4326,"lng":-99.1332,"fact":"멕시코시티은(는) 해당 지역을 대표하는 도시·랜드마크예요.","stage":"city","aliases":["멕시코 시티"],"uid":"city-2"},{"wiki":"Toronto","caption":"도시·랜드마크 문제","q":"온타리오호 연안에 있고 CN타워가 있는 캐나다의 큰 도시는?","answer":"토론토","country":"Canada","lat":43.6532,"lng":-79.3832,"fact":"토론토은(는) 해당 지역을 대표하는 도시·랜드마크예요.","stage":"city","aliases":[],"uid":"city-3"},{"wiki":"Chicago","caption":"도시·랜드마크 문제","q":"미시간호 연안에 자리하며 구름문 조각과 초고층 건물이 유명한 미국 도시는?","answer":"시카고","country":"United States of America","lat":41.8781,"lng":-87.6298,"fact":"시카고은(는) 해당 지역을 대표하는 도시·랜드마크예요.","stage":"city","aliases":[],"uid":"city-4"},{"wiki":"Cusco","caption":"도시·랜드마크 문제","q":"과거 잉카 제국의 수도였고, 고원 도시에서 마추픽추로 가는 관문이 되는 페루 도시는?","answer":"쿠스코","country":"Peru","lat":-13.5319,"lng":-71.9675,"fact":"쿠스코은(는) 해당 지역을 대표하는 도시·랜드마크예요.","stage":"city","aliases":[],"uid":"city-5"},{"wiki":"Chichen_Itza","caption":"도시·랜드마크 문제","q":"마야 문명의 엘 카스티요 계단식 피라미드가 있는 멕시코의 고대 유적지는?","answer":"치첸이트사","country":"Mexico","lat":20.6831,"lng":-88.5686,"fact":"치첸이트사은(는) 해당 지역을 대표하는 도시·랜드마크예요.","stage":"city","aliases":["치첸 이트사"],"uid":"city-6"},{"wiki":"CN_Tower","caption":"도시·랜드마크 문제","q":"토론토에 높이 솟은, 전망대가 있는 유명한 통신 탑 이름은?","answer":"CN타워","country":"Canada","lat":43.6426,"lng":-79.3871,"fact":"CN타워은(는) 해당 지역을 대표하는 도시·랜드마크예요.","stage":"city","aliases":["씨엔타워","CN 타워"],"uid":"city-7"},{"wiki":"Machu_Picchu","caption":"도시·랜드마크 문제","q":"안데스산맥 산등성이 위에 자리한 잉카 문명의 유적 도시는?","answer":"마추픽추","country":"Peru","lat":-13.1631,"lng":-72.545,"fact":"마추픽추은(는) 해당 지역을 대표하는 도시·랜드마크예요.","stage":"city","aliases":["마추피추","마추픽푸"],"uid":"city-8"},{"wiki":"Iguazu_Falls","caption":"자연환경 문제","q":"아르헨티나와 브라질 국경에서 수많은 물줄기가 웅장하게 떨어지는 폭포의 이름은?","answer":"이구아수 폭포","country":"Argentina","lat":-25.6953,"lng":-54.4367,"fact":"이구아수 폭포은(는) 아메리카의 대표적인 자연환경이에요.","stage":"nature","aliases":["이과수폭포","이과수 폭포"],"uid":"nature-1"},{"wiki":"Rocky_Mountains","caption":"자연환경 문제","q":"캐나다에서 미국 서부까지 남북으로 이어지는 북아메리카의 거대한 산맥은?","answer":"로키산맥","country":"Canada","lat":51.5,"lng":-115.9,"fact":"로키산맥은(는) 아메리카의 대표적인 자연환경이에요.","stage":"nature","aliases":["로키 산맥"],"uid":"nature-2"},{"wiki":"Andes","caption":"자연환경 문제","q":"남아메리카 서쪽 태평양 연안을 따라 길게 뻗은 산맥은?","answer":"안데스산맥","country":"Chile","lat":-22.5,"lng":-68.4,"fact":"안데스산맥은(는) 아메리카의 대표적인 자연환경이에요.","stage":"nature","aliases":["안데스 산맥"],"uid":"nature-3"},{"wiki":"Atacama_Desert","caption":"자연환경 문제","q":"칠레 북부에 펼쳐진 세계에서 가장 건조한 지역 가운데 하나인 사막은?","answer":"아타카마 사막","country":"Chile","lat":-23,"lng":-68.2,"fact":"아타카마 사막은(는) 아메리카의 대표적인 자연환경이에요.","stage":"nature","aliases":["아타카마사막"],"uid":"nature-4"},{"wiki":"Mississippi_River","caption":"자연환경 문제","q":"미국 중앙부를 남북으로 흐르다 멕시코만으로 들어가는 큰 강은?","answer":"미시시피강","country":"United States of America","lat":35.15,"lng":-90.05,"fact":"미시시피강은(는) 아메리카의 대표적인 자연환경이에요.","stage":"nature","aliases":["미시시피 강"],"uid":"nature-5"},{"wiki":"Amazon_River","caption":"자연환경 문제","q":"남아메리카 북부를 가로지르며 유량이 세계에서 가장 큰 강은?","answer":"아마존강","country":"Brazil","lat":-3.1,"lng":-60,"fact":"아마존강은(는) 아메리카의 대표적인 자연환경이에요.","stage":"nature","aliases":["아마존 강"],"uid":"nature-6"},{"wiki":"Appalachian_Mountains","caption":"자연환경 문제","q":"북아메리카 동부에 있는 오래된 산맥으로 그레이트스모키산맥을 포함하는 산맥은?","answer":"애팔래치아산맥","country":"United States of America","lat":35.6,"lng":-83.5,"fact":"애팔래치아산맥은(는) 아메리카의 대표적인 자연환경이에요.","stage":"nature","aliases":["애팔래치아 산맥"],"uid":"nature-7"},{"wiki":"Salar_de_Uyuni","caption":"자연환경 문제","q":"볼리비아의 하얀 소금 평원으로 비가 내리면 거울처럼 하늘이 비치는 곳은?","answer":"우유니 소금사막","country":"Bolivia","lat":-20.1338,"lng":-67.4891,"fact":"우유니 소금사막은(는) 아메리카의 대표적인 자연환경이에요.","stage":"nature","aliases":["우유니사막","우유니 사막","우유니 소금 사막"],"uid":"nature-8"},{"wiki":"Grand_Canyon","caption":"자연환경 문제","q":"콜로라도강이 땅을 오랜 세월 깎아 만든 붉고 거대한 협곡의 이름은?","answer":"그랜드캐니언","country":"United States of America","lat":36.0616,"lng":-112.108,"fact":"그랜드캐니언은(는) 아메리카의 대표적인 자연환경이에요.","stage":"nature","aliases":["그랜드 캐니언","그랜드캐년"],"uid":"nature-9"}];
-const COUNTRIES = [{"en":"United States of America","ko":"미국","color":"#ff658c","labelLat":39.3,"labelLng":-98.5},{"en":"Canada","ko":"캐나다","color":"#39b7d9","labelLat":55,"labelLng":-109},{"en":"Mexico","ko":"멕시코","color":"#ffc44d","labelLat":23.4,"labelLng":-102.3},{"en":"Guatemala","ko":"과테말라","color":"#8a70ef","labelLat":15.8,"labelLng":-90.4},{"en":"Belize","ko":"벨리즈","color":"#3ccf94","labelLat":17.2,"labelLng":-88.7},{"en":"El Salvador","ko":"엘살바도르","color":"#ff9766","labelLat":13.8,"labelLng":-88.9},{"en":"Honduras","ko":"온두라스","color":"#4b96fd","labelLat":14.8,"labelLng":-86.8},{"en":"Nicaragua","ko":"니카라과","color":"#d874d9","labelLat":12.7,"labelLng":-85},{"en":"Costa Rica","ko":"코스타리카","color":"#64bf62","labelLat":9.8,"labelLng":-84.2},{"en":"Panama","ko":"파나마","color":"#ed6ab7","labelLat":8.6,"labelLng":-80},{"en":"Cuba","ko":"쿠바","color":"#33c4b2","labelLat":21.5,"labelLng":-79.4},{"en":"Jamaica","ko":"자메이카","color":"#c78d53","labelLat":18.1,"labelLng":-77.3},{"en":"Haiti","ko":"아이티","color":"#d95555","labelLat":19,"labelLng":-72.7},{"en":"Dominican Republic","ko":"도미니카공화국","color":"#b0a04c","labelLat":19,"labelLng":-70.4},{"en":"Bahamas","ko":"바하마","color":"#8889e9","labelLat":24.8,"labelLng":-77.5},{"en":"Barbados","ko":"바베이도스","color":"#ef8e50","labelLat":13.2,"labelLng":-59.55},{"en":"Trinidad and Tobago","ko":"트리니다드 토바고","color":"#5ca4c9","labelLat":10.5,"labelLng":-61.05},{"en":"Grenada","ko":"그레나다","color":"#b779b0","labelLat":12.1,"labelLng":-61.7},{"en":"Brazil","ko":"브라질","color":"#e46795","labelLat":-10.8,"labelLng":-53},{"en":"Argentina","ko":"아르헨티나","color":"#4fc1a3","labelLat":-36.2,"labelLng":-64.1},{"en":"Chile","ko":"칠레","color":"#f9ad53","labelLat":-33.5,"labelLng":-71},{"en":"Peru","ko":"페루","color":"#609ce2","labelLat":-10.3,"labelLng":-75.2},{"en":"Bolivia","ko":"볼리비아","color":"#b073e3","labelLat":-17.1,"labelLng":-64.1},{"en":"Ecuador","ko":"에콰도르","color":"#6ab65a","labelLat":-1.5,"labelLng":-78.9},{"en":"Colombia","ko":"콜롬비아","color":"#d07c65","labelLat":4.3,"labelLng":-73.8},{"en":"Venezuela","ko":"베네수엘라","color":"#43a4ad","labelLat":7.1,"labelLng":-66},{"en":"Suriname","ko":"수리남","color":"#d86c5c","labelLat":4.2,"labelLng":-56},{"en":"Guyana","ko":"가이아나","color":"#b9b55e","labelLat":4.8,"labelLng":-58.9},{"en":"Paraguay","ko":"파라과이","color":"#7f9eea","labelLat":-23.5,"labelLng":-58},{"en":"Uruguay","ko":"우루과이","color":"#d688c5","labelLat":-32.5,"labelLng":-56},{"en":"Antigua and Barbuda","ko":"앤티가 바부다","color":"#ff8a70","labelLat":17.08,"labelLng":-61.8},{"en":"Dominica","ko":"도미니카 연방","color":"#70bc7a","labelLat":15.4167,"labelLng":-61.35},{"en":"Saint Kitts and Nevis","ko":"세인트키츠 네비스","color":"#ed99ca","labelLat":17.28,"labelLng":-62.72},{"en":"Saint Lucia","ko":"세인트루시아","color":"#63aecf","labelLat":13.91,"labelLng":-60.98},{"en":"Saint Vincent and the Grenadines","ko":"세인트빈센트 그레나딘","color":"#aca4e6","labelLat":13.26,"labelLng":-61.2}];
+const LEGACY_QUESTION_UIDS = ["country-1","country-2","country-3","country-4","country-5","country-6","country-7","country-8","country-9","country-10","country-11","country-12","country-13","country-14","country-15","country-16","country-17","country-18","country-19","country-20","country-21","country-22","country-23","country-24","country-25","country-26","country-27","country-28","country-29","country-30","country-31","country-32","country-33","country-34","country-35","city-1","city-2","city-3","city-4","city-5","city-6","city-7","city-8","nature-1","nature-2","nature-3","nature-4","nature-5","nature-6","nature-7","nature-8","nature-9"];
+const PROBLEMS = [{"wiki":"Statue_of_Liberty","caption":"미국 나라 퀴즈","q":"프랑스가 미국의 독립을 기념해 선물한 거대한 횃불 든 동상이 항구에 서 있어요. 어느 나라일까요?","answer":"미국","country":"United States of America","lat":39.3,"lng":-98.5,"fact":"자유의 여신상은 뉴욕 항구 리버티섬에 있어요.","stage":"country","aliases":[],"uid":"country-1"},{"wiki":"Canadian_Rockies","caption":"캐나다 나라 퀴즈","q":"로키산맥의 밴프 국립공원, 오대호 그리고 단풍잎 국기로 유명한 북쪽의 넓은 나라예요.","answer":"캐나다","country":"Canada","lat":55,"lng":-109,"fact":"밴프 국립공원은 북아메리카의 캐나다 로키산맥에 있어요.","stage":"country","aliases":[],"uid":"country-2"},{"wiki":"Chichen_Itza","caption":"멕시코 나라 퀴즈","q":"유카탄반도에 마야 문명의 계단식 피라미드가 남아 있고 수도가 높은 고원에 자리한 나라예요.","answer":"멕시코","country":"Mexico","lat":23.4,"lng":-102.3,"fact":"치첸이트사는 유카탄반도에 있는 마야 유적이에요.","stage":"country","aliases":[],"uid":"country-3"},{"wiki":"Tikal","caption":"과테말라 나라 퀴즈","q":"열대우림 속 고대 마야 피라미드 신전 '티칼'이 있는 중앙아메리카 나라예요.","answer":"과테말라","country":"Guatemala","lat":15.8,"lng":-90.4,"fact":"티칼은 이 나라 북부에 남아 있는 마야 유적이에요.","stage":"country","aliases":[],"uid":"country-4"},{"wiki":"Arenal_Volcano","caption":"코스타리카 나라 퀴즈","q":"군대가 없고 화산·열대우림 생태 관광으로 유명한 중앙아메리카 나라예요.","answer":"코스타리카","country":"Costa Rica","lat":9.8,"lng":-84.2,"fact":"아레날 화산은 이 나라의 대표 자연경관이에요.","stage":"country","aliases":[],"uid":"country-9"},{"wiki":"Panama_Canal","caption":"파나마 나라 퀴즈","q":"대서양과 태평양을 배가 오갈 수 있도록 갑문이 있는 거대한 운하를 건설한 나라예요.","answer":"파나마","country":"Panama","lat":8.6,"lng":-80,"fact":"운하는 중미의 지협을 가로질러 두 대양을 연결해요.","stage":"country","aliases":[],"uid":"country-10"},{"wiki":"Havana","caption":"쿠바 나라 퀴즈","q":"카리브해의 큰 섬나라로, 수도에 올드카와 스페인 식민지 시대 건물이 많이 남아 있어요.","answer":"쿠바","country":"Cuba","lat":21.5,"lng":-79.4,"fact":"아바나는 카리브해에 있는 이 나라의 수도예요.","stage":"country","aliases":[],"uid":"country-11"},{"wiki":"Dunn%27s_River_Falls","caption":"자메이카 나라 퀴즈","q":"레게 음악과 계단처럼 흘러내리는 던스리버 폭포가 유명한 카리브해 섬나라예요.","answer":"자메이카","country":"Jamaica","lat":18.1,"lng":-77.3,"fact":"던스리버 폭포는 이 나라 북부 해안에 있어요.","stage":"country","aliases":[],"uid":"country-12"},{"wiki":"Citadelle_Laferri%C3%A8re","caption":"아이티 나라 퀴즈","q":"히스파니올라섬 서쪽을 차지하며 독립 혁명 이후 높은 산에 거대한 라페리에르 요새를 지은 나라예요.","answer":"아이티","country":"Haiti","lat":19,"lng":-72.7,"fact":"라페리에르 요새는 이 나라의 역사적 유적이에요.","stage":"country","aliases":[],"uid":"country-13"},{"wiki":"Columbus_Lighthouse","caption":"도미니카공화국 나라 퀴즈","q":"히스파니올라섬 동쪽을 차지하며 수도 산토도밍고에 콜럼버스 등대가 있는 나라예요.","answer":"도미니카공화국","country":"Dominican Republic","lat":19,"lng":-70.4,"fact":"콜럼버스 등대는 수도 산토도밍고에 있어요.","stage":"country","aliases":["도미니카 공화국"],"uid":"country-14"},{"wiki":"Christ_the_Redeemer_(statue)","caption":"브라질 나라 퀴즈","q":"남아메리카에서 가장 넓은 나라로, 대도시의 산 위에 두 팔을 벌린 거대한 예수상이 있어요.","answer":"브라질","country":"Brazil","lat":-10.8,"lng":-53,"fact":"구세주 그리스도상은 리우데자네이루에 있어요.","stage":"country","aliases":[],"uid":"country-19"},{"wiki":"Perito_Moreno_Glacier","caption":"아르헨티나 나라 퀴즈","q":"탱고의 발상지로 유명하고, 파타고니아의 거대한 페리토 모레노 빙하를 볼 수 있는 나라예요.","answer":"아르헨티나","country":"Argentina","lat":-36.2,"lng":-64.1,"fact":"페리토 모레노 빙하는 남쪽 파타고니아에 있어요.","stage":"country","aliases":[],"uid":"country-20"},{"wiki":"Atacama_Desert","caption":"칠레 나라 퀴즈","q":"태평양 연안을 따라 남북으로 아주 길게 뻗었고, 북부의 아타카마 사막으로 유명한 나라예요.","answer":"칠레","country":"Chile","lat":-33.5,"lng":-71,"fact":"아타카마 사막은 이 나라 북부에 있어요.","stage":"country","aliases":[],"uid":"country-21"},{"wiki":"Machu_Picchu","caption":"페루 나라 퀴즈","q":"안데스산맥 높은 곳에 잉카 제국의 석조 산악 도시 마추픽추가 남아 있는 나라예요.","answer":"페루","country":"Peru","lat":-10.3,"lng":-75.2,"fact":"마추픽추는 잉카 문명의 대표 유적이에요.","stage":"country","aliases":[],"uid":"country-22"},{"wiki":"Salar_de_Uyuni","caption":"볼리비아 나라 퀴즈","q":"안데스 고원에 비가 내리면 거울처럼 하늘이 비치는 거대한 우유니 소금사막이 있는 나라예요.","answer":"볼리비아","country":"Bolivia","lat":-17.1,"lng":-64.1,"fact":"우유니 소금사막은 이 나라 서부 고지대에 있어요.","stage":"country","aliases":[],"uid":"country-23"},{"wiki":"Gal%C3%A1pagos_Islands","caption":"에콰도르 나라 퀴즈","q":"국토를 적도가 지나며, 다윈의 연구로 유명한 갈라파고스 제도를 가진 나라예요.","answer":"에콰도르","country":"Ecuador","lat":-1.5,"lng":-78.9,"fact":"갈라파고스 제도는 이 나라 영토예요.","stage":"country","aliases":[],"uid":"country-24"},{"wiki":"Cartagena,_Colombia","caption":"콜롬비아 나라 퀴즈","q":"카리브해 연안의 역사 도시 카르타헤나와 안데스 고원 수도로 유명한 나라예요.","answer":"콜롬비아","country":"Colombia","lat":4.3,"lng":-73.8,"fact":"카르타헤나는 이 나라의 카리브해 항구 도시예요.","stage":"country","aliases":[],"uid":"country-25"},{"wiki":"Angel_Falls","caption":"베네수엘라 나라 퀴즈","q":"테이블산 절벽에서 매우 높게 떨어지는 앙헬 폭포로 유명한 남아메리카 나라예요.","answer":"베네수엘라","country":"Venezuela","lat":7.1,"lng":-66,"fact":"앙헬 폭포는 카나이마 국립공원에 있어요.","stage":"country","aliases":[],"uid":"country-26"},{"wiki":"Asunci%C3%B3n","caption":"파라과이 나라 퀴즈","q":"남아메리카 내륙에 있으며 과라니어와 스페인어를 공용어로 사용하고 수도가 아순시온인 나라예요.","answer":"파라과이","country":"Paraguay","lat":-23.5,"lng":-58,"fact":"아순시온은 이 내륙국의 수도예요.","stage":"country","aliases":[],"uid":"country-29"},{"wiki":"La_Mano_de_Punta_del_Este","caption":"우루과이 나라 퀴즈","q":"남아메리카 남동쪽 해안에 있으며 모래사장에서 손가락이 솟은 조각상 '라 마노'가 유명한 나라예요.","answer":"우루과이","country":"Uruguay","lat":-32.5,"lng":-56,"fact":"라 마노는 푼타델에스테 해변에 있어요.","stage":"country","aliases":[],"uid":"country-30"},{"answer":"자유의 여신상","country":"United States of America","wiki":"Statue_of_Liberty","lat":40.6892,"lng":-74.0445,"q":"미국 뉴욕 항구에 있는 거대한 동상으로, 머리에는 왕관을 쓰고 한 손에는 횃불을 들고 있어요. 프랑스가 미국에 선물한 이 상징물은?","fact":"자유의 여신상은 미국 뉴욕에 있어요. 프랑스가 미국 독립을 기념하며 선물한 세계적으로 유명한 상징물이에요.","uid":"landmark-liberty","aliases":["자유의여신상"],"caption":"주요국가 랜드마크","stage":"city"},{"answer":"CN타워","country":"Canada","wiki":"CN_Tower","lat":43.6426,"lng":-79.3871,"q":"캐나다 토론토에 있는 높고 뾰족한 탑이에요. 도시를 내려다보는 전망대가 있는 이 유명한 탑의 이름은?","fact":"CN타워는 캐나다 토론토의 대표적인 랜드마크예요. 온타리오호 가까이에 있어요.","uid":"city-7","aliases":["씨엔타워","CN 타워"],"caption":"주요국가 랜드마크","stage":"city"},{"answer":"치첸이트사","country":"Mexico","wiki":"Chichen_Itza","lat":20.6843,"lng":-88.5678,"q":"멕시코 유카탄반도에 있는 마야 문명 유적이에요. 엘 카스티요라고 불리는 계단식 피라미드가 유명한 이 유적은?","fact":"치첸이트사는 멕시코 유카탄반도의 마야 문명 유적이에요. 계단식 피라미드가 대표적인 건축물이에요.","uid":"city-6","aliases":["치첸 이트사","치첸잇사"],"caption":"주요국가 랜드마크","stage":"city"},{"answer":"파나마 운하","country":"Panama","wiki":"Panama_Canal","lat":9.08,"lng":-79.68,"q":"북아메리카와 남아메리카를 잇는 좁은 땅을 가로질러 태평양과 대서양을 연결한 인공 수로예요. 배가 먼 항로를 돌아가지 않도록 도와주는 이곳은?","fact":"파나마 운하는 파나마에 있는 인공 수로로, 태평양과 대서양 사이의 해상 이동 거리를 크게 줄여 줘요.","uid":"landmark-panama-canal","aliases":["파나마운하"],"caption":"주요국가 랜드마크","stage":"city"},{"answer":"마추픽추","country":"Peru","wiki":"Machu_Picchu","lat":-13.1631,"lng":-72.545,"q":"페루 안데스산맥의 높은 산등성이에 자리한 잉카 문명의 유적 도시예요. 돌로 만든 건축물과 계단식 밭이 유명한 곳은?","fact":"마추픽추는 페루 안데스산맥에 있는 잉카 문명 유적이에요. 산악 지형을 이용해 도시를 만들었어요.","uid":"city-8","aliases":["마추 피추","마추 픽추"],"caption":"주요국가 랜드마크","stage":"city"},{"answer":"구세주 그리스도상","country":"Brazil","wiki":"Christ_the_Redeemer_(statue)","lat":-22.9519,"lng":-43.2105,"q":"브라질 리우데자네이루의 높은 산 위에서 두 팔을 넓게 벌리고 도시를 내려다보는 거대한 동상의 이름은?","fact":"구세주 그리스도상은 브라질 리우데자네이루 코르코바두산 위에 있어요. 브라질을 상징하는 대표적 랜드마크예요.","uid":"landmark-christ","aliases":["그리스도상","구세주그리스도상","예수상"],"caption":"주요국가 랜드마크","stage":"city"},{"answer":"모아이 석상","country":"Chile","wiki":"Moai","lat":-27.1167,"lng":-109.3667,"q":"칠레령 이스터섬에 있는 거대한 사람 얼굴 모양의 돌조각들이에요. 커다란 머리와 긴 코가 특징인 이 석상들은?","fact":"모아이는 칠레령 이스터섬(라파누이)에 있는 거대한 석상들이에요. 이스터섬은 태평양에 위치해요.","uid":"landmark-moai","aliases":["모아이","모아이석상"],"caption":"주요국가 랜드마크","stage":"city"},{"answer":"오벨리스코","country":"Argentina","wiki":"Obelisco_de_Buenos_Aires","lat":-34.6037,"lng":-58.3816,"q":"아르헨티나 수도 부에노스아이레스의 중심에 서 있는 높고 뾰족한 기념탑이에요. 7월 9일 대로에 있는 이 기념물의 이름은?","fact":"오벨리스코는 아르헨티나 부에노스아이레스 중심부에 있는 기념탑이에요. 도시의 대표적인 상징물이에요.","uid":"landmark-obelisco","aliases":["부에노스아이레스 오벨리스코","오벨리스크"],"caption":"주요국가 랜드마크","stage":"city"},{"wiki":"Iguazu_Falls","caption":"자연환경 문제","q":"아르헨티나와 브라질 국경에서 수많은 물줄기가 웅장하게 떨어지는 폭포의 이름은?","answer":"이구아수 폭포","country":"Argentina","lat":-25.6953,"lng":-54.4367,"fact":"이구아수 폭포는 아르헨티나와 브라질 국경에 있어요. 국경을 따라 여러 갈래의 거대한 물줄기가 떨어지는 폭포예요.","stage":"nature","aliases":["이과수폭포","이과수 폭포"],"uid":"nature-1"},{"wiki":"Rocky_Mountains","caption":"자연환경 문제","q":"캐나다에서 미국 서부까지 남북으로 이어지는 북아메리카의 거대한 산맥은?","answer":"로키산맥","country":"Canada","lat":51.5,"lng":-115.9,"fact":"로키산맥은 캐나다에서 미국 서부까지 남북으로 뻗어 있어요. 북아메리카 서쪽에 높고 험준한 산지가 많다는 특징을 보여 줘요.","stage":"nature","aliases":["로키 산맥"],"uid":"nature-2"},{"wiki":"Andes","caption":"자연환경 문제","q":"남아메리카 서쪽 태평양 연안을 따라 길게 뻗은 산맥은?","answer":"안데스산맥","country":"Chile","lat":-22.5,"lng":-68.4,"fact":"안데스산맥은 남아메리카 서쪽에 길게 이어져 있어요. 적도 가까이에서도 해발 고도가 높으면 서늘한 고산 기후가 나타날 수 있어요.","stage":"nature","aliases":["안데스 산맥"],"uid":"nature-3"},{"wiki":"Amazon_River","caption":"자연환경 문제","q":"남아메리카 북부를 가로지르며 유량이 세계에서 가장 큰 강은?","answer":"아마존강","country":"Brazil","lat":-3.1,"lng":-60,"fact":"아마존강은 남아메리카 북부의 아마존 분지를 흐르는 큰 강이에요. 주변에 넓은 열대림이 발달해 있어요.","stage":"nature","aliases":["아마존 강"],"uid":"nature-6"},{"wiki":"Grand_Canyon","caption":"자연환경 문제","q":"콜로라도강이 땅을 오랜 세월 깎아 만든 붉고 거대한 협곡의 이름은?","answer":"그랜드캐니언","country":"United States of America","lat":36.0616,"lng":-112.108,"fact":"그랜드캐니언은 미국 남서부에 있어요. 콜로라도강의 침식으로 오랜 시간에 걸쳐 깊은 협곡이 만들어졌어요.","stage":"nature","aliases":["그랜드 캐니언","그랜드캐년"],"uid":"nature-9"}];
+const COUNTRIES = [{"en":"United States of America","ko":"미국","color":"#ff658c","labelLat":39.3,"labelLng":-98.5},{"en":"Canada","ko":"캐나다","color":"#39b7d9","labelLat":55,"labelLng":-109},{"en":"Mexico","ko":"멕시코","color":"#ffc44d","labelLat":23.4,"labelLng":-102.3},{"en":"Guatemala","ko":"과테말라","color":"#8a70ef","labelLat":15.8,"labelLng":-90.4},{"en":"Costa Rica","ko":"코스타리카","color":"#64bf62","labelLat":9.8,"labelLng":-84.2},{"en":"Panama","ko":"파나마","color":"#ed6ab7","labelLat":8.6,"labelLng":-80},{"en":"Cuba","ko":"쿠바","color":"#33c4b2","labelLat":21.5,"labelLng":-79.4},{"en":"Jamaica","ko":"자메이카","color":"#c78d53","labelLat":18.1,"labelLng":-77.3},{"en":"Haiti","ko":"아이티","color":"#d95555","labelLat":19,"labelLng":-72.7},{"en":"Dominican Republic","ko":"도미니카공화국","color":"#b0a04c","labelLat":19,"labelLng":-70.4},{"en":"Brazil","ko":"브라질","color":"#e46795","labelLat":-10.8,"labelLng":-53},{"en":"Argentina","ko":"아르헨티나","color":"#4fc1a3","labelLat":-36.2,"labelLng":-64.1},{"en":"Chile","ko":"칠레","color":"#f9ad53","labelLat":-33.5,"labelLng":-71},{"en":"Peru","ko":"페루","color":"#609ce2","labelLat":-10.3,"labelLng":-75.2},{"en":"Bolivia","ko":"볼리비아","color":"#b073e3","labelLat":-17.1,"labelLng":-64.1},{"en":"Ecuador","ko":"에콰도르","color":"#6ab65a","labelLat":-1.5,"labelLng":-78.9},{"en":"Colombia","ko":"콜롬비아","color":"#d07c65","labelLat":4.3,"labelLng":-73.8},{"en":"Venezuela","ko":"베네수엘라","color":"#43a4ad","labelLat":7.1,"labelLng":-66},{"en":"Paraguay","ko":"파라과이","color":"#7f9eea","labelLat":-23.5,"labelLng":-58},{"en":"Uruguay","ko":"우루과이","color":"#d688c5","labelLat":-32.5,"labelLng":-56}];
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function km(a,b,c,d){const r=v=>v*Math.PI/180,da=r(c-a),db=r(d-b),h=Math.sin(da/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(db/2)**2;return 12742*Math.asin(Math.min(1,Math.sqrt(h)));}
 function normName(s){return String(s||'').trim().replace(/\s+/g,' ');}
 function nameKey(n){return encodeURIComponent(normName(n).toLowerCase()).replace(/\./g,'%2E');}
 function playerPath(name){return PLAYERS_PATH+'/'+nameKey(name);}
-function fresh(name){return {id:nameKey(name),name:normName(name),score:0,done:0,cur:0,tries:0,coolUntil:0,log:[],unlocked:[],pending:null,t:serverNow(),createdAt:serverNow(),startedAt:serverNow(),timeSpent:0,paused:false,pausedElapsed:0,schemaVersion:9};}
+
+function stableShuffle(a,key){
+ let h=2166136261;for(const ch of ROOM+'/'+key)h=Math.imul(h^ch.charCodeAt(0),16777619)>>>0;
+ let values=a.slice();
+ const rand=()=>{h=(h+0x6d2b79f5)>>>0;let t=h;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};
+ for(let i=values.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[values[i],values[j]]=[values[j],values[i]];}return values;
+}
+function createQuestionOrder(name,countryDone=[],landmarkDone=[]){
+ const cs=Array.from({length:COUNTRY_END},(_,i)=>i);
+ const ls=Array.from({length:CITY_END-COUNTRY_END},(_,i)=>i+COUNTRY_END);
+ const clean=(list,full)=>[...new Set(list)].filter(n=>full.includes(n));
+ const c=clean(countryDone,cs),l=clean(landmarkDone,ls);
+ return [...c,...stableShuffle(cs.filter(n=>!c.includes(n)),name+' country'),
+         ...l,...stableShuffle(ls.filter(n=>!l.includes(n)),name+' landmark'),
+         ...Array.from({length:PROBLEMS.length-CITY_END},(_,i)=>i+CITY_END)];
+}
+function validQuestionOrder(o){
+ return Array.isArray(o)&&o.length===PROBLEMS.length&&new Set(o).size===PROBLEMS.length&&o.every((n,i)=>Number.isInteger(n)&&(i<COUNTRY_END?n>=0&&n<COUNTRY_END:i<CITY_END?n>=COUNTRY_END&&n<CITY_END:n===i));
+}
+function ensureQuestionOrder(p){if(!validQuestionOrder(p.questionOrder))p.questionOrder=createQuestionOrder(p.id||p.name||'');return p;}
+function questionAt(n,record=me){return PROBLEMS[record&&validQuestionOrder(record.questionOrder)?record.questionOrder[n]:n];}
+
+function fresh(name){return {id:nameKey(name),name:normName(name),score:0,done:0,cur:0,tries:0,coolUntil:0,log:[],unlocked:[],pending:null,t:serverNow(),createdAt:serverNow(),startedAt:serverNow(),timeSpent:0,paused:false,pausedElapsed:0,schemaVersion:11,questionOrder:createQuestionOrder(nameKey(name))};}
 function norm(p,key){p=p||{};return {id:key||p.id||'',name:p.name||'',score:Number(p.score)||0,done:Number(p.done)||0,cur:Number(p.cur)||0,tries:Number(p.tries)||0,coolUntil:Number(p.coolUntil)||0,log:Array.isArray(p.log)?p.log:[],unlocked:Array.isArray(p.unlocked)?p.unlocked:[],pending:p.pending||null,t:Number(p.t)||0,createdAt:Number(p.createdAt)||0,startedAt:Number(p.startedAt)||0,timeSpent:Number(p.timeSpent)||0,paused:!!p.paused,pausedElapsed:Number(p.pausedElapsed)||0,schemaVersion:Number(p.schemaVersion)||8,teacherRevision:Number(p.teacherRevision)||0,teacherAdjustments:Array.isArray(p.teacherAdjustments)?p.teacherAdjustments:[],teacherSkipped:Array.isArray(p.teacherSkipped)?p.teacherSkipped:[],questionOrder:Array.isArray(p.questionOrder)?p.questionOrder:null};}
 function sig(p){return [p.cur,p.tries,p.coolUntil,p.done,p.score,p.pending?String(p.pending.idx)+p.pending.mode:'',p.paused?'pause':'play',p.teacherRevision||0].join('|');}
-function ranked(all){return Object.keys(all||{}).map(k=>norm(all[k],k)).sort((a,b)=>(b.score-a.score)||(b.done-a.done)||(totalTime(a)-totalTime(b))||((a.t||0)-(b.t||0)));}
+function ranked(all){return Object.keys(all||{}).map(k=>norm(migrateGameFormat(all[k]),k)).sort((a,b)=>(b.score-a.score)||(b.done-a.done)||(totalTime(a)-totalTime(b))||((a.t||0)-(b.t||0)));}
 function hintStatus(text,cls=''){const el=$('msg');if(el){el.textContent=text;el.className='msg '+cls;}}
 function showConn(){
-  const el=$('conn');if(!el)return;
-  if(firebaseState==='online'){el.textContent='실시간 저장';el.title='Firebase Realtime Database';}
-  else if(firebaseState==='connecting'){el.textContent='서버 연결 중';}
-  else {el.textContent='이 기기만 저장 · 실시간 공유 안 됨';el.title='Firebase 자동 연결에 실패해 로컬 모드로 실행 중입니다.';}
+ const el=$('conn');
+ const ok=firebaseState==='online'&&serverVerified;
+ if(el){
+   el.textContent=ok?'실시간 저장':firebaseState==='connecting'||(firebaseState==='online'&&!serverVerified)?'서버 확인 중':'서버 미연결 · 게임 중지';
+   el.title=ok?'Firebase 연결 및 기록 읽기 확인됨':'서버 연결을 확인해야 게임할 수 있습니다.';
+ }
+ if(!TEACHER&&map&&me){
+   if($('answerBtn'))$('answerBtn').disabled=!ok;
+   if($('nextBtn'))$('nextBtn').disabled=!ok||(me.coolUntil||0)>serverNow();
+   let overlay=$('serverBlocker');
+   if(!ok&&!overlay){
+     overlay=document.createElement('div');overlay.id='serverBlocker';overlay.setAttribute('role','alert');
+     overlay.innerHTML='<strong>서버에 연결되지 않았어요.</strong><p>기록이 사라지지 않도록 문제 풀이를 잠시 멈췄어요. 연결이 복구되면 이어서 풀 수 있어요.</p>';
+     app.appendChild(overlay);
+   }else if(ok&&overlay)overlay.remove();
+ }
 }
 
 /* Firebase 교실 연결 링크: 설정 키를 저장소 코드에 쓰지 않고 링크 조각(#)으로 전달.
@@ -182,13 +217,38 @@ async function copyClassJoinLink(){
   if(msg)msg.textContent='아래 링크를 선택한 상태예요. Ctrl+C로 복사해 학생들에게 보내세요.';
  }
 }
+
 function migrateGameFormat(old){
  const p={...old};
  if(Number(p.schemaVersion||8)<9){
-  if(Number(p.cur)>=30)p.cur=Number(p.cur)+5;
-  if(p.pending&&Number(p.pending.idx)>=30)p.pending={...p.pending,idx:Number(p.pending.idx)+5};
-  p.schemaVersion=9;
+   if(Number(p.cur)>=30)p.cur=Number(p.cur)+5;
+   if(p.pending&&Number(p.pending.idx)>=30)p.pending={...p.pending,idx:Number(p.pending.idx)+5};
+   p.schemaVersion=9;
  }
+ if(Number(p.schemaVersion)>=11)return ensureQuestionOrder(p);
+ const oldCur=Math.max(0,Math.min(LEGACY_QUESTION_UIDS.length,Number(p.cur)||0));
+ const lookup=new Map(PROBLEMS.map((q,i)=>[q.uid||q.wiki,i]));
+ const selected=LEGACY_QUESTION_UIDS.slice(0,Math.min(oldCur,35)).map(id=>lookup.get(id)).filter(i=>Number.isInteger(i)&&i<COUNTRY_END);
+ const landmarkDone=Math.max(0,Math.min(8,oldCur-35));
+ const oldMatches=LEGACY_QUESTION_UIDS.slice(35,35+landmarkDone).map(id=>lookup.get(id)).filter(i=>Number.isInteger(i)&&i>=COUNTRY_END&&i<CITY_END);
+ const landmarks=[...new Set(oldMatches)];
+ for(let i=COUNTRY_END;i<CITY_END&&landmarks.length<landmarkDone;i++)if(!landmarks.includes(i))landmarks.push(i);
+ let newCur=selected.length;
+ if(oldCur>=35)newCur=COUNTRY_END+landmarks.length;
+ if(oldCur>=43){
+  const nature=LEGACY_QUESTION_UIDS.slice(43,oldCur).filter(id=>{const v=lookup.get(id);return Number.isInteger(v)&&v>=CITY_END;}).length;
+  newCur=CITY_END+nature;
+ }
+ p.questionOrder=createQuestionOrder(p.id||p.name||'',selected,landmarks);
+ p.cur=Math.min(PROBLEMS.length,newCur);p.done=p.cur;
+ if(p.pending){
+  const found=lookup.get(LEGACY_QUESTION_UIDS[p.pending.idx]);
+  const pos=Number.isInteger(found)?p.questionOrder.indexOf(found):-1;
+  p.pending=pos>=0?{...p.pending,idx:pos}:null;
+ }
+ p.unlocked=(Array.isArray(p.unlocked)?p.unlocked:[]).filter(v=>COUNTRIES.some(x=>x.en===v));
+ p.teacherSkipped=Array.isArray(p.teacherSkipped)?p.teacherSkipped.filter(i=>Number(i)<p.cur):[];
+ p.schemaVersion=11;
  return p;
 }
 async function restoreOfflineStudent(name){
@@ -252,6 +312,39 @@ async function initFirebase(){
     return true;
   }catch(e){console.warn('Firebase initialize failed',e.message);firebaseState='offline';db=null;showConn();return false;}
 }
+
+async function verifyServerConnection(){
+ if(!db||!playersRef)throw Error('Firebase 설정이 없습니다.');
+ const info=db.ref('.info/connected');
+ await new Promise((resolve,reject)=>{
+  let settled=false,timer;
+  const finish=error=>{
+   if(settled)return;settled=true;clearTimeout(timer);info.off('value',onVal);
+   if(error)reject(error);else resolve();
+  };
+  const onVal=s=>{if(s.val()===true)finish();};
+  timer=setTimeout(()=>finish(new Error('Firebase 연결 시간 초과. 네트워크를 확인하세요.')),14000);
+  info.on('value',onVal,e=>finish(e));
+ });
+ await Promise.race([
+  playersRef.limitToFirst(1).once('value'),
+  new Promise((_,reject)=>setTimeout(()=>reject(new Error('학생 기록 읽기를 확인하지 못했어요.')),10000))
+ ]);
+ if(firebaseState!=='online')throw Error('Firebase 실시간 연결이 끊겼어요.');
+ serverVerified=true;showConn();
+}
+function renderServerGate(reason){
+ if(playerRef&&playerListener)playerRef.off('value',playerListener);
+ playerRef=null;me=null;
+ renderHdr();
+ app.innerHTML='<div class="joinWrap"><section class="card"><h2>서버 연결 후 시작할 수 있어요</h2>'+
+ '<p><b>Firebase 실시간 연결과 기록 읽기가 확인되지 않아 게임을 시작하지 않았어요.</b></p>'+
+ '<p class="msg ng">'+esc(reason||'서버에 연결되지 않았어요.')+'</p>'+
+ '<p class="muted">선생님이 보내 준 실시간 연결 링크로 접속하거나 인터넷 연결을 확인해 주세요. 기존에 저장된 기록은 삭제하지 않습니다.</p>'+
+ '<button class="btn mint" id="tryServerAgain" type="button">서버 다시 연결</button></section></div>';
+ $('tryServerAgain').onclick=start;
+}
+
 function firebaseSetup(){
   app.innerHTML=`<div class="joinWrap"><section class="card">
     <h2>🔑 기존 Firebase 연결하기</h2>
@@ -356,7 +449,7 @@ function onCountryFeature(f,layer){
 function refreshPieces(){
  if(!me)return;
  if($('bar'))$('bar').style.width=(me.done/PROBLEMS.length*100)+'%';
- if($('prog'))$('prog').textContent=phaseName(Math.min(me.cur,PROBLEMS.length-1))+' · '+me.done+'/'+PROBLEMS.length+'문제 완료 · 나라 '+me.unlocked.length+'/30';
+ if($('prog'))$('prog').textContent=phaseName(Math.min(me.cur,PROBLEMS.length-1))+' · '+me.done+'/'+PROBLEMS.length+'문제 완료 · 나라 '+me.unlocked.length+'/'+COUNTRIES.length;
  if($('triesInfo'))$('triesInfo').textContent=me.pending?'':'남은 기회 '+Math.max(0,MAX_TRIES-me.tries)+'회';
  if(geo){geo.setStyle(styleFor);rebuildLabels();}
 }
@@ -403,7 +496,7 @@ function updateCooldownUI(){
   const tick=()=>{
     if(!me)return;const left=Math.max(0,Math.ceil(((me.coolUntil||0)-serverNow())/1000));
     const box=$('waitBox');if(box){box.style.display=left?'block':'none';box.textContent=left?`⏳ ${left}초 뒤에 다시 시도할 수 있어요`:'';}
-    if($('nextBtn'))$('nextBtn').disabled=left>0;
+    if($('nextBtn'))$('nextBtn').disabled=left>0||firebaseState!=='online'||!serverVerified;
     if($('resultCountdown'))$('resultCountdown').textContent=(me.pending&&left>0)?left+'초 뒤 다음 문제로 넘어갈 수 있어요.':'';
     if(!left)clearInterval(countdownTimer);
   };
@@ -412,22 +505,22 @@ function updateCooldownUI(){
 function answerUI(){
   if(!$('answerWrap'))return;
   $('answerWrap').style.display=me.pending||me.cur>=PROBLEMS.length?'none':'block';
-  const p=PROBLEMS[me.cur];if(!p)return;
+  const p=questionAt(me.cur);if(!p)return;
   const place=p.stage!=='country';
-  $('answerLabel').textContent=p.stage==='country'?'설명과 사진을 보고 나라 이름을 적으세요':p.stage==='city'?'도시·랜드마크 이름을 적으세요':'자연환경 이름을 적으세요';
-  $('answerInput').value='';$('answerInput').placeholder=p.stage==='country'?'나라 이름 입력':p.stage==='city'?'도시·랜드마크 입력':'자연환경 이름 입력';
+  $('answerLabel').textContent=p.stage==='country'?'설명과 사진을 보고 나라 이름을 적으세요':p.stage==='city'?'랜드마크 이름을 적으세요':'자연환경 이름을 적으세요';
+  $('answerInput').value='';$('answerInput').placeholder=p.stage==='country'?'나라 이름 입력':p.stage==='city'?'랜드마크 이름 입력':'자연환경 이름 입력';
   $('stageLabel').textContent=phaseName(me.cur);
   if($('stageInstruction'))$('stageInstruction').textContent=p.stage==='country'?'나라를 맞히면 지도에 해당 나라가 색칠되고 조각을 얻어요.':'정답을 맞히면 점수만 얻어요.';
 }
 function maybeStagePopup(){
   if(!me||!$ ('stageDialog'))return;
-  const p=PROBLEMS[me.cur];if(!p||p.stage==='country')return;
+  const p=questionAt(me.cur);if(!p||p.stage==='country')return;
   const key='amap-stage-seen-v8-'+ROOM+'-'+me.id+'-'+p.stage;
   if(store.get(key))return;
   store.set(key,'yes');
   const city=p.stage==='city';
-  $('stageDialogTitle').textContent=city?'2단계 시작 · 도시와 랜드마크':'3단계 시작 · 자연환경';
-  $('stageDialogText').textContent=city?'나라 퍼즐을 완성했어요! 이제 사진과 설명을 보고 도시와 랜드마크 이름을 맞혀요. 이 단계부터는 지도 조각 없이 점수만 얻어요.':'마지막 단계예요! 로키산맥, 아마존강 같은 자연환경 이름을 직접 맞혀요. 정답은 점수로 반영돼요.';
+  $('stageDialogTitle').textContent=city?'2단계 시작 · 유명 랜드마크':'3단계 시작 · 자연환경';
+  $('stageDialogText').textContent=city?'나라 퍼즐을 완성했어요! 이제 사진과 설명을 보고 주요국가의 유명 랜드마크를 맞혀요. 이 단계부터는 지도 조각 없이 점수만 얻어요.':'마지막 단계예요! 로키산맥, 아마존강 같은 자연환경 이름을 직접 맞혀요. 정답은 점수로 반영돼요.';
   $('stageDialog').hidden=false;
   // No automatic button focus during Enter-based transitions.
 }
@@ -445,7 +538,7 @@ function renderProblem(){
   $('waitBox').style.display='none';
   if(me.cur>=PROBLEMS.length){finish();return;}
   $('photoWrap').style.display='block';$('photoCredit').style.display='block';
-  const p=PROBLEMS[me.cur];loadProblemPhoto(p);
+  const p=questionAt(me.cur);loadProblemPhoto(p);
   $('qtext').textContent=(me.cur+1)+'번. '+p.q;
   answerUI();armClock();maybeStagePopup();
   hintStatus(me.tries?'설명을 다시 읽고 답을 적어보세요.':'정답을 입력하고 확인해 보세요 🌷');
@@ -463,7 +556,7 @@ function openResultDialog(p,result){
  $('resultExplanation').textContent=p.fact;
  $('resultCountry').textContent=(co?co.ko:'')+' · 지도에서 위치 확인';
  $('resultPoints').textContent=result.mode==='correct'?'+'+result.points+'점':'0점 · 3번의 도전 완료';
- $('resultReward').textContent=p.stage==='country'?'이 나라의 지도 조각이 채워졌어요':'도시·랜드마크 / 자연환경 단계는 점수만 획득해요';
+ $('resultReward').textContent=p.stage==='country'?'이 나라의 지도 조각이 채워졌어요':'랜드마크 / 자연환경 단계는 점수만 획득해요';
  const next=$('nextBtn');
  next.textContent=me.cur>=PROBLEMS.length?'최종 결과 보기':'다음 문제';
  // Only a deliberate mouse click or touch on Next may move to the next question.
@@ -520,7 +613,7 @@ function drawResultMap(p){
  resultMiniMap.invalidateSize();
 }
 function renderPending(){
- const r=me.pending,p=PROBLEMS[r.idx];if(!p)return;
+ const r=me.pending,p=questionAt(r.idx);if(!p)return;
  $('stageLabel').textContent=phaseName(r.idx);
  $('answerWrap').style.display='none';
  refreshPieces();updateClock();
@@ -528,9 +621,10 @@ function renderPending(){
 }
 function cleanAnswer(s){return String(s||'').toLowerCase().normalize('NFKC').replace(/[\s\-_.·()]/g,'');}
 async function guessTyped(){
+  if(!serverVerified||firebaseState!=='online'){showConn();hintStatus('서버 연결이 없어 제출할 수 없어요.','ng');return;}
   if(!playerRef||!me||submitting||me.pending||me.paused||me.cur>=PROBLEMS.length)return;
   if(me.coolUntil>serverNow()){updateCooldownUI();return;}
-  const idx=me.cur,p=PROBLEMS[idx],given=$('answerInput').value.trim();
+  const idx=me.cur,p=questionAt(idx),given=$('answerInput').value.trim();
   if(!given){hintStatus('답을 입력해 주세요.','ng');return;}
   const correct=[p.answer,...(p.aliases||[])].some(s=>cleanAnswer(given)===cleanAnswer(s));
   submitting=true;hintStatus('답을 확인하고 있어요...');
@@ -569,6 +663,7 @@ async function guessTyped(){
   finally{submitting=false;}
 }
 async function nextProblem(){
+  if(!serverVerified||firebaseState!=='online'){showConn();return;}
   if(!playerRef||!me||!me.pending||me.paused||me.coolUntil>serverNow())return;
   if($('nextBtn'))$('nextBtn').disabled=true;
   try{
@@ -581,6 +676,7 @@ async function nextProblem(){
 }
 
 async function pauseStudy(){
+ if(!serverVerified||firebaseState!=='online'){showConn();return;}
  if(!me||!playerRef||submitting)return;
  const btn=$('pauseStudy');if(btn)btn.disabled=true;
  const idx=me.cur;
@@ -590,7 +686,7 @@ async function pauseStudy(){
     const x=norm(current,me.id),now=serverNow();
     if(x.paused)return;
     const elapsed=x.pending?0:Math.max(0,Math.round((Number(x.pausedElapsed)||0)+(now-(x.startedAt||now))/1000));
-    x.pausedElapsed=elapsed;x.paused=true;x.t=now;x.schemaVersion=9;return x;
+    x.pausedElapsed=elapsed;x.paused=true;x.t=now;x.schemaVersion=11;return x;
   });
   if(!tx.snapshot.exists())throw Error('저장된 기록이 없습니다');
   me=norm(tx.snapshot.val(),me.id);
@@ -610,7 +706,7 @@ function destroyMap(){clearInterval(countdownTimer);clearInterval(questionClock)
 function renderStudent(){
   destroyMap();
   app.innerHTML=`<main><section class="card">
-    <div class="smallPill">${iconArt("compass")} 나라 35 · 도시 8 · 자연 9</div><div class="smallPill">${iconArt("clock")} 3회 도전</div>
+    <div class="smallPill">${iconArt("compass")} 나라 20 · 랜드마크 8 · 자연 5</div><div class="smallPill">${iconArt("clock")} 3회 도전</div>
     <div id="photoWrap"><img id="img" alt="문제 사진. 클릭하여 확대하기"><div id="cap"></div><span class="photo-zoom-hint">사진을 누르면 크게 보여요</span></div><div id="photoCredit"></div>
     <div class="smallPill" id="stageLabel">1단계 · 나라 맞히기</div><p class="muted" id="stageInstruction">나라를 맞히면 지도 조각을 얻어요.</p><div id="qbox"><div id="qtext"></div><p class="subline" id="triesInfo"></p></div><div id="answerWrap" style="margin-top:12px"><label id="answerLabel" for="answerInput" style="display:block;margin-bottom:9px;font-weight:700">답을 입력하세요</label><input id="answerInput" autocomplete="off" placeholder="정답 입력"><button class="btn mint" id="answerBtn" style="margin-top:10px;width:100%">정답 확인</button></div>
     <p class="msg" id="msg"></p><div class="waitBox" id="waitBox"></div>
@@ -661,10 +757,11 @@ function renderStudent(){
   $('qtext').addEventListener('contextmenu',e=>e.preventDefault());
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('photoLightbox'))$('photoLightbox').hidden=true;}});
 
-  fetch(COUNTRY_GEO).then(r=>{if(!r.ok)throw Error('country border');return r.json()}).then(g=>{if(!map)return;geo=L.geoJSON(g,{style:styleFor,onEachFeature:onCountryFeature}).addTo(map);refreshPieces();if(me?.pending)drawResultMap(PROBLEMS[me.pending.idx]);}).catch(()=>{if($('msg'))hintStatus('지도 경계를 불러오지 못했어요. 인터넷을 확인해 주세요.','ng');});
-  watchPlayers(renderRank);watchMe();renderHdr();renderProblem();
+  fetch(COUNTRY_GEO).then(r=>{if(!r.ok)throw Error('country border');return r.json()}).then(g=>{if(!map)return;geo=L.geoJSON(g,{style:styleFor,onEachFeature:onCountryFeature}).addTo(map);refreshPieces();if(me?.pending)drawResultMap(questionAt(me.pending.idx));}).catch(()=>{if($('msg'))hintStatus('지도 경계를 불러오지 못했어요. 인터넷을 확인해 주세요.','ng');});
+  watchPlayers(renderRank);watchMe();renderHdr();renderProblem();showConn();
 }
 async function loadStudent(name){
+  if(!serverVerified||firebaseState!=='online'){renderServerGate('서버 저장이 확인되지 않아 시작하지 않았어요.');return;}
   name=normName(name);if(!name)return renderJoin('이름을 입력해 주세요.');
   if(!db)return renderJoin('아직 저장소 준비 중이에요.');
   if($('joinMsg'))$('joinMsg').textContent='진도를 찾고 있어요...';
@@ -674,17 +771,11 @@ async function loadStudent(name){
     const tx=await ref.transaction(current=>{
       if(!current)return fresh(name);
       const now=serverNow();
-      if(Number(current.schemaVersion||8)<9){
-        // 기존 30나라 버전: 도시·자연환경 진행 번호만 다섯 칸 이동해 진도를 보존
-        if(Number(current.cur)>=30)current.cur=Number(current.cur)+5;
-        if(current.pending&&Number(current.pending.idx)>=30)current.pending.idx=Number(current.pending.idx)+5;
-        current.schemaVersion=9;
-        current.pausedElapsed=0;current.paused=false;
-      }
-      if(current.paused){current.paused=false;current.startedAt=now;current.t=now;}
-      return current;
+      const migrated=migrateGameFormat(current);
+      if(migrated.paused){migrated.paused=false;migrated.startedAt=now;migrated.t=now;}
+      return migrated;
     });
-    if(!tx.snapshot.exists())throw Error('진도 기록을 불러오지 못했어요');
+    if(!tx.committed||!tx.snapshot.exists())throw Error('서버에서 진도 저장을 확인하지 못했어요.');
     playerRef=ref;me=norm(tx.snapshot.val(),key);
     store.set('amap-name-'+ROOM,name);renderStudent();
     if(recovered)hintStatus('이전에 이 기기에 저장된 진도와 점수를 Firebase로 옮겼어요.','ok');
@@ -756,7 +847,7 @@ function teacherRenderControls(p){
 }
 async function teacherProgressApply(){
  if(!TEACHER||firebaseState!=='online'||!db)return teacherMessage('서버 연결 상태에서만 수정할 수 있어요.',true);
- const key=selectedKey||Object.keys(lastAll)[0],student=lastAll[key];
+ const key=selectedKey||Object.keys(lastAll)[0],student=lastAll[key]?migrateGameFormat(lastAll[key]):null;
  if(!student)return teacherMessage('학생을 먼저 선택해 주세요.',true);
  const to=Number($('teacherProgress')?.value);
  if(!Number.isInteger(to)||to<0||to>PROBLEMS.length)return teacherMessage('진도 선택이 잘못됐어요.',true);
@@ -770,7 +861,7 @@ async function teacherProgressApply(){
   const ref=db.ref(PLAYERS_PATH+'/'+key);
   const result=await ref.transaction(raw=>{
    if(!raw)return;
-   const x=norm(raw,key),old=Number(x.cur)||0,now=serverNow();
+   const x=norm(migrateGameFormat(raw),key),old=Number(x.cur)||0,now=serverNow();
    if(to<old){
      x.log=x.log.filter(l=>{const position=teacherStudentPosition(l.id,x);return position<0||position<to;});
      x.score=x.log.reduce((sum,l)=>sum+(Number(l.score)||0),0);
@@ -856,7 +947,7 @@ function renderTeacherViews(all){
   const p=list.find(x=>x.id===selectedKey)||list[0];
   if(p)selectedKey=p.id;
   if(!p){$('detail').innerHTML='<h2>🔎 학생 상세</h2><p class="muted">아직 학생 기록이 없어요.</p>';return;}
-  const cur=PROBLEMS[p.cur];
+  const cur=questionAt(p.cur,p);
   $('detail').innerHTML=`<h2>${esc(p.name)}</h2><div class="smallPill">${iconArt('star')} ${p.score}점</div><div class="smallPill">${iconArt('map')} ${p.done}/${PROBLEMS.length} 완료</div>
     <p><b>현재 상태</b> ${p.pending?'결과 확인 중':(cur?esc(cur.caption):'모두 완료')}</p>
     <p class="muted">마지막 활동: ${p.t?new Date(p.t).toLocaleString('ko-KR'):'없음'}</p>
@@ -865,9 +956,10 @@ function renderTeacherViews(all){
 }
 async function start(){
   readClassLink();
-  renderHdr();
+  serverVerified=false;renderHdr();
   const connected=await initFirebase();
-  if(!connected){db=offlineDb();playersRef=db.ref(PLAYERS_PATH);firebaseState='offline';}
+  if(!connected){renderServerGate('Firebase 설정이 없거나 연결에 실패했어요.');return;}
+  try{await verifyServerConnection();}catch(e){renderServerGate(e.message);return;}
   if(TEACHER){renderTeacher();return;}
   const lastName=store.get('amap-name-'+ROOM);
   if(lastName){await loadStudent(lastName);}else renderJoin();
