@@ -337,12 +337,19 @@ function renderServerGate(reason){
  if(playerRef&&playerListener)playerRef.off('value',playerListener);
  playerRef=null;me=null;
  renderHdr();
+ const hasKey=/^AIza[\w-]{20,}$/.test(getClassFirebaseKey());
+ const tip=TEACHER
+  ?(hasKey?'연결 설정은 있지만 Firebase 서버 응답이나 읽기 권한을 확인하지 못했어요.':'먼저 기존 Firebase 웹 API 키로 연결하면 학생 실시간 연결 링크를 만들 수 있어요.')
+  :(hasKey?'연결 정보는 저장됐어요. 인터넷 연결 또는 데이터베이스 읽기 권한을 확인해 주세요.':'선생님이 보내 준 실시간 연결 링크를 열어 주세요. 일반 링크만으로는 기록을 저장할 수 없어요.');
  app.innerHTML='<div class="joinWrap"><section class="card"><h2>서버 연결 후 시작할 수 있어요</h2>'+
  '<p><b>Firebase 실시간 연결과 기록 읽기가 확인되지 않아 게임을 시작하지 않았어요.</b></p>'+
  '<p class="msg ng">'+esc(reason||'서버에 연결되지 않았어요.')+'</p>'+
- '<p class="muted">선생님이 보내 준 실시간 연결 링크로 접속하거나 인터넷 연결을 확인해 주세요. 기존에 저장된 기록은 삭제하지 않습니다.</p>'+
- '<button class="btn mint" id="tryServerAgain" type="button">서버 다시 연결</button></section></div>';
- $('tryServerAgain').onclick=start;
+ '<p class="muted">'+tip+' 기존에 저장된 기록은 삭제하지 않습니다.</p>'+
+ '<div class="connectionGateActions"><button class="btn mint" id="tryServerAgain" type="button">서버 다시 연결</button>'+
+ (TEACHER?'<button class="btn secondary" id="teacherFirebaseSetup" type="button">'+(hasKey?'Firebase 연결 정보 다시 입력':'기존 Firebase 연결하기')+'</button>':'')+
+ '</div></section></div>';
+ $('tryServerAgain').onclick=()=>{firebaseState='connecting';start();};
+ if($('teacherFirebaseSetup'))$('teacherFirebaseSetup').onclick=firebaseSetup;
 }
 
 function firebaseSetup(){
@@ -916,7 +923,7 @@ function renderTeacher(){
       <p class="muted">학생 이름을 누르면 문제별 결과를 확인할 수 있어요.</p>
       <div class="teacherShare">
         <div class="smallPill">학생 실시간 연결 링크</div>
-        <p class="muted">학생들이 지금 풀던 <b>같은 기기의 같은 브라우저</b>로 이 링크를 열면 기존 진도를 Firebase로 옮겨요. 학생은 API 키를 입력할 필요가 없어요.</p>
+        <p class="muted">연결에 실패했던 기존 기록을 복구하려면 <b>당시 사용한 기기와 브라우저</b>에서 링크를 열어 주세요. Firebase에 정상 저장된 뒤에는 다른 기기에서도 이어서 풀 수 있어요.</p>
         <input type="text" id="shareLink" aria-label="학생 실시간 연결 링크" readonly>
         <button class="btn mint" id="shareCopy" type="button">학생 연결 링크 복사</button>
         <p id="shareLinkMsg" class="muted" aria-live="polite"></p>
@@ -959,7 +966,7 @@ async function start(){
   serverVerified=false;renderHdr();
   const connected=await initFirebase();
   if(!connected){renderServerGate('Firebase 설정이 없거나 연결에 실패했어요.');return;}
-  try{await verifyServerConnection();}catch(e){renderServerGate(e.message);return;}
+  try{await verifyServerConnection();}catch(e){serverVerified=false;firebaseState='offline';renderServerGate(e.message);return;}
   if(TEACHER){renderTeacher();return;}
   const lastName=store.get('amap-name-'+ROOM);
   if(lastName){await loadStudent(lastName);}else renderJoin();
