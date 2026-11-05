@@ -162,7 +162,7 @@ function questionAt(n,record=me){return PROBLEMS[record&&validQuestionOrder(reco
 
 function fresh(name){return {id:nameKey(name),name:normName(name),score:0,done:0,cur:0,tries:0,coolUntil:0,log:[],unlocked:[],pending:null,t:serverNow(),createdAt:serverNow(),startedAt:serverNow(),timeSpent:0,paused:false,pausedElapsed:0,schemaVersion:11,questionOrder:createQuestionOrder(nameKey(name))};}
 function norm(p,key){p=p||{};return {id:key||p.id||'',name:p.name||'',score:Number(p.score)||0,done:Number(p.done)||0,cur:Number(p.cur)||0,tries:Number(p.tries)||0,coolUntil:Number(p.coolUntil)||0,log:Array.isArray(p.log)?p.log:[],unlocked:Array.isArray(p.unlocked)?p.unlocked:[],pending:p.pending||null,t:Number(p.t)||0,createdAt:Number(p.createdAt)||0,startedAt:Number(p.startedAt)||0,timeSpent:Number(p.timeSpent)||0,paused:!!p.paused,pausedElapsed:Number(p.pausedElapsed)||0,schemaVersion:Number(p.schemaVersion)||8,teacherRevision:Number(p.teacherRevision)||0,teacherAdjustments:Array.isArray(p.teacherAdjustments)?p.teacherAdjustments:[],teacherSkipped:Array.isArray(p.teacherSkipped)?p.teacherSkipped:[],wrongAttempts:Array.isArray(p.wrongAttempts)?p.wrongAttempts:[],lastSubmission:p.lastSubmission||null,questionOrder:Array.isArray(p.questionOrder)?p.questionOrder:null};}
-function sig(p){return [p.cur,p.tries,p.coolUntil,p.done,p.score,p.pending?String(p.pending.idx)+p.pending.mode:'',p.paused?'pause':'play',p.teacherRevision||0,p.lastSubmission?.at||0].join('|');}
+function sig(p){return [p.cur,p.tries,p.coolUntil,p.done,p.score,p.pending?String(p.pending.idx)+p.pending.mode:'',p.paused?'pause':'play',p.teacherRevision||0,p.lastSubmission?.at||0,p.pending?.piecePlaced?'piece-placed':'piece-open'].join('|');}
 function ranked(all){return Object.keys(all||{}).map(k=>norm(migrateGameFormat(all[k]),k)).sort((a,b)=>(b.score-a.score)||(b.done-a.done)||(totalTime(a)-totalTime(b))||((a.t||0)-(b.t||0)));}
 function hintStatus(text,cls=''){const el=$('msg');if(el){el.textContent=text;el.className='msg '+cls;}}
 function showConn(){
@@ -174,7 +174,7 @@ function showConn(){
  }
  if(!TEACHER&&map&&me){
    if($('answerBtn'))$('answerBtn').disabled=!ok;
-   if($('nextBtn'))$('nextBtn').disabled=!ok||(me.coolUntil||0)>serverNow();
+   if($('nextBtn'))$('nextBtn').disabled=!ok||(me.coolUntil||0)>serverNow()||!isPendingPieceReady();
    let overlay=$('serverBlocker');
    if(!ok&&!overlay){
      overlay=document.createElement('div');overlay.id='serverBlocker';overlay.setAttribute('role','alert');
@@ -405,7 +405,7 @@ function renderHdr(){
 function styleFor(f){
  const raw=f.properties.name,alt={'The Bahamas':'Bahamas','United States':'United States of America','Dominican Rep.':'Dominican Republic'};
  const co=COUNTRIES.find(x=>x.en===raw||x.en===alt[raw]);
- const on=co&&me&&me.unlocked.includes(co.en);
+ const on=co&&me&&me.unlocked.includes(co.en)&&currentlyUnplacedCountry(me)!==co.en;
  return on?{fillColor:co.color,fillOpacity:.96,color:'#fff',weight:1.7}:{fillColor:'#e7ecf6',fillOpacity:.95,color:'#aabbd1',weight:1};
 }
 function puzzleArt(fill){
@@ -442,7 +442,7 @@ function onCountryFeature(f,layer){
 function refreshPieces(){
  if(!me)return;
  if($('bar'))$('bar').style.width=(me.done/PROBLEMS.length*100)+'%';
- if($('prog'))$('prog').textContent=phaseName(Math.min(me.cur,PROBLEMS.length-1))+' · '+me.done+'/'+PROBLEMS.length+'문제 완료 · 나라 '+me.unlocked.length+'/'+COUNTRIES.length;
+ if($('prog'))$('prog').textContent=phaseName(Math.min(me.cur,PROBLEMS.length-1))+' · '+me.done+'/'+PROBLEMS.length+'문제 완료 · 나라 '+Math.max(0,me.unlocked.length-(currentlyUnplacedCountry(me)&&me.unlocked.includes(currentlyUnplacedCountry(me))?1:0))+'/'+COUNTRIES.length;
  if($('triesInfo'))$('triesInfo').textContent=me.pending?'':'남은 기회 '+Math.max(0,MAX_TRIES-me.tries)+'회';
  if(geo){geo.setStyle(styleFor);rebuildLabels();}
 }
@@ -484,12 +484,17 @@ function loadProblemPhoto(p){
 }
 function clearMapMarks(){if(map&&pick){map.removeLayer(pick);pick=null;}if(map&&target){map.removeLayer(target);target=null;}}
 function showTarget(p){if(!map)return;if(target)map.removeLayer(target);target=L.circleMarker([p.lat,p.lng],{radius:10,color:'#30a17b',weight:3,fillColor:'#76e0c0',fillOpacity:1}).addTo(map).bindPopup('정답: '+p.caption);map.setView([p.lat,p.lng],Math.max(map.getZoom(),7));}
+function isPendingPieceReady(record=me){
+ if(!record?.pending)return true;
+ const p=questionAt(record.pending.idx,record);
+ return !p||pendingCountryPiecePlaced(p,record);
+}
 function updateCooldownUI(){
   clearInterval(countdownTimer);
   const tick=()=>{
     if(!me)return;const left=Math.max(0,Math.ceil(((me.coolUntil||0)-serverNow())/1000));
     const box=$('waitBox');if(box){box.style.display=left?'block':'none';box.textContent=left?`⏳ ${left}초 뒤에 다시 시도할 수 있어요`:'';}
-    if($('nextBtn'))$('nextBtn').disabled=left>0||firebaseState!=='online'||!serverVerified;
+    if($('nextBtn'))$('nextBtn').disabled=left>0||firebaseState!=='online'||!serverVerified||!isPendingPieceReady();
     if($('resultCountdown'))$('resultCountdown').textContent=(me.pending&&left>0)?left+'초 뒤 다음 문제로 넘어갈 수 있어요.':'';
     if(!left)clearInterval(countdownTimer);
   };
@@ -525,7 +530,7 @@ function renderProblem(){
   // Firebase transactions can emit intermediate snapshots (including no pending result).
   const visibleResult=$('resultDialog');
   if(visibleResult&&!visibleResult.hidden){
-    refreshPieces();updateClock();updateCooldownUI();return;
+    refreshPieces();updateClock();if(me.pending){const p=questionAt(me.pending.idx,me);if(p?.stage==='country')updatePieceUI(p);}updateCooldownUI();return;
   }
   clearInterval(countdownTimer);clearMapMarks();
   if(me.pending){renderPending();return;}
@@ -540,36 +545,132 @@ function renderProblem(){
 }
 
 
-/* Optional map-piece practice after a correct answer is revealed.
-   Visible highlighted map location teaches rather than penalizes unknown positions. */
+/* A country puzzle piece must be placed onto the highlighted country before advancing.
+   Correct identification earns points, but does not unlock the country's color.
+   Previous completed countries remain untouched (including older student records). */
+let resultTargetLayer=null,resultTargetGeometry=null,resultPieceSelected=false,resultPieceSaving=false;
+function pendingCountryPiecePlaced(p,record=me){
+ if(!p||p.stage!=='country')return true;
+ if(!record)return false;
+ if(record.pending&&questionAt(record.pending.idx,record)?.country===p.country){
+   return record.pending.piecePlaced===true;
+ }
+ return Array.isArray(record.unlocked)&&record.unlocked.includes(p.country);
+}
+function currentlyUnplacedCountry(record){
+ if(!record?.pending)return '';
+ const p=questionAt(record.pending.idx,record);
+ return p?.stage==='country'&&record.pending.piecePlaced!==true?p.country:'';
+}
+function pieceTargetStyle(placed){
+ return placed?
+  {color:'#fff',weight:2.5,fillColor:'#8571ed',fillOpacity:.96,dashArray:null}:
+  {color:'#d43d85',weight:3.8,fillColor:'#fff3c9',fillOpacity:.42,dashArray:'7 5'};
+}
+function resultPointInRing(ring,lng,lat){
+ let inside=false;
+ if(!Array.isArray(ring))return false;
+ for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+  const a=ring[i],b=ring[j];
+  if((a[1]>lat)!==(b[1]>lat) &&
+      lng<(b[0]-a[0])*(lat-a[1])/(b[1]-a[1])+a[0])inside=!inside;
+ }
+ return inside;
+}
+function resultHitTarget(geometry,lng,lat){
+ if(!geometry)return false;
+ const inPoly=poly=>Array.isArray(poly)&&poly.length>0&&resultPointInRing(poly[0],lng,lat)&&
+   !poly.slice(1).some(hole=>resultPointInRing(hole,lng,lat));
+ if(geometry.type==='Polygon')return inPoly(geometry.coordinates);
+ if(geometry.type==='MultiPolygon')return geometry.coordinates.some(inPoly);
+ return false;
+}
+function resultPieceStatus(message,cls=''){
+ const status=$('resultPieceStatus');if(status){status.textContent=message;status.className='muted '+cls;}
+}
+function updatePieceUI(p){
+ const area=$('resultPieceArea'),piece=$('resultDragPiece'),status=$('resultPieceStatus');
+ if(!area||area.hidden||!p||p.stage!=='country')return;
+ const placed=pendingCountryPiecePlaced(p),saving=resultPieceSaving;
+ if(piece){piece.disabled=placed||saving;piece.classList.toggle('placed',placed);piece.classList.toggle('selected',resultPieceSelected&&!placed);}
+ if($('resultSnapPiece'))$('resultSnapPiece').disabled=placed||saving;
+ if($('resultReward'))$('resultReward').textContent=placed?
+  '이 나라의 지도 조각을 붙이고 저장했어요!':
+  '아직 조각을 붙이지 않았어요. 표시된 나라에 조각을 놓으면 지도에 색이 채워져요.';
+ if(status){
+  if(placed)resultPieceStatus('완료! '+p.answer+' 조각이 지도에 들어갔고 기록에 저장됐어요. 이제 다음 문제로 갈 수 있어요.','ok');
+  else if(saving)resultPieceStatus('지도 조각을 서버에 저장하는 중이에요...');
+ }
+ if(resultTargetLayer?.setStyle)resultTargetLayer.setStyle(pieceTargetStyle(placed));
+ const mapEl=$('resultMap');
+ if(mapEl)mapEl.classList.toggle('resultMapPlaced',placed);
+ updateCooldownUI();
+}
+async function saveCountryPiece(p){
+ if(resultPieceSaving||!me?.pending||!playerRef||!serverVerified||firebaseState!=='online')return;
+ if(pendingCountryPiecePlaced(p)){updatePieceUI(p);return;}
+ if(questionAt(me.pending.idx,me)?.country!==p.country)return;
+ const idx=me.pending.idx;
+ resultPieceSaving=true;updatePieceUI(p);
+ try{
+  const tx=await playerRef.transaction(current=>{
+   if(!current?.pending||Number(current.pending.idx)!==Number(idx))return;
+   const x=norm(current,me.id);
+   const actual=questionAt(x.pending.idx,x);
+   if(!actual||actual.stage!=='country'||actual.country!==p.country)return;
+   if(x.pending.piecePlaced===true)return;
+   x.pending={...x.pending,piecePlaced:true};
+   if(!x.unlocked.includes(actual.country))x.unlocked.push(actual.country);
+   x.t=serverNow();
+   return x;
+  });
+  if(!tx.committed||!tx.snapshot.exists())throw Error('조각 저장이 완료되지 않았어요. 다시 시도해 주세요.');
+  me=norm(tx.snapshot.val(),me.id);
+  resultPieceSelected=false;
+  refreshPieces();
+  updatePieceUI(p);
+ }catch(e){resultPieceStatus('조각을 저장하지 못했어요. 다시 놓아 주세요. '+e.message,'ng');}
+ finally{resultPieceSaving=false;updatePieceUI(p);}
+}
 function setupPiecePlacement(p){
  const area=$('resultPieceArea'),mapEl=$('resultMap');
  if(!area||!mapEl)return;
- const show=p.stage==='country';
- area.hidden=!show;
+ area.hidden=p.stage!=='country';
  mapEl.ondragover=null;mapEl.ondrop=null;
- if(!show){area.innerHTML='';return;}
- area.innerHTML='<p class="muted"><strong>지도조각 맞추기 (선택)</strong> — 색칠된 위치에 나라 조각을 끌어다 놓아 보세요. 위치를 몰라도 괜찮아요!</p>'+
+ resultPieceSelected=false;resultPieceSaving=false;resultTargetLayer=null;resultTargetGeometry=null;
+ if(p.stage!=='country'){area.innerHTML='';return;}
+ const placed=pendingCountryPiecePlaced(p);
+ area.innerHTML='<p class="muted"><strong>지도 조각 붙이기</strong> · 먼저 테두리로 표시된 나라의 위치를 살펴보세요.</p>'+
  '<div class="resultPieceControls"><button id="resultDragPiece" class="resultDragPiece" draggable="true" type="button">🧩 '+esc(p.answer)+'</button>'+
- '<button id="resultSnapPiece" class="btn secondary" type="button">태블릿에서는 눌러서 붙이기</button></div>'+
- '<p id="resultPieceStatus" class="muted">끌어놓기 활동은 점수나 다음 문제 진행에 영향을 주지 않아요.</p>';
- const piece=$('resultDragPiece');
- let placed=false;
- const snap=()=>{
-  if(placed)return;placed=true;
-  piece.disabled=true;piece.classList.add('placed');
-  if($('resultSnapPiece'))$('resultSnapPiece').disabled=true;
-  if($('resultPieceStatus'))$('resultPieceStatus').textContent='잘했어요! '+p.answer+' 조각이 지도에서 색칠된 위치에 들어갔어요.';
-  mapEl.classList.add('resultMapPlaced');
+ '<button id="resultSnapPiece" class="btn secondary" type="button">태블릿: 조각 선택하기</button></div>'+
+ '<p id="resultPieceStatus" class="muted" aria-live="polite">'+(placed?'조각을 이미 붙였어요.':'PC: 조각을 표시된 나라 위에 끌어놓기 / 태블릿: 조각 선택 → 지도 속 표시된 나라 터치')+'</p>';
+ const choose=()=>{
+   if(pendingCountryPiecePlaced(p)||resultPieceSaving)return;
+   resultPieceSelected=true;updatePieceUI(p);
+   resultPieceStatus('조각을 선택했어요. 이제 지도에서 분홍색 테두리로 표시된 나라를 눌러 주세요.');
  };
- mapEl.classList.remove('resultMapPlaced');
- piece.ondragstart=e=>{
+ $('resultDragPiece').onclick=choose;
+ $('resultSnapPiece').onclick=choose;
+ $('resultDragPiece').ondragstart=e=>{
+   if(pendingCountryPiecePlaced(p)||resultPieceSaving){e.preventDefault();return;}
+   resultPieceSelected=true;
    if(e.dataTransfer){e.dataTransfer.setData('text/plain',p.uid||p.wiki);e.dataTransfer.effectAllowed='move';}
+   updatePieceUI(p);
  };
- mapEl.ondragover=e=>{e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='move';};
- mapEl.ondrop=e=>{e.preventDefault();snap();};
- piece.onclick=snap; // touch/mobile accessible
- $('resultSnapPiece').onclick=snap;
+ mapEl.ondragover=e=>{if(!pendingCountryPiecePlaced(p)){e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='move';}};
+ mapEl.ondrop=e=>{
+   e.preventDefault();
+   if(pendingCountryPiecePlaced(p)||resultPieceSaving||!resultMiniMap||!resultTargetLayer)return;
+   if(e.dataTransfer?.getData('text/plain')!==(p.uid||p.wiki))return;
+   let ll;
+   try{ll=resultMiniMap.mouseEventToLatLng(e);}catch(err){resultPieceStatus('드래그 위치를 확인할 수 없어요. 조각을 선택한 뒤 지도 속 나라를 눌러 주세요.','ng');return;}
+   const targetIsHit=resultTargetGeometry?
+     resultHitTarget(resultTargetGeometry,ll.lng,ll.lat):
+     !!(resultTargetLayer.getLatLng&&resultTargetLayer.getLatLng().distanceTo(ll)<50000);
+   if(targetIsHit)saveCountryPiece(p);
+   else resultPieceStatus('분홍색 테두리로 표시된 나라 안에 조각을 놓아 주세요.','ng');
+ };
+ updatePieceUI(p);
 }
 
 function openResultDialog(p,result){
@@ -583,7 +684,7 @@ function openResultDialog(p,result){
  $('resultExplanation').textContent=p.fact;
  $('resultCountry').textContent=(co?co.ko:'')+' · 지도에서 위치 확인';
  $('resultPoints').textContent=result.mode==='correct'?'+'+result.points+'점':'0점 · 3번의 도전 완료';
- $('resultReward').textContent=p.stage==='country'?'이 나라의 지도 조각이 채워졌어요':'랜드마크 / 자연환경 단계는 점수만 획득해요';
+ $('resultReward').textContent=p.stage==='country'?(pendingCountryPiecePlaced(p)?'이 나라의 지도 조각을 붙였어요':'정답을 확인했어요. 이제 지도에 조각을 붙여 주세요.'):'랜드마크 / 자연환경 단계는 점수만 획득해요';
  const next=$('nextBtn');
  next.textContent=me.cur>=PROBLEMS.length?'최종 결과 보기':'다음 문제';
  // Only a deliberate mouse click or touch on Next may move to the next question.
@@ -613,32 +714,54 @@ function openResultDialog(p,result){
 let resultMiniMap=null;
 function closeResultDialog(){
  if(resultMiniMap){resultMiniMap.remove();resultMiniMap=null;}
+ resultTargetLayer=null;resultTargetGeometry=null;resultPieceSelected=false;resultPieceSaving=false;
  const modal=$('resultDialog');if(modal){modal.hidden=true;delete modal.dataset.pendingToken;}
 }
 function drawResultMap(p){
  if(!$('resultMap')||!window.L||$('resultDialog').hidden)return;
  if(resultMiniMap){resultMiniMap.remove();resultMiniMap=null;}
+ resultTargetLayer=null;resultTargetGeometry=null;
  resultMiniMap=L.map('resultMap',{zoomControl:false,attributionControl:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,keyboard:false,dragging:false});
  const co=COUNTRIES.find(x=>x.en===p.country);
  const aliases={'The Bahamas':'Bahamas','United States':'United States of America','Dominican Rep.':'Dominican Republic'};
  let selected=null;
+ const attachTarget=layer=>{
+  if(p.stage!=='country')return;
+  layer.on('click',()=>{
+    if(pendingCountryPiecePlaced(p))return;
+    if(!resultPieceSelected){resultPieceStatus('먼저 아래 나라 조각을 선택한 뒤 표시된 나라를 눌러 주세요.');return;}
+    saveCountryPiece(p);
+  });
+ };
  if(geo){
-   const all=geo.toGeoJSON();
-   L.geoJSON(all,{style:f=>{
-      const name=aliases[f.properties?.name]||f.properties?.name;
-      return name===p.country?{color:'#ffffff',weight:2.2,fillColor:co?.color||'#fc709b',fillOpacity:1}:{color:'#c1cddd',weight:.65,fillColor:'#e1e9f2',fillOpacity:.95};
-   },onEachFeature:(f,layer)=>{const name=aliases[f.properties?.name]||f.properties?.name;if(name===p.country)selected=layer;}}).addTo(resultMiniMap);
+  const all=geo.toGeoJSON();
+  L.geoJSON(all,{style:f=>{
+    const name=aliases[f.properties?.name]||f.properties?.name;
+    if(name===p.country){
+      if(p.stage==='country')return pieceTargetStyle(pendingCountryPiecePlaced(p));
+      return {color:'#fff',weight:2.5,fillColor:co?.color||'#fc709b',fillOpacity:.96};
+    }
+    return {color:'#c1cddd',weight:.65,fillColor:'#e1e9f2',fillOpacity:.95};
+   },onEachFeature:(f,layer)=>{
+    const name=aliases[f.properties?.name]||f.properties?.name;
+    if(name===p.country){selected=layer;resultTargetGeometry=f.geometry;attachTarget(layer);}
+   }}).addTo(resultMiniMap);
  }
- if(selected&&selected.getBounds&&selected.getBounds().isValid()){
-   resultMiniMap.fitBounds(selected.getBounds().pad(0.75),{maxZoom:7,animate:false});
+ if(!selected||!selected.getBounds||!selected.getBounds().isValid()){
+  resultMiniMap.setView([co?.labelLat??p.lat,co?.labelLng??p.lng],5,{animate:false});
+  selected=L.circleMarker([co?.labelLat??p.lat,co?.labelLng??p.lng],
+   p.stage==='country'?{radius:17,...pieceTargetStyle(pendingCountryPiecePlaced(p))}:
+   {radius:14,color:'#fff',weight:3,fillColor:co?.color||'#fc709b',fillOpacity:1}).addTo(resultMiniMap);
+  attachTarget(selected);
  }else{
-   resultMiniMap.setView([co?.labelLat??p.lat,co?.labelLng??p.lng],4,{animate:false});
-   L.circleMarker([co?.labelLat??p.lat,co?.labelLng??p.lng],{radius:15,color:'#fff',weight:3,fillColor:co?.color||'#fc709b',fillOpacity:1}).addTo(resultMiniMap);
+  resultMiniMap.fitBounds(selected.getBounds().pad(0.65),{maxZoom:7,animate:false});
  }
+ resultTargetLayer=selected;
  if(p.stage!=='country'){
-   L.circleMarker([p.lat,p.lng],{radius:7,color:'#fff',weight:2,fillColor:'#eb4176',fillOpacity:1}).addTo(resultMiniMap);
+  L.circleMarker([p.lat,p.lng],{radius:7,color:'#fff',weight:2,fillColor:'#eb4176',fillOpacity:1}).addTo(resultMiniMap);
  }
  resultMiniMap.invalidateSize();
+ updatePieceUI(p);
 }
 function renderPending(){
  const r=me.pending,p=questionAt(r.idx);if(!p)return;
@@ -674,19 +797,17 @@ async function guessTyped(){
        const speed=Math.max(0,30-Math.floor(seconds/2));
        const points=(attempt===1?100:attempt===2?60:25)+speed;
        x.score+=points;x.done++;x.cur++;x.timeSpent+=seconds;
-       if(actual.stage==='country'&&!x.unlocked.includes(actual.country))x.unlocked.push(actual.country);
        x.log.push({id:questionUID,q:actual.answer,result:'correct',attempts:attempt,score:points,seconds,at:now});
-       x.pending={mode:'correct',idx,points,seconds};x.tries=0;x.coolUntil=0;
+       x.pending={mode:'correct',idx,points,seconds,...(actual.stage==='country'?{piecePlaced:false}:{})};x.tries=0;x.coolUntil=0;
      }else{
        x.tries++;x.coolUntil=now+COOLDOWN_MS;
        x.wrongAttempts=[...x.wrongAttempts,{id:questionUID,position:idx,given,at:now,attempt:x.tries}].slice(-40);
        if(x.tries>=MAX_TRIES){
          x.done++;x.cur++;
-         if(actual.stage==='country'&&!x.unlocked.includes(actual.country))x.unlocked.push(actual.country);
          const seconds=Math.max(0,Math.round((Number(x.pausedElapsed)||0)+(x.paused?0:(now-(x.startedAt||now))/1000)));
          x.timeSpent+=seconds;
          x.log.push({id:questionUID,q:actual.answer,result:'missed',attempts:3,score:0,seconds,at:now});
-         x.pending={mode:'giveup',idx,points:0,seconds};x.tries=0;
+         x.pending={mode:'giveup',idx,points:0,seconds,...(actual.stage==='country'?{piecePlaced:false}:{})};x.tries=0;
        }
      }
      x.t=now;return x;
@@ -709,13 +830,16 @@ async function guessTyped(){
 async function nextProblem(){
   if(!serverVerified||firebaseState!=='online'){showConn();return;}
   if(!playerRef||!me||!me.pending||me.paused||me.coolUntil>serverNow())return;
+  if(!isPendingPieceReady()){resultPieceStatus('지도 조각을 먼저 표시된 나라에 붙여 주세요.','ng');return;}
   if($('nextBtn'))$('nextBtn').disabled=true;
   try{
     const tx=await playerRef.transaction(current=>{
       if(!current||!current.pending||Number(current.coolUntil)>serverNow())return;
+      if(!isPendingPieceReady(norm(current,me.id)))return;
       current.pending=null;current.tries=0;current.coolUntil=0;current.pausedElapsed=0;current.paused=false;current.startedAt=serverNow();current.t=serverNow();return current;
     });
-    if(tx.snapshot.exists()){me=norm(tx.snapshot.val(),me.id);closeResultDialog();renderProblem();}
+    if(tx.committed&&tx.snapshot.exists()){me=norm(tx.snapshot.val(),me.id);closeResultDialog();renderProblem();}
+    else {updateCooldownUI();resultPieceStatus('다음 문제로 넘어가지 못했어요. 조각 저장을 확인해 주세요.','ng');}
   }catch(e){hintStatus('다음 문제 저장 실패: '+e.message,'ng');if($('nextBtn'))$('nextBtn').disabled=false;}
 }
 
@@ -1136,7 +1260,7 @@ function renderStudent(){
     <div class="result-top"><span class="result-kicker">결과 확인</span><span class="result-score" id="resultPoints"></span></div>
     <h2 id="resultTitle">정답!</h2><div class="result-answer" id="resultAnswer"></div>
     <p class="result-explanation" id="resultExplanation"></p>
-    <div class="result-map-caption" id="resultCountry">지도에서 위치 확인</div><div id="resultMap" aria-label="정답 국가가 색칠된 지도"></div><div id="resultPieceArea" class="resultPieceArea" hidden></div>
+    <div class="result-map-caption" id="resultCountry">지도에서 위치 확인</div><div id="resultMap" aria-label="붙일 나라의 윤곽이 표시된 지도"></div><div id="resultPieceArea" class="resultPieceArea" hidden></div>
     <p class="result-reward" id="resultReward"></p><p class="result-countdown" id="resultCountdown"></p>
     <button class="btn mint" id="nextBtn">다음 문제</button>
   </div>

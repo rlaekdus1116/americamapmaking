@@ -291,3 +291,20 @@ main{grid-template-columns:minmax(440px,550px) minmax(0,1fr);max-width:1480px}
 .teacherQuizMemberDetail h4{font-size:17px;margin:0 0 10px}
 .teacherQuizMemberDetail p{line-height:1.6;font-size:14px}
 @media(max-width:560px){.teacherPreviewImage{height:175px}.teacherPreviewMap{height:210px}}
+
+
+/* True country-piece placement: empty highlighted country until student actually places the piece. */
+.resultPieceArea{background:#fffdf8;border:2px dashed #e9c18f;padding:15px;border-radius:17px;margin:12px 0}
+.resultPieceArea .muted{font-size:14px;line-height:1.55}
+.resultPieceControls{gap:14px;margin:14px 0 10px}
+.resultDragPiece{background:#ffe2ef;border:2px solid #cb8ab3;box-shadow:0 4px 0 #d9a1c1;
+ cursor:grab;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.resultDragPiece:active{cursor:grabbing}
+.resultDragPiece.selected{background:#fff0b4;border-color:#e9b33b;box-shadow:0 0 0 4px #ffe5a9}
+.resultDragPiece.placed{background:#d7f6e8;border-color:#7cc9a6;box-shadow:none}
+#resultMap{touch-action:manipulation}
+#resultMap:not(.resultMapPlaced){outline:3px dashed #e5a5b8;outline-offset:-3px}
+#resultMap.resultMapPlaced{outline:4px solid #8bd7a9;outline-offset:-4px}
+#resultPieceStatus.ng{color:#b34767}
+#resultPieceStatus.ok{color:#237750;font-weight:800}
+#nextBtn:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.1)}
