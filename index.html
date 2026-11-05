@@ -161,8 +161,8 @@ function ensureQuestionOrder(p){if(!validQuestionOrder(p.questionOrder))p.questi
 function questionAt(n,record=me){return PROBLEMS[record&&validQuestionOrder(record.questionOrder)?record.questionOrder[n]:n];}
 
 function fresh(name){return {id:nameKey(name),name:normName(name),score:0,done:0,cur:0,tries:0,coolUntil:0,log:[],unlocked:[],pending:null,t:serverNow(),createdAt:serverNow(),startedAt:serverNow(),timeSpent:0,paused:false,pausedElapsed:0,schemaVersion:11,questionOrder:createQuestionOrder(nameKey(name))};}
-function norm(p,key){p=p||{};return {id:key||p.id||'',name:p.name||'',score:Number(p.score)||0,done:Number(p.done)||0,cur:Number(p.cur)||0,tries:Number(p.tries)||0,coolUntil:Number(p.coolUntil)||0,log:Array.isArray(p.log)?p.log:[],unlocked:Array.isArray(p.unlocked)?p.unlocked:[],pending:p.pending||null,t:Number(p.t)||0,createdAt:Number(p.createdAt)||0,startedAt:Number(p.startedAt)||0,timeSpent:Number(p.timeSpent)||0,paused:!!p.paused,pausedElapsed:Number(p.pausedElapsed)||0,schemaVersion:Number(p.schemaVersion)||8,teacherRevision:Number(p.teacherRevision)||0,teacherAdjustments:Array.isArray(p.teacherAdjustments)?p.teacherAdjustments:[],teacherSkipped:Array.isArray(p.teacherSkipped)?p.teacherSkipped:[],questionOrder:Array.isArray(p.questionOrder)?p.questionOrder:null};}
-function sig(p){return [p.cur,p.tries,p.coolUntil,p.done,p.score,p.pending?String(p.pending.idx)+p.pending.mode:'',p.paused?'pause':'play',p.teacherRevision||0].join('|');}
+function norm(p,key){p=p||{};return {id:key||p.id||'',name:p.name||'',score:Number(p.score)||0,done:Number(p.done)||0,cur:Number(p.cur)||0,tries:Number(p.tries)||0,coolUntil:Number(p.coolUntil)||0,log:Array.isArray(p.log)?p.log:[],unlocked:Array.isArray(p.unlocked)?p.unlocked:[],pending:p.pending||null,t:Number(p.t)||0,createdAt:Number(p.createdAt)||0,startedAt:Number(p.startedAt)||0,timeSpent:Number(p.timeSpent)||0,paused:!!p.paused,pausedElapsed:Number(p.pausedElapsed)||0,schemaVersion:Number(p.schemaVersion)||8,teacherRevision:Number(p.teacherRevision)||0,teacherAdjustments:Array.isArray(p.teacherAdjustments)?p.teacherAdjustments:[],teacherSkipped:Array.isArray(p.teacherSkipped)?p.teacherSkipped:[],wrongAttempts:Array.isArray(p.wrongAttempts)?p.wrongAttempts:[],lastSubmission:p.lastSubmission||null,questionOrder:Array.isArray(p.questionOrder)?p.questionOrder:null};}
+function sig(p){return [p.cur,p.tries,p.coolUntil,p.done,p.score,p.pending?String(p.pending.idx)+p.pending.mode:'',p.paused?'pause':'play',p.teacherRevision||0,p.lastSubmission?.at||0].join('|');}
 function ranked(all){return Object.keys(all||{}).map(k=>norm(migrateGameFormat(all[k]),k)).sort((a,b)=>(b.score-a.score)||(b.done-a.done)||(totalTime(a)-totalTime(b))||((a.t||0)-(b.t||0)));}
 function hintStatus(text,cls=''){const el=$('msg');if(el){el.textContent=text;el.className='msg '+cls;}}
 function showConn(){
@@ -539,6 +539,39 @@ function renderProblem(){
   refreshPieces();updateCooldownUI();
 }
 
+
+/* Optional map-piece practice after a correct answer is revealed.
+   Visible highlighted map location teaches rather than penalizes unknown positions. */
+function setupPiecePlacement(p){
+ const area=$('resultPieceArea'),mapEl=$('resultMap');
+ if(!area||!mapEl)return;
+ const show=p.stage==='country';
+ area.hidden=!show;
+ mapEl.ondragover=null;mapEl.ondrop=null;
+ if(!show){area.innerHTML='';return;}
+ area.innerHTML='<p class="muted"><strong>지도조각 맞추기 (선택)</strong> — 색칠된 위치에 나라 조각을 끌어다 놓아 보세요. 위치를 몰라도 괜찮아요!</p>'+
+ '<div class="resultPieceControls"><button id="resultDragPiece" class="resultDragPiece" draggable="true" type="button">🧩 '+esc(p.answer)+'</button>'+
+ '<button id="resultSnapPiece" class="btn secondary" type="button">태블릿에서는 눌러서 붙이기</button></div>'+
+ '<p id="resultPieceStatus" class="muted">끌어놓기 활동은 점수나 다음 문제 진행에 영향을 주지 않아요.</p>';
+ const piece=$('resultDragPiece');
+ let placed=false;
+ const snap=()=>{
+  if(placed)return;placed=true;
+  piece.disabled=true;piece.classList.add('placed');
+  if($('resultSnapPiece'))$('resultSnapPiece').disabled=true;
+  if($('resultPieceStatus'))$('resultPieceStatus').textContent='잘했어요! '+p.answer+' 조각이 지도에서 색칠된 위치에 들어갔어요.';
+  mapEl.classList.add('resultMapPlaced');
+ };
+ mapEl.classList.remove('resultMapPlaced');
+ piece.ondragstart=e=>{
+   if(e.dataTransfer){e.dataTransfer.setData('text/plain',p.uid||p.wiki);e.dataTransfer.effectAllowed='move';}
+ };
+ mapEl.ondragover=e=>{e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='move';};
+ mapEl.ondrop=e=>{e.preventDefault();snap();};
+ piece.onclick=snap; // touch/mobile accessible
+ $('resultSnapPiece').onclick=snap;
+}
+
 function openResultDialog(p,result){
  const modal=$('resultDialog');if(!modal)return;
  const token=String(result.idx)+'-'+result.mode;
@@ -572,6 +605,7 @@ function openResultDialog(p,result){
    nextProblem();
  };
  modal.hidden=false;
+ setupPiecePlacement(p);
  setTimeout(()=>drawResultMap(p),0);
  updateCooldownUI();
  // Do not focus the Next button: an Enter keyup can activate it immediately.
@@ -615,46 +649,62 @@ function renderPending(){
 }
 function cleanAnswer(s){return String(s||'').toLowerCase().normalize('NFKC').replace(/[\s\-_.·()]/g,'');}
 async function guessTyped(){
-  if(!serverVerified||firebaseState!=='online'){showConn();hintStatus('서버 연결이 없어 제출할 수 없어요.','ng');return;}
-  if(!playerRef||!me||submitting||me.pending||me.paused||me.cur>=PROBLEMS.length)return;
-  if(me.coolUntil>serverNow()){updateCooldownUI();return;}
-  const idx=me.cur,p=questionAt(idx),given=$('answerInput').value.trim();
-  if(!given){hintStatus('답을 입력해 주세요.','ng');return;}
-  const correct=[p.answer,...(p.aliases||[])].some(s=>cleanAnswer(given)===cleanAnswer(s));
-  submitting=true;hintStatus('답을 확인하고 있어요...');
-  try{
-    const tx=await playerRef.transaction(current=>{
-      if(!current)return;
-      const x=norm(current,me.id),now=serverNow();
-      if(x.pending||x.cur!==idx||x.tries>=MAX_TRIES||x.coolUntil>now)return;
-      if(correct){
-        const attempt=x.tries+1;
-        const seconds=Math.max(0,Math.round((Number(x.pausedElapsed)||0)+(x.paused?0:(now-(x.startedAt||now))/1000)));
-        const speed=Math.max(0,30-Math.floor(seconds/2));
-        const points=(attempt===1?100:attempt===2?60:25)+speed;
-        x.score+=points;x.done++;x.cur++;x.timeSpent+=seconds;
-        if(p.stage==='country'&&!x.unlocked.includes(p.country))x.unlocked.push(p.country);
-        x.log.push({id:p.uid||p.wiki,q:p.answer,result:'correct',attempts:attempt,score:points,seconds,at:now});
-        x.pending={mode:'correct',idx,points,seconds};x.tries=0;x.coolUntil=0;
-      }else{
-        x.tries++;x.coolUntil=now+COOLDOWN_MS;
-        if(x.tries>=MAX_TRIES){
-          x.done++;x.cur++;
-          if(p.stage==='country'&&!x.unlocked.includes(p.country))x.unlocked.push(p.country);
-          const seconds=Math.max(0,Math.round((Number(x.pausedElapsed)||0)+(x.paused?0:(now-(x.startedAt||now))/1000)));x.timeSpent+=seconds;
-          x.log.push({id:p.uid||p.wiki,q:p.answer,result:'missed',attempts:3,score:0,seconds,at:now});
-          x.pending={mode:'giveup',idx,points:0,seconds};x.tries=0;
-        }
-      }
-      x.t=now;return x;
-    });
-    if(tx.snapshot.exists()){
-      me=norm(tx.snapshot.val(),me.id);
-      renderProblem();
-      if(tx.committed&&!me.pending){hintStatus('아쉬워요! 남은 기회 '+(MAX_TRIES-me.tries)+'번. 10초 뒤 다시 입력하세요.','ng');updateCooldownUI();}
-    }else hintStatus('저장에 실패했어요. Firebase 연결을 확인해 주세요.','ng');
-  }catch(e){hintStatus('Firebase 저장 오류: '+e.message,'ng');}
-  finally{submitting=false;}
+ if(!serverVerified||firebaseState!=='online'){showConn();hintStatus('서버 연결이 없어 제출할 수 없어요.','ng');return;}
+ if(!playerRef||!me||submitting||me.pending||me.paused||me.cur>=PROBLEMS.length)return;
+ if(me.coolUntil>serverNow()){updateCooldownUI();return;}
+ const idx=me.cur,p=questionAt(idx,me),given=$('answerInput')?.value.trim()||'';
+ if(!p||!given){hintStatus('답을 입력해 주세요.','ng');return;}
+ const questionUID=p.uid||p.wiki;
+ submitting=true;hintStatus('답을 서버에서 확인하고 있어요...');
+ try{
+   const tx=await playerRef.transaction(current=>{
+     if(!current)return;
+     const x=norm(current,me.id),now=serverNow();
+     if(x.pending||x.paused||x.cur!==idx||x.tries>=MAX_TRIES||x.coolUntil>now)return;
+     // Verify that the exact question shown on the student's screen is still current in Firebase.
+     const actual=questionAt(x.cur,x);
+     if(!actual||(actual.uid||actual.wiki)!==questionUID)return;
+     const variants=[actual.answer,...(actual.aliases||[])];
+     if(actual.stage==='country'&&actual.country)variants.push(actual.country);
+     const correct=variants.some(s=>cleanAnswer(given)===cleanAnswer(s));
+     x.lastSubmission={id:questionUID,position:idx,given,correct,at:now};
+     if(correct){
+       const attempt=x.tries+1;
+       const seconds=Math.max(0,Math.round((Number(x.pausedElapsed)||0)+(x.paused?0:(now-(x.startedAt||now))/1000)));
+       const speed=Math.max(0,30-Math.floor(seconds/2));
+       const points=(attempt===1?100:attempt===2?60:25)+speed;
+       x.score+=points;x.done++;x.cur++;x.timeSpent+=seconds;
+       if(actual.stage==='country'&&!x.unlocked.includes(actual.country))x.unlocked.push(actual.country);
+       x.log.push({id:questionUID,q:actual.answer,result:'correct',attempts:attempt,score:points,seconds,at:now});
+       x.pending={mode:'correct',idx,points,seconds};x.tries=0;x.coolUntil=0;
+     }else{
+       x.tries++;x.coolUntil=now+COOLDOWN_MS;
+       x.wrongAttempts=[...x.wrongAttempts,{id:questionUID,position:idx,given,at:now,attempt:x.tries}].slice(-40);
+       if(x.tries>=MAX_TRIES){
+         x.done++;x.cur++;
+         if(actual.stage==='country'&&!x.unlocked.includes(actual.country))x.unlocked.push(actual.country);
+         const seconds=Math.max(0,Math.round((Number(x.pausedElapsed)||0)+(x.paused?0:(now-(x.startedAt||now))/1000)));
+         x.timeSpent+=seconds;
+         x.log.push({id:questionUID,q:actual.answer,result:'missed',attempts:3,score:0,seconds,at:now});
+         x.pending={mode:'giveup',idx,points:0,seconds};x.tries=0;
+       }
+     }
+     x.t=now;return x;
+   });
+   if(!tx.snapshot.exists()){hintStatus('저장에 실패했어요. Firebase 연결을 확인해 주세요.','ng');return;}
+   me=norm(tx.snapshot.val(),me.id);
+   if(!tx.committed){
+      // No incorrect-answer penalty if another device/teacher changed the current problem.
+      hintStatus('현재 문제 정보가 바뀌었어요. 진도를 다시 확인한 뒤 답을 제출해 주세요.','ng');
+      renderProblem();return;
+   }
+   renderProblem();
+   if(!me.pending){
+     hintStatus('제출한 답: '+given+' · 오답 처리됐어요. 현재 설명과 사진을 다시 확인해 주세요. 남은 기회 '+(MAX_TRIES-me.tries)+'번.','ng');
+     updateCooldownUI();
+   }
+ }catch(e){hintStatus('Firebase 저장 오류: '+e.message,'ng');}
+ finally{submitting=false;}
 }
 async function nextProblem(){
   if(!serverVerified||firebaseState!=='online'){showConn();return;}
@@ -691,10 +741,11 @@ async function pauseStudy(){
 }
 
 /* Live 15-second 4-choice recall showdown. Classroom-specific, separate from map progress. */
-const LIVE_QUIZ_IDS=[0,1,2,5,10,11,13,20,22,24,25,28,29,30,31];
+const LIVE_QUIZ_IDS=[3,4,6,8,11,12,15,20,21,23,24,28,29,30,31]; // 15 distinct photo sources, no duplicates in a round
 const LIVE_QUIZ_DURATION=15000, LIVE_QUIZ_REVEAL=3200;
 let liveQuizRef=null,liveQuizListener=null,liveQuiz=null,liveQuizTimer=null;
 let liveQuizBusy=false,liveAnswerBusy=false,livePhotoVersion=0;
+let teacherSelectedQuizMember='';
 
 /* A QR link starts the live quiz without touching earlier map progress. */
 function mapReturnLink(){return './?room='+encodeURIComponent(ROOM);}
@@ -801,7 +852,7 @@ function liveRankingHtml(q,max=10){
  const data=liveScores(q).slice(0,max);
  if(!data.length)return '<p class="muted">참가한 학생이 없어요.</p>';
  return data.map((x,i)=>'<div class="liveRankingItem'+(me?.id===x.key?' liveRankingMe':'')+'"><span>'+(i<3?['🥇','🥈','🥉'][i]:(i+1)+'위')+
- '</span><strong>'+esc(x.name||'학생')+'</strong><span>'+Number(x.points||0)+'점</span><span>'+Number(x.correct||0)+'개 정답</span></div>').join('');
+ '</span>'+(TEACHER?'<button type="button" class="nameBtn" data-live-member="'+esc(x.key)+'">'+esc(x.name||'학생')+'</button>':'<strong>'+esc(x.name||'학생')+'</strong>')+'<span>'+Number(x.points||0)+'점</span><span>'+Number(x.correct||0)+'개 정답</span></div>').join('');
 }
 function liveQuizOnline(){return !!(liveQuizRef&&db&&serverVerified&&firebaseState==='online');}
 function liveSubscribe(){
@@ -951,7 +1002,7 @@ function liveRenderAll(){
  let signature='none';
  if(q){
   signature=TEACHER
-   ?[q.id,q.status,q.round,q.status==='lobby'?Object.keys(q.members||{}).length:0].join('/')
+   ?[q.id,q.status,q.round,Object.keys(q.members||{}).length,Object.keys(q.answers||{}).length].join('/')
    :[me?.id||'',q.id,q.status,q.round,!!q.members?.[me?.id],!!q.answers?.[me?.id]].join('/');
  }
  const panel=$(TEACHER?'liveTeacherPanel':'liveStudentPanel');
@@ -1008,6 +1059,23 @@ function liveRenderStudent(){
  }
  liveLoadPhoto(p);
 }
+
+function teacherLiveMemberHtml(q){
+ if(!TEACHER||!teacherSelectedQuizMember||!q?.members?.[teacherSelectedQuizMember])return '';
+ const p=q.members[teacherSelectedQuizMember],answer=q.answers?.[teacherSelectedQuizMember];
+ const question=liveProblem(q);
+ const status=q.status==='lobby'?'게임 시작 대기':q.status==='finished'?'대결 완료':
+  answer?'현재 문제 선택 완료':'현재 문제 선택 대기';
+ const currentAnswer=answer?'<p>학생이 선택한 보기: <strong>'+esc(answer.choice)+'</strong> · '+
+   (answer.correct?'정답':'오답')+' · +'+Number(answer.points||0)+'점</p>':
+  '<p class="muted">현재 문제는 아직 선택하지 않았어요.</p>';
+ return '<div class="teacherQuizMemberDetail"><h4>'+esc(p.name)+' 학생의 퀴즈 화면 상태</h4>'+
+   '<p><strong>'+esc(status)+'</strong> · 누적 '+Number(p.points||0)+'점 · 정답 '+Number(p.correct||0)+'개</p>'+
+   (question&&['question','reveal'].includes(q.status)?'<p>학생이 보고 있는 문항: '+esc(liveClue(question))+'</p>':'')+
+   (q.status==='lobby'?'<p class="muted">학생 화면에는 시작 대기 안내가 표시됩니다.</p>':currentAnswer)+
+   '<p class="muted">학생이 서버에 보낸 답변 상태예요. 실제 기기 화면 공유는 아니에요.</p></div>';
+}
+
 function liveRenderTeacher(){
  const root=$('liveTeacherPanel');if(!root)return;
  const q=liveQuiz;
@@ -1016,7 +1084,7 @@ function liveRenderTeacher(){
   root.innerHTML=head+quizQRCode()+'<button type="button" class="btn mint" id="liveLobbyOpen">대기실 열기</button>';
  }else if(q.status==='lobby'){
   root.innerHTML=head+quizQRCode()+'<p class="liveReady">대기실 · '+liveMembers(q).length+'명 입장 완료</p>'+
-   '<div class="liveMembers">'+liveMembers(q).map(x=>'<span class="smallPill">'+esc(x.name)+'</span>').join('')+'</div>'+
+   '<div class="liveMembers">'+liveMembers(q).map(x=>'<button type="button" class="smallPill teacherMemberButton" data-live-member="'+esc(x.key)+'">'+esc(x.name)+'</button>').join('')+'</div>'+
    '<button type="button" class="btn mint" id="liveTeacherStart"'+(!liveMembers(q).length?' disabled':'')+'>전체 게임 시작</button>';
  }else if(q.status==='question'||q.status==='reveal'){
   const p=liveProblem(q),isReveal=q.status==='reveal';
@@ -1036,6 +1104,7 @@ function liveRenderTeacher(){
   root.innerHTML=head+quizQRCode()+'<h4>최종 순위</h4>'+liveRankingHtml(q,100)+
   '<button type="button" class="btn mint" id="liveLobbyOpen">다시 대결하기 · 새 대기실 열기</button>';
  }
+ root.insertAdjacentHTML('beforeend',teacherLiveMemberHtml(q));
  setupTeacherQuizQR();
  if($('liveLobbyOpen'))$('liveLobbyOpen').onclick=liveOpenLobby;
  if($('liveTeacherStart'))$('liveTeacherStart').onclick=liveStartRound;
@@ -1067,7 +1136,7 @@ function renderStudent(){
     <div class="result-top"><span class="result-kicker">결과 확인</span><span class="result-score" id="resultPoints"></span></div>
     <h2 id="resultTitle">정답!</h2><div class="result-answer" id="resultAnswer"></div>
     <p class="result-explanation" id="resultExplanation"></p>
-    <div class="result-map-caption" id="resultCountry">지도에서 위치 확인</div><div id="resultMap" aria-label="정답 국가가 색칠된 지도"></div>
+    <div class="result-map-caption" id="resultCountry">지도에서 위치 확인</div><div id="resultMap" aria-label="정답 국가가 색칠된 지도"></div><div id="resultPieceArea" class="resultPieceArea" hidden></div>
     <p class="result-reward" id="resultReward"></p><p class="result-countdown" id="resultCountdown"></p>
     <button class="btn mint" id="nextBtn">다음 문제</button>
   </div>
@@ -1332,6 +1401,10 @@ function renderTeacher(){
     </section><section class="card" id="detail"><h2>학생 상세</h2><p class="muted">학생을 선택해 주세요.</p></section>
   </main>`;
   $('csvBtn').onclick=exportCSV;
+  $('liveTeacherPanel').onclick=e=>{
+    const student=e.target.closest('[data-live-member]');
+    if(student){teacherSelectedQuizMember=student.dataset.liveMember;liveRenderTeacher();}
+  };
   $('teacherClassRoom').onchange=e=>changeClassRoom(e.target.value);
   $('customClassRoom').onclick=customClassRoom;
   const joinLink=classJoinLink();
@@ -1347,6 +1420,88 @@ function renderTeacher(){
   };
   watchPlayers(renderTeacherViews);liveSubscribe();
 }
+
+/* Read-only reconstruction of a student's saved page, not remote screen capture. */
+let teacherPreviewMap=null,teacherPreviewGeoPromise=null,teacherPreviewPhotoToken=0;
+function teacherCurrentQuestion(p){
+ if(!p)return null;
+ const idx=p.pending&&Number.isInteger(p.pending.idx)?p.pending.idx:p.cur;
+ return questionAt(idx,p)||null;
+}
+function teacherPreviewHtml(p){
+ const q=teacherCurrentQuestion(p),pending=!!p.pending;
+ const attempts=(p.wrongAttempts||[]).slice(-7).reverse();
+ const status=p.cur>=PROBLEMS.length&&!pending?'모든 문제 완료':pending?'정답 확인 화면':(p.paused?'일시 정지':(p.cur+1)+'번 문제를 풀고 있어요');
+ const time=p.lastSubmission?.at?new Date(p.lastSubmission.at).toLocaleTimeString('ko-KR'):'';
+ const recent=p.lastSubmission?'<div class="teacherPreviewLast">최근 제출 · '+esc(p.lastSubmission.given)+' · '+(p.lastSubmission.correct?'정답':'오답')+' · '+esc(time)+'</div>':'<p class="muted">아직 제출한 답안이 없어요.</p>';
+ const wrong=attempts.length?'<details class="teacherMistakeLog"><summary>오답 입력 기록 '+(p.wrongAttempts||[]).length+'건 확인</summary>'+
+ attempts.map(a=>{
+   const item=PROBLEMS.find(x=>(x.uid||x.wiki)===a.id);
+   return '<div class="teacherMistakeRow">'+new Date(a.at).toLocaleTimeString('ko-KR')+
+   ' · '+esc(item?.caption||'문제')+' · 입력 <strong>'+esc(a.given)+'</strong>'+
+   ' · 당시 정답 <strong>'+esc(item?.answer||'미확인')+'</strong> · '+Number(a.attempt||0)+'번째 시도</div>';
+ }).join('')+'</details>':'<p class="muted">이 기능을 반영한 뒤 오답 입력 기록이 저장되면 여기에 표시돼요. 과거의 입력 내용은 복원할 수 없어요.</p>';
+ const stage=q?(q.stage==='country'?'나라 맞히기':q.stage==='city'?'랜드마크 맞히기':'자연환경 맞히기'):'탐험 완료';
+ const preview=q?
+   '<div class="teacherPreviewScreen"><div class="teacherPreviewBadge">'+esc(stage)+' · '+esc(status)+'</div>'+
+   '<div class="teacherPreviewImage"><img id="teacherPreviewPhoto" alt="학생 현재 문항의 사진" style="display:none"><span id="teacherPreviewPhotoText">현재 문항 사진을 불러오는 중이에요</span></div>'+
+   '<div class="teacherPreviewQuestion">'+esc(q.q)+'</div>'+
+   '<p class="muted">'+(pending?'학생에게 정답 확인 화면이 표시돼요.':'남은 시도 횟수: '+Math.max(0,3-p.tries)+'회')+'</p>'+
+   '<div id="teacherPreviewMap" class="teacherPreviewMap" aria-label="학생이 완성한 나라 지도"></div>'+
+   '<p class="muted">색칠된 나라는 학생이 지금까지 얻은 퍼즐 조각이에요.</p></div>':
+   '<p class="teacherPreviewBadge">나라·랜드마크·자연환경 학습 완료</p>';
+ return '<section class="teacherCurrentPreview"><h3>학생이 보고 있는 학습 화면</h3>'+
+   '<p class="muted">서버에 저장된 현재 문항·사진·지도·제출 결과를 재현해요. 학생 기기 자체를 화면 공유하는 건 아니며, 제출 전 작성 중인 글자는 보이지 않아요.</p>'+
+   preview+recent+wrong+'</section>';
+}
+function teacherPreviewPhoto(p){
+ const q=teacherCurrentQuestion(p),img=$('teacherPreviewPhoto'),label=$('teacherPreviewPhotoText');
+ if(!q||!img)return;
+ const token=++teacherPreviewPhotoToken;img.removeAttribute('src');img.style.display='none';if(label)label.style.display='';
+ const draw=url=>{
+   if(token!==teacherPreviewPhotoToken||!$('teacherPreviewPhoto'))return;
+   if(!url){if($('teacherPreviewPhotoText'))$('teacherPreviewPhotoText').textContent='사진을 불러오지 못했어요. 문제 설명으로 확인할 수 있어요.';return;}
+   const node=$('teacherPreviewPhoto');
+   node.onerror=()=>{node.style.display='none';if($('teacherPreviewPhotoText'))$('teacherPreviewPhotoText').textContent='사진을 불러오지 못했어요.';};
+   node.src=url;node.style.display='block';if($('teacherPreviewPhotoText'))$('teacherPreviewPhotoText').style.display='none';
+ };
+ if(thumbnailCache[q.wiki]){draw(thumbnailCache[q.wiki]);return;}
+ fetch('https://en.wikipedia.org/w/api.php?action=query&redirects=1&prop=pageimages&format=json&pithumbsize=900&origin=*&titles='+encodeURIComponent(decodeURIComponent(q.wiki)))
+ .then(r=>r.ok?r.json():Promise.reject(Error('사진 읽기 실패')))
+ .then(data=>Object.values(data.query?.pages||{})[0]?.thumbnail?.source||'')
+ .then(url=>{if(url)thumbnailCache[q.wiki]=url;draw(url);}).catch(()=>draw(''));
+}
+function teacherPreviewMapDraw(p){
+ if(teacherPreviewMap){try{teacherPreviewMap.remove();}catch(e){}teacherPreviewMap=null;}
+ const el=$('teacherPreviewMap');if(!el||!window.L)return;
+ const locked=new Set(p.unlocked||[]);
+ teacherPreviewMap=L.map(el,{zoomControl:false,attributionControl:false,scrollWheelZoom:false,
+  doubleClickZoom:false,touchZoom:false,keyboard:false,dragging:false}).fitBounds([[-56,-168],[72,-34]]);
+ const instance=teacherPreviewMap;
+ if(!teacherPreviewGeoPromise)teacherPreviewGeoPromise=fetch(COUNTRY_GEO).then(r=>r.ok?r.json():Promise.reject(Error('지도 읽기 실패')));
+ teacherPreviewGeoPromise.then(data=>{
+  if(teacherPreviewMap!==instance||$('teacherPreviewMap')!==el)return;
+  const aliases={'United States':'United States of America','Dominican Rep.':'Dominican Republic'};
+  L.geoJSON(data,{style:f=>{
+    const n=aliases[f.properties?.name]||f.properties?.name;
+    const country=COUNTRIES.find(x=>x.en===n);
+    return country&&locked.has(country.en)?
+      {color:'#ffffff',weight:1.4,fillColor:country.color,fillOpacity:0.95}:
+      {color:'#aabbd1',weight:0.7,fillColor:'#e7ecf6',fillOpacity:0.95};
+  }}).addTo(instance);
+  for(const country of COUNTRIES.filter(x=>locked.has(x.en))){
+    L.marker([country.labelLat,country.labelLng],{interactive:false,icon:L.divIcon({
+      className:'teacherPreviewCountryLabel',html:'<span>'+esc(country.ko)+'</span>',iconSize:[90,22],iconAnchor:[45,11]
+    })}).addTo(instance);
+  }
+  instance.invalidateSize();
+ }).catch(()=>{if($('teacherPreviewMap')===el)el.textContent='지도 경계를 불러오지 못했어요.';});
+}
+function teacherPreviewInit(p){
+ teacherPreviewPhoto(p);
+ teacherPreviewMapDraw(p);
+}
+
 function renderTeacherViews(all){
   const list=ranked(all);$('studentTotal').textContent='참여 '+list.length+'명'+(firebaseState==='offline'?' · 이 브라우저 기록만':'');
   $('tbl').innerHTML=list.length?list.map((p,i)=>{
@@ -1360,8 +1515,9 @@ function renderTeacherViews(all){
   $('detail').innerHTML=`<h2>${esc(p.name)}</h2><div class="smallPill">${iconArt('star')} ${p.score}점</div><div class="smallPill">${iconArt('map')} ${p.done}/${PROBLEMS.length} 완료</div>
     <p><b>현재 상태</b> ${p.pending?'결과 확인 중':(cur?esc(cur.caption):'모두 완료')}</p>
     <p class="muted">마지막 활동: ${p.t?new Date(p.t).toLocaleString('ko-KR'):'없음'}</p>
-    <h3>📒 문제별 제출 기록</h3><div>${p.log.length?p.log.map((l,i)=>`<div class="rankItem">${i+1}. ${esc(l.q)} · ${l.result==='correct'?`✅ 정답 ${l.score}점`:'⭕ 3회 오답 0점'} · ${l.attempts}회 · ${new Date(l.at).toLocaleTimeString('ko-KR')}</div>`).join(''):'<p class="muted">아직 푼 문제가 없어요.</p>'}</div><section id="teacherControls" class="teacherControls"></section>`;
+    ${teacherPreviewHtml(p)}<h3>📒 문제별 제출 기록</h3><div>${p.log.length?p.log.map((l,i)=>`<div class="rankItem">${i+1}. ${esc(l.q)} · ${l.result==='correct'?`✅ 정답 ${l.score}점`:'⭕ 3회 오답 0점'} · ${l.attempts}회 · ${new Date(l.at).toLocaleTimeString('ko-KR')}</div>`).join(''):'<p class="muted">아직 푼 문제가 없어요.</p>'}</div><section id="teacherControls" class="teacherControls"></section>`;
   teacherRenderControls(p);
+  teacherPreviewInit(p);
 }
 async function start(){
   readClassLink();

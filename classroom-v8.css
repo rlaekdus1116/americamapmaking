@@ -260,3 +260,34 @@ main{grid-template-columns:minmax(440px,550px) minmax(0,1fr);max-width:1480px}
  .teacherProjector .liveChoiceGrid{gap:8px}
  .teacherProjector .liveChoice{min-height:77px}
 }
+
+
+/* Read-only student screen reconstruction in the teacher dashboard */
+.teacherCurrentPreview{border:1px solid #e2dced;background:#fcfbff;padding:14px;border-radius:18px;margin:16px 0}
+.teacherCurrentPreview>h3{font-size:17px;margin:0 0 7px}
+.teacherPreviewScreen{background:#fff;border:1px solid #e9e5f1;border-radius:17px;padding:12px;margin:12px 0}
+.teacherPreviewBadge{display:inline-block;background:#f1ebfb;color:#70558e;border-radius:999px;font-weight:800;font-size:12px;padding:8px 12px;margin-bottom:10px}
+.teacherPreviewImage{height:210px;display:flex;align-items:center;justify-content:center;background:#eff3f7;border-radius:15px;overflow:hidden;color:#728195;font-size:13px;padding:8px}
+.teacherPreviewImage img{width:100%;height:100%;object-fit:contain}
+.teacherPreviewQuestion{line-height:1.6;font-weight:800;font-size:16px;padding:12px 1px}
+.teacherPreviewMap{height:250px;border:1px solid #e0e6ef;border-radius:15px;background:#eaf1f8;overflow:hidden}
+.teacherPreviewCountryLabel{border:0;background:none}
+.teacherPreviewCountryLabel span{display:block;text-align:center;font-size:10px;line-height:20px;white-space:nowrap;
+ font-weight:750;text-shadow:1px 1px 2px #fff,-1px -1px 2px #fff,1px -1px 2px #fff,-1px 1px 2px #fff;color:#344457}
+.teacherPreviewLast{padding:11px 13px;border:1px solid #c9dfeb;border-radius:13px;background:#eefaff;margin:12px 0;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.teacherMistakeLog{border:1px solid #ede3eb;border-radius:13px;padding:10px 11px;margin:12px 0;background:#fff7fa}
+.teacherMistakeLog summary{cursor:pointer;font-weight:800;font-size:13px}
+.teacherMistakeRow{border-bottom:1px solid #f1e4ed;padding:10px 1px;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.teacherMistakeRow:last-child{border-bottom:none}
+/* Guided, optional drag/drop lesson after a correctly identified country's reveal */
+.resultPieceArea{background:#f8f9ff;border:1px dashed #cfdbea;border-radius:16px;padding:11px 13px;margin:14px 0}
+.resultPieceArea[hidden]{display:none!important}
+.resultPieceControls{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px;margin:8px 0}
+.resultDragPiece{background:#ffe6f2;color:#674b6b;font-weight:850;font-size:17px;border:2px solid #e0b3d3;border-radius:14px;padding:13px 19px;cursor:grab;touch-action:manipulation}
+.resultDragPiece.placed{background:#dbf4e6;border-color:#97d5b6;cursor:default}
+.resultMapPlaced{outline:4px solid #a8e3c4;outline-offset:-4px}
+.teacherMemberButton{border:1px solid #ddd3ee;border-radius:999px;cursor:pointer;color:#665d7a;font:inherit}
+.teacherQuizMemberDetail{background:#fff7df;border:1px solid #efe0b0;border-radius:18px;padding:15px 18px;margin:18px auto;max-width:800px}
+.teacherQuizMemberDetail h4{font-size:17px;margin:0 0 10px}
+.teacherQuizMemberDetail p{line-height:1.6;font-size:14px}
+@media(max-width:560px){.teacherPreviewImage{height:175px}.teacherPreviewMap{height:210px}}
