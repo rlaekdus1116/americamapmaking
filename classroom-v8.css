@@ -216,3 +216,47 @@ main{grid-template-columns:minmax(440px,550px) minmax(0,1fr);max-width:1480px}
 .liveFinishCard{background:#f7eafa;padding:24px;border-radius:19px;margin:18px 0}
 .liveFinishCard strong{font-size:clamp(26px,6vw,40px);color:#7855a2}
 @media(max-width:560px){.liveChoiceGrid{gap:8px}.liveChoice{min-height:74px;padding:11px 8px}.liveRankingItem{grid-template-columns:40px 1fr auto}.liveRankingItem span:last-child{display:none}}
+
+
+/* Teacher projector screen, QR entry and quiz-only back navigation */
+.teacherProjector{
+ max-width:1320px;width:calc(100% - 28px);margin:16px auto 20px;
+ padding:clamp(18px,3vw,32px);background:#fff;border:1px solid #e5def0;
+ border-radius:25px;box-shadow:0 10px 30px rgba(117,98,143,.08)
+}
+.teacherProjector .teacherProjectorHead h2{
+ font-size:clamp(24px,4.4vw,43px);font-weight:900;text-align:center;margin:0 0 20px
+}
+.teacherProjector .liveRoundHeader{font-size:clamp(15px,2.4vw,23px);padding:16px 24px}
+.teacherProjector .liveCountdown{font-size:clamp(40px,7vw,76px);line-height:1.1}
+.teacherProjector .liveQuestionBody{max-width:1040px;margin:auto}
+.teacherProjector .livePhotoFrame{height:clamp(240px,36vw,410px)}
+.teacherProjector .liveClue{font-size:clamp(20px,3.4vw,33px);text-align:center;line-height:1.5}
+.teacherProjector .liveChoiceGrid{max-width:1140px;margin:18px auto;gap:14px}
+.teacherProjector .liveChoice{font-size:clamp(18px,2.8vw,28px);min-height:94px;
+ display:flex;align-items:center;justify-content:center;cursor:default}
+.teacherProjector .liveCorrectChoice{border:4px solid #248b60;box-shadow:inset 0 0 0 2px #f0fff5}
+.teacherProjector .liveReveal{text-align:center;max-width:1040px;margin:20px auto}
+.teacherQrBlock{
+ display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap;
+ background:#f7f7ff;border:1px solid #e7e4f2;padding:22px;border-radius:20px;margin:16px auto 20px
+}
+.teacherQrBlock img{width:clamp(170px,30vw,268px);height:auto;aspect-ratio:1;object-fit:contain;
+ border:10px solid #fff;background:#fff;border-radius:14px;box-shadow:0 3px 15px #55527122}
+.teacherQrBlock>div{max-width:410px;text-align:left}
+.teacherQrBlock strong{display:block;font-size:clamp(23px,4vw,36px)}
+.teacherQrBlock p{font-size:16px}
+.teacherQrBlock .quizDirectLink{display:block;margin:10px 0 16px;font-weight:800;word-break:break-all}
+.quizBackLink{display:inline-block;text-decoration:none;box-shadow:none!important;margin:8px 6px 8px 0}
+#quizOnlyLoginPanel{max-width:580px;margin:28px auto}
+#quizOnlyLoginPanel .card{padding:clamp(20px,5vw,36px)}
+#quizOnlyLoginPanel h2{font-size:clamp(23px,5vw,34px);margin:18px 0}
+#quizOnlyLoginPanel label{display:block;margin:18px 0 10px}
+#quizOnlyLoginPanel .btn{margin-top:15px}
+#quizOnlyLoginPanel a{max-width:100%;white-space:normal}
+@media(max-width:680px){
+ .teacherQrBlock{text-align:center;gap:12px}
+ .teacherQrBlock>div{text-align:center}
+ .teacherProjector .liveChoiceGrid{gap:8px}
+ .teacherProjector .liveChoice{min-height:77px}
+}

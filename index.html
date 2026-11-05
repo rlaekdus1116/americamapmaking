@@ -87,6 +87,7 @@ const COUNTRY_GEO = 'https://raw.githubusercontent.com/johan/world.geo.json/mast
 const params = new URLSearchParams(location.search);
 const ROOM = params.get('room') || 'demo';
 const TEACHER = params.get('mode') === 'teacher' || params.get('t') === '1';
+const QUIZ_ONLY = params.get('mode') === 'quiz';
 const roomKey = encodeURIComponent(ROOM).replace(/\./g,'%2E');
 const PLAYERS_PATH = 'rooms/' + roomKey + '/v8/players';
 const $ = id => document.getElementById(id);
@@ -383,8 +384,19 @@ function watchMe(){
   playerRef.on('value',playerListener,err=>{hintStatus('Firebase에서 진도를 읽지 못했어요: '+err.message,'ng');});
 }
 function renderHdr(){
+ if(QUIZ_ONLY){
+  $('hdr').innerHTML='<span class="chip">'+esc(roomTitle(ROOM))+' · 실시간 퀴즈</span>'+
+    (me?'<span class="chip">'+esc(me.name)+'</span>':'')+
+    '<span class="chip" id="conn"></span>'+quizBackButton()+
+    (me?'<button type="button" class="btn secondary" id="quizChangeName">퀴즈 이름 바꾸기</button>':'');
+  if($('quizChangeName'))$('quizChangeName').onclick=()=>{liveLastRenderSig='';quizOnlyForm();};
+  showConn();
+  return;
+ }
+
   $('hdr').innerHTML=TEACHER?`<span class="chip">교사용</span><span class="chip">방 ${esc(ROOM)}</span><span class="chip" id="conn"></span>`:
     `<span class="chip">방 ${esc(ROOM)}</span>`+(me?`<span class="chip">${iconArt("pen")} ${esc(me.name)}</span><span class="chip">${iconArt("star")} ${me.score}점</span><span class="chip">${iconArt("puzzle")} ${me.unlocked.length}/${COUNTRIES.length}</span><button class="btn secondary" id="pauseStudy" style="padding:7px 12px;box-shadow:none;font-size:12px">오늘은 여기까지</button><button class="btn secondary" id="changeName" style="padding:7px 12px;box-shadow:none;font-size:12px">이름 바꾸기</button>`:'')+`<span class="chip" id="conn"></span>`;
+
   if($('pauseStudy'))$('pauseStudy').onclick=pauseStudy;
   if($('changeName'))$('changeName').onclick=()=>{store.del('amap-name-'+ROOM);if(playerRef && playerListener)playerRef.off('value',playerListener);playerRef=null;me=null;destroyMap();renderJoin();};
   showConn();
@@ -683,6 +695,84 @@ const LIVE_QUIZ_IDS=[0,1,2,5,10,11,13,20,22,24,25,28,29,30,31];
 const LIVE_QUIZ_DURATION=15000, LIVE_QUIZ_REVEAL=3200;
 let liveQuizRef=null,liveQuizListener=null,liveQuiz=null,liveQuizTimer=null;
 let liveQuizBusy=false,liveAnswerBusy=false,livePhotoVersion=0;
+
+/* A QR link starts the live quiz without touching earlier map progress. */
+function mapReturnLink(){return './?room='+encodeURIComponent(ROOM);}
+function quizEntryLink(){
+ const u=new URL(location.origin+location.pathname);
+ u.searchParams.set('room',ROOM);u.searchParams.set('mode','quiz');
+ return u.href;
+}
+function quizBackButton(){
+ return '<a class="btn secondary quizBackLink" href="'+esc(mapReturnLink())+'">← 지도 만들기로 돌아가기 (나라·랜드마크·자연)</a>';
+}
+let quizOnlyJoinPending=false;
+function quizOnlyForm(message=''){
+ me=null;
+ renderHdr();
+ app.innerHTML='<div class="joinWrap" id="quizOnlyLoginPanel"><section class="card">'+
+  '<span class="smallPill">우리 반 실시간 기억력 퀴즈</span><h2>검색 없이! 스피드 챌린지</h2>'+
+  '<p>이름을 입력하면 선생님이 여신 대기실에 바로 입장해요. 지도 문제를 아직 다 풀지 않아도 참여할 수 있어요.</p>'+
+  '<label for="quizDirectName"><strong>이름</strong></label><input id="quizDirectName" maxlength="18" autocomplete="name" placeholder="학생 이름">'+
+  '<p class="msg ng" id="quizDirectError">'+esc(message)+'</p>'+
+  '<button class="btn mint" id="quizDirectEnter" type="button">실시간 퀴즈 입장</button>'+
+  '<p class="muted">15문제 · 문제당 15초 · 4개 보기 중 하나 선택</p>'+
+  quizBackButton()+soloFallbackButton()+'</section></div>'+
+  '<section id="liveStudentPanel" class="card liveStudentPanel" style="display:none"></section>';
+ $('quizDirectEnter').onclick=quizOnlyEnter;
+ $('quizDirectName').onkeydown=e=>{if(e.key==='Enter')quizOnlyEnter();};
+ $('quizDirectName').value=store.get('amap-quiz-name-'+ROOM)||store.get('amap-name-'+ROOM)||'';
+}
+function quizOnlyEnter(){
+ const raw=$('quizDirectName')?.value||'';
+ const name=normName(raw);
+ if(!name||name.length>18)return quizOnlyForm('이름을 1~18자로 입력해 주세요.');
+ const key=nameKey(name);
+ // This is a temporary player identity for live quiz only: do not write players/<key>.
+ me={id:key,name,cur:PROBLEMS.length,done:0,pending:null,score:0,unlocked:[],teacherRevision:0};
+ liveLastRenderSig='';
+ store.set('amap-quiz-name-'+ROOM,name);
+ $('quizOnlyLoginPanel')?.remove();
+ renderHdr();
+ liveRenderStudent();
+ quizOnlyAutoJoin();
+}
+function quizOnlyStart(){
+ quizOnlyForm();
+ liveSubscribe();
+}
+function quizOnlyAutoJoin(){
+ if(!QUIZ_ONLY||!me||quizOnlyJoinPending||!liveQuizOnline()||
+    liveQuiz?.status!=='lobby'||liveQuiz?.members?.[me.id])return;
+ quizOnlyJoinPending=true;
+ liveJoinLobby().finally(()=>{quizOnlyJoinPending=false;});
+}
+function quizQRCode(){
+ const url=quizEntryLink();
+ const img='https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data='+encodeURIComponent(url);
+ return '<div class="teacherQrBlock"><img id="teacherQuizQR" src="'+esc(img)+'" alt="학생 실시간 퀴즈 입장 QR코드" loading="eager">'+
+ '<div><strong>학생 입장 QR</strong><p>지도 미완료 학생도 바로 참여 가능</p>'+
+ '<a class="quizDirectLink" href="'+esc(url)+'" target="_blank" rel="noopener">학생 입장 화면 열기</a>'+
+ '<button class="btn secondary" id="copyQuizEntrance" type="button">입장 링크 복사</button>'+
+ '<p class="muted" id="quizQRMsg">QR을 찍고 이름을 입력하면 대기실에 입장해요.</p></div></div>';
+}
+function setupTeacherQuizQR(){
+ const img=$('teacherQuizQR');
+ if(img){
+  img.onerror=()=>{
+   if(img.dataset.fallback)return;
+   img.dataset.fallback='yes';
+   img.src='https://quickchart.io/qr?size=320&text='+encodeURIComponent(quizEntryLink());
+  };
+ }
+ const btn=$('copyQuizEntrance');
+ if(btn)btn.onclick=async()=>{
+  const msg=$('quizQRMsg'),url=quizEntryLink();
+  try{await navigator.clipboard.writeText(url);if(msg)msg.textContent='입장 링크를 복사했어요.';}
+  catch(e){if(msg)msg.textContent='복사가 차단되면 아래 입장 화면 열기를 길게 눌러 링크를 복사해 주세요.';}
+ };
+}
+
 function liveQuizPath(){return 'rooms/'+roomKey+'/v8/liveQuiz';}
 function liveNow(){return serverNow();}
 function liveMembers(q){return Object.entries(q?.members||{}).map(([key,v])=>({key,...v}));}
@@ -721,6 +811,7 @@ function liveSubscribe(){
  liveQuizListener=s=>{
    liveQuiz=s.val();
    liveRenderAll();
+   quizOnlyAutoJoin();
    liveTick();
  };
  liveQuizRef.on('value',liveQuizListener,e=>{
@@ -853,14 +944,28 @@ function liveLoadPhoto(p){
  .then(data=>Object.values(data.query?.pages||{})[0]?.thumbnail?.source||'')
  .then(url=>{if(url)thumbnailCache[p.wiki]=url;show(url);}).catch(()=>{});
 }
-function liveRenderAll(){if(TEACHER)liveRenderTeacher();else liveRenderStudent();}
+
+let liveLastRenderSig='';
+function liveRenderAll(){
+ const q=liveQuiz;
+ let signature='none';
+ if(q){
+  signature=TEACHER
+   ?[q.id,q.status,q.round,q.status==='lobby'?Object.keys(q.members||{}).length:0].join('/')
+   :[me?.id||'',q.id,q.status,q.round,!!q.members?.[me?.id],!!q.answers?.[me?.id]].join('/');
+ }
+ const panel=$(TEACHER?'liveTeacherPanel':'liveStudentPanel');
+ if(signature===liveLastRenderSig&&panel&&panel.childNodes.length)return;
+ liveLastRenderSig=signature;
+ if(TEACHER)liveRenderTeacher();else liveRenderStudent();
+}
 function liveRenderStudent(){
  const root=$('liveStudentPanel');if(!root||!me)return;
  const eligible=me.cur>=PROBLEMS.length&&!me.pending;
  root.style.display=eligible?'block':'none';
  if(!eligible)return;
  const q=liveQuiz,member=q?.members?.[me.id];
- const heading='<span class="smallPill">4단계 · 실시간 학급 대결</span><h2>검색 없이! 기억력 스피드 퀴즈</h2>';
+ const heading='<span class="smallPill">4단계 · 실시간 학급 대결</span><h2>검색 없이! 기억력 스피드 퀴즈</h2>'+quizBackButton();
  const backup='<div class="liveBackupNote"><p class="muted">실시간 진행에 문제가 있으면 혼자 풀 수 있는 예비 게임을 이용해요. 예비 점수는 별도 저장돼요.</p>'+soloFallbackButton()+'</div>';
  if(!q){root.innerHTML=heading+'<p>선생님이 대기실을 열면 친구들과 동시에 시작해요.</p>'+backup;return;}
  if(q.status==='lobby'){
@@ -908,24 +1013,30 @@ function liveRenderTeacher(){
  const q=liveQuiz;
  const head='<h3>4단계 · 실시간 기억력 대결</h3><p class="muted">카훗 방식: 선생님이 시작 · 15초 선택 · 모두 답하면 조기 마감 · 자동 다음 문제 · 속도 점수</p><p class="muted">문제가 발생하면 학생들은 아래 예비 게임으로 개별 참여할 수 있어요. 결과는 학생이 CSV로 제출하게 안내해 주세요.</p>'+soloFallbackButton();
  if(!q){
-  root.innerHTML=head+'<button type="button" class="btn mint" id="liveLobbyOpen">대기실 열기</button>';
+  root.innerHTML=head+quizQRCode()+'<button type="button" class="btn mint" id="liveLobbyOpen">대기실 열기</button>';
  }else if(q.status==='lobby'){
-  root.innerHTML=head+'<p class="liveReady">대기실 · '+liveMembers(q).length+'명 입장 완료</p>'+
+  root.innerHTML=head+quizQRCode()+'<p class="liveReady">대기실 · '+liveMembers(q).length+'명 입장 완료</p>'+
    '<div class="liveMembers">'+liveMembers(q).map(x=>'<span class="smallPill">'+esc(x.name)+'</span>').join('')+'</div>'+
    '<button type="button" class="btn mint" id="liveTeacherStart"'+(!liveMembers(q).length?' disabled':'')+'>전체 게임 시작</button>';
  }else if(q.status==='question'||q.status==='reveal'){
   const p=liveProblem(q),isReveal=q.status==='reveal';
-  root.innerHTML=head+'<div class="liveRoundHeader"><strong>'+(q.round+1)+' / '+q.order.length+'문제</strong>'+
+  const opts=liveOptions(p,q);
+  root.innerHTML='<div class="teacherProjectorHead"><h2>다 같이 풀어 봅시다! · 기억력 스피드 퀴즈</h2></div>'+
+  '<div class="liveRoundHeader"><strong>'+(q.round+1)+' / '+q.order.length+'문제</strong>'+
   '<span id="liveCountTeacher" class="liveCountdown">'+Math.ceil(Math.max(0,((isReveal?q.revealEndsAt:q.endsAt)||liveNow())-liveNow())/1000)+'초</span>'+
   '<span id="liveAnswerCounter">'+Object.keys(q.answers||{}).length+'/'+liveMembers(q).length+'명 답변</span></div>'+
-  '<p><strong>'+esc(liveClue(p))+'</strong></p>'+
-  (isReveal?'<p class="liveReady">정답: '+esc(p?.answer||'')+' · 곧 다음 문제</p>':
-   '<p class="muted">시간이 끝나거나 모두 답하면 정답 공개 후 다음 문제로 자동 이동해요.</p>')+
-  '<h4>현재 점수판</h4>'+liveRankingHtml(q);
+  '<div class="liveQuestionBody"><div class="livePhotoFrame"><img id="livePhoto" alt="문제 단서 사진"><span id="livePhotoPlaceholder">사진을 불러오는 중이에요. 설명을 읽고 선택해 보세요.</span></div>'+
+  '<p class="liveClue">'+esc(liveClue(p))+'</p></div>'+
+  '<div class="liveChoiceGrid">'+opts.map((v,i)=>'<div class="liveChoice liveChoice'+i+(isReveal&&v===p?.answer?' liveCorrectChoice':'')+'">'+['▲','◆','●','■'][i]+' '+esc(v)+'</div>').join('')+'</div>'+
+  (isReveal?'<div class="liveReveal"><h3>정답: '+esc(p?.answer||'')+'</h3><p>'+esc(p?.fact||'')+'</p><p>잠시 뒤 다음 문제로 자동 이동해요.</p></div>':
+   '<p class="muted">학생들은 자신의 기기에서 선택해요. 모두 답하거나 15초가 지나면 정답을 공개해요.</p>')+
+  '<details class="liveRankDetails"><summary>현재 학급 순위 보기</summary>'+liveRankingHtml(q)+'</details>';
+  liveLoadPhoto(p);
  }else{
-  root.innerHTML=head+'<h4>최종 순위</h4>'+liveRankingHtml(q,100)+
-  '<button type="button" class="btn mint" id="liveLobbyOpen">새 게임 대기실 열기</button>';
+  root.innerHTML=head+quizQRCode()+'<h4>최종 순위</h4>'+liveRankingHtml(q,100)+
+  '<button type="button" class="btn mint" id="liveLobbyOpen">다시 대결하기 · 새 대기실 열기</button>';
  }
+ setupTeacherQuizQR();
  if($('liveLobbyOpen'))$('liveLobbyOpen').onclick=liveOpenLobby;
  if($('liveTeacherStart'))$('liveTeacherStart').onclick=liveStartRound;
 }
@@ -1202,7 +1313,7 @@ async function teacherDeleteStudent(){
 
 function renderTeacher(){
   renderHdr();
-  app.innerHTML=`<main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
+  app.innerHTML=`<section id="liveTeacherPanel" class="liveTeacherPanel teacherProjector"></section><main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
     <section class="card"><div class="smallPill">${iconArt("book")} 교사용 관리</div><h2>${esc(roomTitle(ROOM))} 탐험 현황</h2>
       <p class="muted">학생 이름을 누르면 문제별 결과를 확인할 수 있어요.</p>
       <div class="teacherShare">
@@ -1216,7 +1327,6 @@ function renderTeacher(){
         <button class="btn mint" id="shareCopy" type="button">학생 연결 링크 복사</button>
         <p id="shareLinkMsg" class="muted" aria-live="polite"></p>
       </div>
-      <section id="liveTeacherPanel" class="liveTeacherPanel"></section>
       <div style="margin:14px 0"><button class="btn mint" id="csvBtn">CSV 내보내기</button><span class="smallPill" id="studentTotal">참여 0명</span></div>
       <div class="tableWrap"><table><thead><tr><th>순위</th><th>이름</th><th>점수</th><th>진도</th><th>현재 상태</th></tr></thead><tbody id="tbl"></tbody></table></div>
     </section><section class="card" id="detail"><h2>학생 상세</h2><p class="muted">학생을 선택해 주세요.</p></section>
@@ -1260,6 +1370,7 @@ async function start(){
   if(!connected){renderServerGate('Firebase 설정이 없거나 연결에 실패했어요.');return;}
   try{await verifyServerConnection();}catch(e){serverVerified=false;firebaseState='offline';renderServerGate(e.message);return;}
   if(TEACHER){renderTeacher();return;}
+  if(QUIZ_ONLY){quizOnlyStart();return;}
   const lastName=store.get('amap-name-'+ROOM);
   if(lastName){await loadStudent(lastName);}else renderJoin();
 }
