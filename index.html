@@ -549,11 +549,12 @@ function renderProblem(){
    Correct identification earns points, but does not unlock the country's color.
    Previous completed countries remain untouched (including older student records). */
 let resultTargetLayer=null,resultTargetGeometry=null,resultPieceSelected=false,resultPieceSaving=false;
+let resultPieceMistakes=0,resultGeoDataPromise=null,resultMiniMapToken=0;
 function pendingCountryPiecePlaced(p,record=me){
  if(!p||p.stage!=='country')return true;
  if(!record)return false;
  if(record.pending&&questionAt(record.pending.idx,record)?.country===p.country){
-   return record.pending.piecePlaced===true;
+  return record.pending.piecePlaced===true;
  }
  return Array.isArray(record.unlocked)&&record.unlocked.includes(p.country);
 }
@@ -564,8 +565,8 @@ function currentlyUnplacedCountry(record){
 }
 function pieceTargetStyle(placed){
  return placed?
-  {color:'#fff',weight:2.5,fillColor:'#8571ed',fillOpacity:.96,dashArray:null}:
-  {color:'#d43d85',weight:3.8,fillColor:'#fff3c9',fillOpacity:.42,dashArray:'7 5'};
+  {color:'#fff',weight:1.8,fillColor:'#8265dc',fillOpacity:.95}:
+  {color:'#a8b9cb',weight:.9,fillColor:'#e7ecf6',fillOpacity:.94};
 }
 function resultPointInRing(ring,lng,lat){
  let inside=false;
@@ -580,27 +581,78 @@ function resultPointInRing(ring,lng,lat){
 function resultHitTarget(geometry,lng,lat){
  if(!geometry)return false;
  const inPoly=poly=>Array.isArray(poly)&&poly.length>0&&resultPointInRing(poly[0],lng,lat)&&
-   !poly.slice(1).some(hole=>resultPointInRing(hole,lng,lat));
+  !poly.slice(1).some(hole=>resultPointInRing(hole,lng,lat));
  if(geometry.type==='Polygon')return inPoly(geometry.coordinates);
  if(geometry.type==='MultiPolygon')return geometry.coordinates.some(inPoly);
  return false;
 }
+function resultCanonicalCountry(name){
+ const aliases={'The Bahamas':'Bahamas','United States':'United States of America','Dominican Rep.':'Dominican Republic'};
+ return aliases[name]||name;
+}
+function resultGeoData(){
+ if(geo){try{return Promise.resolve(geo.toGeoJSON());}catch(e){}}
+ if(!resultGeoDataPromise)resultGeoDataPromise=fetch(COUNTRY_GEO).then(r=>{
+  if(!r.ok)throw Error('국가 경계 불러오기 실패');
+  return r.json();
+ }).catch(e=>{resultGeoDataPromise=null;throw e;});
+ return resultGeoDataPromise;
+}
+function countryPuzzleSilhouette(geometry){
+ const polys=geometry?.type==='Polygon'?[geometry.coordinates]:
+  geometry?.type==='MultiPolygon'?geometry.coordinates:[];
+ const outer=polys.map(x=>x&&x[0]).filter(r=>Array.isArray(r)&&r.length>2);
+ if(!outer.length)return '';
+ const coords=outer.flat().filter(p=>Number.isFinite(p[0])&&Number.isFinite(p[1]));
+ if(!coords.length)return '';
+ let xMin=Infinity,xMax=-Infinity,yMin=Infinity,yMax=-Infinity;
+ for(const pt of coords){xMin=Math.min(xMin,pt[0]);xMax=Math.max(xMax,pt[0]);yMin=Math.min(yMin,pt[1]);yMax=Math.max(yMax,pt[1]);}
+ const spanX=Math.max(.01,xMax-xMin),spanY=Math.max(.01,yMax-yMin);
+ const scale=Math.min(220/spanX,132/spanY);
+ const offsetX=120-(spanX*scale)/2,offsetY=75-(spanY*scale)/2;
+ const toPoint=pt=>[(offsetX+(pt[0]-xMin)*scale).toFixed(2),(offsetY+(yMax-pt[1])*scale).toFixed(2)].join(',');
+ const paths=outer.map(r=>'M'+r.map(toPoint).join('L')+'Z').join(' ');
+ return '<svg class="countryPieceSvg" viewBox="0 0 240 150" role="img" aria-label="나라 모양 지도 조각">'+
+   '<path d="'+paths+'" fill="#9edbf0" stroke="#42678d" stroke-width="2.4" stroke-linejoin="round" fill-rule="evenodd"/>'+
+   '</svg>';
+}
+function countryPieceRegion(country){
+ if(['Cuba','Jamaica','Haiti','Dominican Republic'].includes(country))
+  return {name:'카리브해 지역',bounds:[[10,-90],[28,-57]]};
+ if(['Guatemala','Costa Rica','Panama'].includes(country))
+  return {name:'중앙아메리카',bounds:[[4,-100],[24,-73]]};
+ if(['United States of America','Canada','Mexico'].includes(country))
+  return {name:'북아메리카',bounds:[[8,-168],[73,-51]]};
+ return {name:'남아메리카',bounds:[[-57,-85],[15,-32]]};
+}
 function resultPieceStatus(message,cls=''){
- const status=$('resultPieceStatus');if(status){status.textContent=message;status.className='muted '+cls;}
+ const status=$('resultPieceStatus');
+ if(!status)return;
+ status.textContent=message;
+ status.hidden=!message;
+ status.className='resultPieceFeedback '+cls;
+}
+function resultPieceMistake(p){
+ if(pendingCountryPiecePlaced(p))return;
+ resultPieceMistakes++;
+ resultPieceSelected=true;
+ const region=countryPieceRegion(p.country);
+ const detail=resultPieceMistakes>=2?' 힌트: '+region.name+'에서 찾아봐.':'';
+ resultPieceStatus('여기는 아니야. 다시 찾아봐!'+detail,'ng');
+ const help=$('pieceRegionHelp');
+ if(help)help.hidden=resultPieceMistakes<3;
 }
 function updatePieceUI(p){
- const area=$('resultPieceArea'),piece=$('resultDragPiece'),status=$('resultPieceStatus');
+ const area=$('resultPieceArea'),piece=$('resultDragPiece');
  if(!area||area.hidden||!p||p.stage!=='country')return;
  const placed=pendingCountryPiecePlaced(p),saving=resultPieceSaving;
  if(piece){piece.disabled=placed||saving;piece.classList.toggle('placed',placed);piece.classList.toggle('selected',resultPieceSelected&&!placed);}
- if($('resultSnapPiece'))$('resultSnapPiece').disabled=placed||saving;
- if($('resultReward'))$('resultReward').textContent=placed?
-  '이 나라의 지도 조각을 붙이고 저장했어요!':
-  '아직 조각을 붙이지 않았어요. 표시된 나라에 조각을 놓으면 지도에 색이 채워져요.';
- if(status){
-  if(placed)resultPieceStatus('완료! '+p.answer+' 조각이 지도에 들어갔고 기록에 저장됐어요. 이제 다음 문제로 갈 수 있어요.','ok');
-  else if(saving)resultPieceStatus('지도 조각을 서버에 저장하는 중이에요...');
- }
+ const choose=$('resultSnapPiece');
+ if(choose)choose.disabled=placed||saving;
+ const reward=$('resultReward');
+ if(reward){reward.hidden=true;reward.textContent='';}
+ if(saving)resultPieceStatus('조각 저장 중…');
+ else if(placed)resultPieceStatus('');
  if(resultTargetLayer?.setStyle)resultTargetLayer.setStyle(pieceTargetStyle(placed));
  const mapEl=$('resultMap');
  if(mapEl)mapEl.classList.toggle('resultMapPlaced',placed);
@@ -624,12 +676,12 @@ async function saveCountryPiece(p){
    x.t=serverNow();
    return x;
   });
-  if(!tx.committed||!tx.snapshot.exists())throw Error('조각 저장이 완료되지 않았어요. 다시 시도해 주세요.');
+  if(!tx.committed||!tx.snapshot.exists())throw Error('조각 저장에 실패했어요.');
   me=norm(tx.snapshot.val(),me.id);
   resultPieceSelected=false;
   refreshPieces();
   updatePieceUI(p);
- }catch(e){resultPieceStatus('조각을 저장하지 못했어요. 다시 놓아 주세요. '+e.message,'ng');}
+ }catch(e){resultPieceStatus('저장 오류. 조각을 다시 놓아 줘.','ng');}
  finally{resultPieceSaving=false;updatePieceUI(p);}
 }
 function setupPiecePlacement(p){
@@ -638,37 +690,43 @@ function setupPiecePlacement(p){
  area.hidden=p.stage!=='country';
  mapEl.ondragover=null;mapEl.ondrop=null;
  resultPieceSelected=false;resultPieceSaving=false;resultTargetLayer=null;resultTargetGeometry=null;
+ resultPieceMistakes=0;
  if(p.stage!=='country'){area.innerHTML='';return;}
  const placed=pendingCountryPiecePlaced(p);
- area.innerHTML='<p class="muted"><strong>지도 조각 붙이기</strong> · 먼저 테두리로 표시된 나라의 위치를 살펴보세요.</p>'+
- '<div class="resultPieceControls"><button id="resultDragPiece" class="resultDragPiece" draggable="true" type="button">🧩 '+esc(p.answer)+'</button>'+
- '<button id="resultSnapPiece" class="btn secondary" type="button">태블릿: 조각 선택하기</button></div>'+
- '<p id="resultPieceStatus" class="muted" aria-live="polite">'+(placed?'조각을 이미 붙였어요.':'PC: 조각을 표시된 나라 위에 끌어놓기 / 태블릿: 조각 선택 → 지도 속 표시된 나라 터치')+'</p>';
+ area.innerHTML='<h3 class="piecePrompt">이 나라 모양을 지도에서 찾아 놓아 봐!</h3>'+
+ '<div class="resultPieceControls">'+
+ '<button id="resultDragPiece" class="resultDragPiece" draggable="true" type="button" aria-label="'+esc(p.answer)+' 나라 모양 조각 선택">'+
+ '<span id="resultPieceShape" class="countryPieceShape" aria-hidden="true"></span><strong>'+esc(p.answer)+'</strong></button>'+
+ '<button id="resultSnapPiece" class="btn secondary" type="button">조각 선택</button></div>'+
+ '<button id="pieceRegionHelp" class="pieceRegionHelp" type="button" hidden>지역 확대</button>'+
+ '<p id="resultPieceStatus" class="resultPieceFeedback" aria-live="polite" hidden></p>';
  const choose=()=>{
-   if(pendingCountryPiecePlaced(p)||resultPieceSaving)return;
-   resultPieceSelected=true;updatePieceUI(p);
-   resultPieceStatus('조각을 선택했어요. 이제 지도에서 분홍색 테두리로 표시된 나라를 눌러 주세요.');
+  if(pendingCountryPiecePlaced(p)||resultPieceSaving)return;
+  resultPieceSelected=true;updatePieceUI(p);
+  resultPieceStatus('지도의 알맞은 나라를 눌러 봐!');
  };
  $('resultDragPiece').onclick=choose;
  $('resultSnapPiece').onclick=choose;
  $('resultDragPiece').ondragstart=e=>{
-   if(pendingCountryPiecePlaced(p)||resultPieceSaving){e.preventDefault();return;}
-   resultPieceSelected=true;
-   if(e.dataTransfer){e.dataTransfer.setData('text/plain',p.uid||p.wiki);e.dataTransfer.effectAllowed='move';}
-   updatePieceUI(p);
+  if(pendingCountryPiecePlaced(p)||resultPieceSaving){e.preventDefault();return;}
+  resultPieceSelected=true;
+  if(e.dataTransfer){e.dataTransfer.setData('text/plain',p.uid||p.wiki);e.dataTransfer.effectAllowed='move';}
+  updatePieceUI(p);
+ };
+ $('pieceRegionHelp').onclick=()=>{
+  if(!resultMiniMap)return;
+  resultMiniMap.fitBounds(countryPieceRegion(p.country).bounds,{animate:true,maxZoom:6});
  };
  mapEl.ondragover=e=>{if(!pendingCountryPiecePlaced(p)){e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='move';}};
  mapEl.ondrop=e=>{
-   e.preventDefault();
-   if(pendingCountryPiecePlaced(p)||resultPieceSaving||!resultMiniMap||!resultTargetLayer)return;
-   if(e.dataTransfer?.getData('text/plain')!==(p.uid||p.wiki))return;
-   let ll;
-   try{ll=resultMiniMap.mouseEventToLatLng(e);}catch(err){resultPieceStatus('드래그 위치를 확인할 수 없어요. 조각을 선택한 뒤 지도 속 나라를 눌러 주세요.','ng');return;}
-   const targetIsHit=resultTargetGeometry?
-     resultHitTarget(resultTargetGeometry,ll.lng,ll.lat):
-     !!(resultTargetLayer.getLatLng&&resultTargetLayer.getLatLng().distanceTo(ll)<50000);
-   if(targetIsHit)saveCountryPiece(p);
-   else resultPieceStatus('분홍색 테두리로 표시된 나라 안에 조각을 놓아 주세요.','ng');
+  e.preventDefault();
+  if(pendingCountryPiecePlaced(p)||resultPieceSaving||!resultMiniMap||!resultTargetGeometry)return;
+  if(e.dataTransfer?.getData('text/plain')!==(p.uid||p.wiki))return;
+  let ll;
+  try{ll=resultMiniMap.mouseEventToLatLng(e);}
+  catch(err){resultPieceStatus('조각을 선택한 뒤 지도에서 나라를 눌러 봐.','ng');return;}
+  if(resultHitTarget(resultTargetGeometry,ll.lng,ll.lat))saveCountryPiece(p);
+  else resultPieceMistake(p);
  };
  updatePieceUI(p);
 }
@@ -682,9 +740,9 @@ function openResultDialog(p,result){
  $('resultTitle').textContent=result.mode==='correct'?'정답을 맞혔어요!':'정답을 확인해 봐요';
  $('resultAnswer').textContent=p.answer;
  $('resultExplanation').textContent=p.fact;
- $('resultCountry').textContent=(co?co.ko:'')+' · 지도에서 위치 확인';
+ $('resultCountry').textContent=p.stage==='country'?'어느 위치에 들어갈까?':(co?co.ko:'')+' · 지도 확인';
  $('resultPoints').textContent=result.mode==='correct'?'+'+result.points+'점':'0점 · 3번의 도전 완료';
- $('resultReward').textContent=p.stage==='country'?(pendingCountryPiecePlaced(p)?'이 나라의 지도 조각을 붙였어요':'정답을 확인했어요. 이제 지도에 조각을 붙여 주세요.'):'랜드마크 / 자연환경 단계는 점수만 획득해요';
+ $('resultReward').textContent='';$('resultReward').hidden=true;$('resultReward').style.display='none';
  const next=$('nextBtn');
  next.textContent=me.cur>=PROBLEMS.length?'최종 결과 보기':'다음 문제';
  // Only a deliberate mouse click or touch on Next may move to the next question.
@@ -713,51 +771,73 @@ function openResultDialog(p,result){
 }
 let resultMiniMap=null;
 function closeResultDialog(){
+ resultMiniMapToken++;
  if(resultMiniMap){resultMiniMap.remove();resultMiniMap=null;}
  resultTargetLayer=null;resultTargetGeometry=null;resultPieceSelected=false;resultPieceSaving=false;
  const modal=$('resultDialog');if(modal){modal.hidden=true;delete modal.dataset.pendingToken;}
 }
-function drawResultMap(p){
- if(!$('resultMap')||!window.L||$('resultDialog').hidden)return;
+async function drawResultMap(p){
+ const el=$('resultMap');
+ if(!el||!window.L||$('resultDialog')?.hidden)return;
+ const token=++resultMiniMapToken;
+ let data;
+ try{data=await resultGeoData();}
+ catch(err){
+  if(token===resultMiniMapToken){
+   resultPieceStatus('지도를 불러오지 못했어. 다시 시도해 줘.','ng');
+   if($('pieceRegionHelp')){
+    const btn=$('pieceRegionHelp');btn.hidden=false;btn.textContent='지도 다시 불러오기';
+    btn.onclick=()=>drawResultMap(p);
+   }
+  }
+  return;
+ }
+ if(token!==resultMiniMapToken||!$('resultMap')||$('resultDialog')?.hidden)return;
  if(resultMiniMap){resultMiniMap.remove();resultMiniMap=null;}
  resultTargetLayer=null;resultTargetGeometry=null;
- resultMiniMap=L.map('resultMap',{zoomControl:false,attributionControl:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,keyboard:false,dragging:false});
+ resultMiniMap=L.map('resultMap',{
+  zoomControl:true,attributionControl:false,scrollWheelZoom:false,
+  doubleClickZoom:true,touchZoom:true,keyboard:false,dragging:true,boxZoom:false
+ });
  const co=COUNTRIES.find(x=>x.en===p.country);
- const aliases={'The Bahamas':'Bahamas','United States':'United States of America','Dominican Rep.':'Dominican Republic'};
- let selected=null;
- const attachTarget=layer=>{
-  if(p.stage!=='country')return;
-  layer.on('click',()=>{
-    if(pendingCountryPiecePlaced(p))return;
-    if(!resultPieceSelected){resultPieceStatus('먼저 아래 나라 조각을 선택한 뒤 표시된 나라를 눌러 주세요.');return;}
-    saveCountryPiece(p);
-  });
- };
- if(geo){
-  const all=geo.toGeoJSON();
-  L.geoJSON(all,{style:f=>{
-    const name=aliases[f.properties?.name]||f.properties?.name;
-    if(name===p.country){
-      if(p.stage==='country')return pieceTargetStyle(pendingCountryPiecePlaced(p));
-      return {color:'#fff',weight:2.5,fillColor:co?.color||'#fc709b',fillOpacity:.96};
-    }
-    return {color:'#c1cddd',weight:.65,fillColor:'#e1e9f2',fillOpacity:.95};
-   },onEachFeature:(f,layer)=>{
-    const name=aliases[f.properties?.name]||f.properties?.name;
-    if(name===p.country){selected=layer;resultTargetGeometry=f.geometry;attachTarget(layer);}
-   }}).addTo(resultMiniMap);
- }
- if(!selected||!selected.getBounds||!selected.getBounds().isValid()){
-  resultMiniMap.setView([co?.labelLat??p.lat,co?.labelLng??p.lng],5,{animate:false});
-  selected=L.circleMarker([co?.labelLat??p.lat,co?.labelLng??p.lng],
-   p.stage==='country'?{radius:17,...pieceTargetStyle(pendingCountryPiecePlaced(p))}:
-   {radius:14,color:'#fff',weight:3,fillColor:co?.color||'#fc709b',fillOpacity:1}).addTo(resultMiniMap);
-  attachTarget(selected);
+ let selected=null,correctFeature=null;
+ const placed=pendingCountryPiecePlaced(p);
+ const group=L.geoJSON(data,{
+  style:f=>{
+   const name=resultCanonicalCountry(f.properties?.name);
+   if(name===p.country&&p.stage!=='country')
+    return {color:'#fff',weight:2.2,fillColor:co?.color||'#8265dc',fillOpacity:.96};
+   return name===p.country&&placed?pieceTargetStyle(true):pieceTargetStyle(false);
+  },
+  onEachFeature:(f,layer)=>{
+   const name=resultCanonicalCountry(f.properties?.name);
+   if(name===p.country){selected=layer;correctFeature=f;resultTargetGeometry=f.geometry;resultTargetLayer=layer;}
+   if(p.stage==='country'){
+    layer.on('click',()=>{
+     if(pendingCountryPiecePlaced(p))return;
+     if(!resultPieceSelected){
+      resultPieceStatus('나라 모양 조각을 먼저 선택해 줘.');
+      return;
+     }
+     if(name===p.country)saveCountryPiece(p);
+     else resultPieceMistake(p);
+    });
+   }
+  }
+ }).addTo(resultMiniMap);
+ if(p.stage==='country'){
+  // Do not center, highlight, label or outline the correct country until the child has placed it.
+  resultMiniMap.fitBounds([[-57,-168],[73,-32]],{animate:false});
+  const shape=$('resultPieceShape');
+  if(shape&&correctFeature)shape.innerHTML=countryPuzzleSilhouette(correctFeature.geometry);
+  if(!correctFeature){
+   resultPieceStatus('이 나라의 지도 모양을 찾지 못했어. 지도를 다시 불러와 줘.','ng');
+   const btn=$('pieceRegionHelp');if(btn){btn.hidden=false;btn.textContent='지도 다시 불러오기';btn.onclick=()=>drawResultMap(p);}
+  }
  }else{
-  resultMiniMap.fitBounds(selected.getBounds().pad(0.65),{maxZoom:7,animate:false});
- }
- resultTargetLayer=selected;
- if(p.stage!=='country'){
+  if(selected?.getBounds&&selected.getBounds().isValid())
+   resultMiniMap.fitBounds(selected.getBounds().pad(.65),{maxZoom:7,animate:false});
+  else resultMiniMap.setView([co?.labelLat??p.lat,co?.labelLng??p.lng],4,{animate:false});
   L.circleMarker([p.lat,p.lng],{radius:7,color:'#fff',weight:2,fillColor:'#eb4176',fillOpacity:1}).addTo(resultMiniMap);
  }
  resultMiniMap.invalidateSize();

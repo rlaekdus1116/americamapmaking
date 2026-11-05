@@ -308,3 +308,41 @@ main{grid-template-columns:minmax(440px,550px) minmax(0,1fr);max-width:1480px}
 #resultPieceStatus.ng{color:#b34767}
 #resultPieceStatus.ok{color:#237750;font-weight:800}
 #nextBtn:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.1)}
+
+
+/* Shape-accurate geographic puzzle: no default target highlight, no footnotes. */
+.resultPieceArea{
+ background:transparent!important;border:0!important;border-radius:0!important;
+ padding:10px 0 2px!important;margin:8px 0 0!important
+}
+.resultPieceArea[hidden],.resultPieceFeedback[hidden],.pieceRegionHelp[hidden]{display:none!important}
+.piecePrompt{font-size:17px;line-height:1.45;text-align:center;margin:0 0 10px!important;color:#31465f}
+.resultPieceControls{display:flex;align-items:center;justify-content:center;gap:14px;margin:8px 0!important}
+.resultDragPiece{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ width:min(240px,56%);min-width:155px;min-height:172px;padding:9px 12px 10px;
+ border:2px solid #bdd8e8!important;background:#f3faff!important;color:#314765!important;
+ border-radius:20px!important;box-shadow:0 7px 15px #516f8930!important;cursor:grab
+}
+.resultDragPiece strong{font-size:clamp(16px,3.2vw,21px);margin-top:-2px;line-height:1.3}
+.resultDragPiece.selected{border-color:#e5a654!important;background:#fff7de!important;box-shadow:0 0 0 4px #fff0c6!important}
+.resultDragPiece.placed{background:#e6faee!important;border-color:#82ca9e!important;cursor:default;box-shadow:none!important}
+.countryPieceShape{display:flex;width:100%;height:132px;align-items:center;justify-content:center}
+.countryPieceSvg{width:100%;height:100%;display:block;filter:drop-shadow(0 3px 2px #3c68802f);pointer-events:none}
+.resultPieceControls #resultSnapPiece{flex:0 0 auto;padding:13px 18px;box-shadow:none}
+.pieceRegionHelp{display:block;cursor:pointer;border:1px solid #c4d4e1;background:#eef4fc;color:#415c7d;
+ border-radius:12px;margin:7px auto 0;padding:9px 17px;font-size:14px;font-weight:800}
+.resultPieceFeedback{margin:8px 0 0;text-align:center;font-size:14px;font-weight:750;line-height:1.45}
+.resultPieceFeedback.ng{color:#aa4056}
+.resultPieceFeedback.ok{color:#287d59}
+#resultMap{height:clamp(340px,43vh,465px)!important;touch-action:none!important}
+#resultMap:not(.resultMapPlaced){outline:none!important}
+#resultMap.resultMapPlaced{outline:3px solid #83cd9e!important;outline-offset:-3px}
+#resultReward[hidden]{display:none!important}
+@media(max-width:600px){
+ #resultMap{height:clamp(305px,41vh,415px)!important}
+ .resultPieceControls{gap:8px}
+ .resultDragPiece{min-width:132px;min-height:144px;padding:6px}
+ .countryPieceShape{height:100px}
+ .resultPieceControls #resultSnapPiece{padding:11px 12px;font-size:13px}
+}
