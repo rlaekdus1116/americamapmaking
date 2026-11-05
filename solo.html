@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>검색 없이! 기억력 스피드 챌린지 · 개별 예비 게임</title><style>
+:root{color-scheme:light;--ink:#34425a;--sub:#657386;--bg:#f9f8ff;--panel:#fff;--border:#e4e4f0}
+*{box-sizing:border-box}
+html{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
+body{margin:0;background:var(--bg);color:var(--ink)}
+header{padding:16px 20px;background:white;border-bottom:1px solid var(--border)}
+.head{max-width:850px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap}
+h1{font-size:clamp(20px,5vw,29px);margin:0}h2{font-size:clamp(21px,5vw,28px)}h3{margin-top:0}
+a{color:#42679e} .wrap{max-width:850px;margin:22px auto 55px;padding:0 14px}
+.card{background:var(--panel);border-radius:22px;border:1px solid var(--border);padding:clamp(17px,4vw,34px);box-shadow:0 8px 28px #45455f0a}
+p{line-height:1.6}.muted{color:var(--sub);font-size:14px}
+.pill{display:inline-block;background:#e7f5ee;color:#216747;border-radius:20px;padding:7px 12px;font-size:13px;font-weight:800}
+input{font:inherit;font-size:17px;border:1px solid #bac9d9;border-radius:13px;padding:14px 15px;width:100%;max-width:400px}
+button{font:inherit;font-weight:800;cursor:pointer;border:0;border-radius:13px;padding:14px 20px;background:#d8f2e7;color:#264c41}
+button:hover:not(:disabled){filter:brightness(.97)}button:disabled{opacity:.6;cursor:not-allowed}
+button.secondary{background:#eeeafc;color:#55477b}button.ghost{background:#f1f3f8;color:#4f5970}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.status{padding:13px;border-radius:14px;background:#f0f4fb;margin:12px 0}
+.timer{font-size:clamp(29px,6vw,44px);font-variant-numeric:tabular-nums;font-weight:900;color:#ab3a64}
+.questionTitle{font-weight:800;font-size:clamp(18px,3.5vw,24px);line-height:1.6;margin:20px 0}
+.picture{position:relative;border-radius:18px;overflow:hidden;background:#eef2fa;min-height:220px;height:clamp(210px,39vw,320px);display:flex;align-items:center;justify-content:center}
+.picture img{width:100%;height:100%;object-fit:contain;display:none}
+.picture span{max-width:280px;text-align:center;color:#7c879c;padding:25px;line-height:1.6}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:15px 0 10px}
+.choices button{min-height:86px;padding:16px 12px;font-size:clamp(16px,3vw,20px);color:#2b3546;overflow-wrap:anywhere}
+.choices button:nth-child(1){background:#f9cbd5}.choices button:nth-child(2){background:#c9e7fc}
+.choices button:nth-child(3){background:#fbecb9}.choices button:nth-child(4){background:#caf0dd}
+.result{padding:22px;border-radius:17px;background:#e5f6ee;margin:18px 0;text-align:center}
+.result strong{font-size:clamp(21px,4.5vw,30px)}
+.bigScore{font-size:clamp(32px,7vw,50px);font-weight:900;color:#7752a2}
+table{border-collapse:collapse;width:100%;font-size:14px;margin-top:17px}
+th,td{text-align:left;border-bottom:1px solid #e9edf4;padding:10px 7px}
+th{background:#f6f5fc}
+.error{color:#bd3657;font-weight:700}
+@media(max-width:520px){.choices{gap:8px}.choices button{padding:10px 8px;min-height:73px}}
+</style></head><body><header><div class="head"><h1>아메리카 기억력 스피드 챌린지</h1><a href="./?room=demo" id="back">기존 지도 게임으로 돌아가기</a></div></header><main class="wrap"><section class="card"><div class="row"><span class="muted" id="room"></span><span class="pill">실시간 서버 없이 혼자 풀기</span></div><div id="area"></div><p id="saveStatus" class="error" aria-live="polite"></p></section></main><script>
+'use strict';
+const Q=[{"id":0,"wiki":"Statue_of_Liberty","clue":"프랑스가 미국의 독립을 기념해 선물한 거대한 횃불 든 동상이 항구에 서 있어요. 어느 나라일까요?","answer":"미국","kind":"country","fact":"자유의 여신상은 뉴욕 항구 리버티섬에 있어요."},{"id":1,"wiki":"Canadian_Rockies","clue":"로키산맥의 밴프 국립공원, 오대호 그리고 단풍잎 국기로 유명한 북쪽의 넓은 나라예요.","answer":"캐나다","kind":"country","fact":"밴프 국립공원은 북아메리카의 캐나다 로키산맥에 있어요."},{"id":2,"wiki":"Chichen_Itza","clue":"유카탄반도에 마야 문명의 계단식 피라미드가 남아 있고 수도가 높은 고원에 자리한 나라예요.","answer":"멕시코","kind":"country","fact":"치첸이트사는 유카탄반도에 있는 마야 유적이에요."},{"id":5,"wiki":"Panama_Canal","clue":"대서양과 태평양을 배가 오갈 수 있도록 갑문이 있는 거대한 운하를 건설한 나라예요.","answer":"파나마","kind":"country","fact":"운하는 중미의 지협을 가로질러 두 대양을 연결해요."},{"id":10,"wiki":"Christ_the_Redeemer_(statue)","clue":"남아메리카에서 가장 넓은 나라로, 대도시의 산 위에 두 팔을 벌린 거대한 예수상이 있어요.","answer":"브라질","kind":"country","fact":"구세주 그리스도상은 리우데자네이루에 있어요."},{"id":11,"wiki":"Perito_Moreno_Glacier","clue":"탱고의 발상지로 유명하고, 파타고니아의 거대한 페리토 모레노 빙하를 볼 수 있는 나라예요.","answer":"아르헨티나","kind":"country","fact":"페리토 모레노 빙하는 남쪽 파타고니아에 있어요."},{"id":13,"wiki":"Machu_Picchu","clue":"안데스산맥 높은 곳에 잉카 제국의 석조 산악 도시 마추픽추가 남아 있는 나라예요.","answer":"페루","kind":"country","fact":"마추픽추는 잉카 문명의 대표 유적이에요."},{"id":20,"wiki":"Statue_of_Liberty","clue":"미국 뉴욕 항구에 있는 거대한 동상으로, 머리에는 왕관을 쓰고 한 손에는 횃불을 들고 있어요. 프랑스가 미국에 선물한 이 상징물은?","answer":"자유의 여신상","kind":"city","fact":"자유의 여신상은 미국 뉴욕에 있어요. 프랑스가 미국 독립을 기념하며 선물한 세계적으로 유명한 상징물이에요."},{"id":22,"wiki":"Chichen_Itza","clue":"멕시코 유카탄반도에 있는 마야 문명 유적이에요. 엘 카스티요라고 불리는 계단식 피라미드가 유명한 이 유적은?","answer":"치첸이트사","kind":"city","fact":"치첸이트사는 멕시코 유카탄반도의 마야 문명 유적이에요. 계단식 피라미드가 대표적인 건축물이에요."},{"id":24,"wiki":"Machu_Picchu","clue":"페루 안데스산맥의 높은 산등성이에 자리한 잉카 문명의 유적 도시예요. 돌로 만든 건축물과 계단식 밭이 유명한 곳은?","answer":"마추픽추","kind":"city","fact":"마추픽추는 페루 안데스산맥에 있는 잉카 문명 유적이에요. 산악 지형을 이용해 도시를 만들었어요."},{"id":25,"wiki":"Christ_the_Redeemer_(statue)","clue":"브라질 리우데자네이루의 높은 산 위에서 두 팔을 넓게 벌리고 도시를 내려다보는 거대한 동상의 이름은?","answer":"구세주 그리스도상","kind":"city","fact":"구세주 그리스도상은 브라질 리우데자네이루 코르코바두산 위에 있어요. 브라질을 상징하는 대표적 랜드마크예요."},{"id":28,"wiki":"Iguazu_Falls","clue":"아르헨티나와 브라질 국경에서 수많은 물줄기가 웅장하게 떨어지는 폭포의 이름은?","answer":"이구아수 폭포","kind":"nature","fact":"이구아수 폭포는 아르헨티나와 브라질 국경에 있어요. 국경을 따라 여러 갈래의 거대한 물줄기가 떨어지는 폭포예요."},{"id":29,"wiki":"Rocky_Mountains","clue":"캐나다에서 미국 서부까지 남북으로 이어지는 북아메리카의 거대한 산맥은?","answer":"로키산맥","kind":"nature","fact":"로키산맥은 캐나다에서 미국 서부까지 남북으로 뻗어 있어요. 북아메리카 서쪽에 높고 험준한 산지가 많다는 특징을 보여 줘요."},{"id":30,"wiki":"Andes","clue":"남아메리카 서쪽 태평양 연안을 따라 길게 뻗은 산맥은?","answer":"안데스산맥","kind":"nature","fact":"안데스산맥은 남아메리카 서쪽에 길게 이어져 있어요. 적도 가까이에서도 해발 고도가 높으면 서늘한 고산 기후가 나타날 수 있어요."},{"id":31,"wiki":"Amazon_River","clue":"남아메리카 북부를 가로지르며 유량이 세계에서 가장 큰 강은?","answer":"아마존강","kind":"nature","fact":"아마존강은 남아메리카 북부의 아마존 분지를 흐르는 큰 강이에요. 주변에 넓은 열대림이 발달해 있어요."}];
+const ROOM=new URLSearchParams(location.search).get('room')||'demo';
+const $=id=>document.getElementById(id);
+const safe=s=>String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
+const storage={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},put:(k,v)=>{try{localStorage.setItem(k,v);return true}catch(e){return false}}};
+const ROUND_MS=15000,REVEAL_MS=2300;
+let state=null,storeKey='',timer=null,photoVersion=0;
+const seedRand=s=>{let h=s>>>0;return ()=>{h=(Math.imul(h,1664525)+1013904223)>>>0;return h/4294967296}};
+function shuffled(a,seed){let arr=a.slice(),rand=seedRand(seed);for(let i=arr.length-1;i>0;i--){let j=Math.floor(rand()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]}return arr}
+function hash(s){let h=2166136261;for(const ch of String(s))h=Math.imul(h^ch.charCodeAt(0),16777619)>>>0;return h}
+function currentQ(){return state?Q[state.order[state.index]]:null}
+function choices(p){const others=[...new Set(Q.filter(x=>x.kind===p.kind&&x.answer!==p.answer).map(x=>x.answer))];return shuffled([p.answer,...shuffled(others,hash(state.seed+'other'+p.id)).slice(0,3)],hash(state.seed+'opts'+p.id))}
+function clue(p){let str=p.clue;for(const name of [p.answer].filter(Boolean))str=str.split(name).join(p.kind==='country'?'이 나라':'이 장소');return str}
+function save(){if(!storage.put(storeKey,JSON.stringify(state)))$('saveStatus').textContent='이 브라우저에서 자동 저장이 막혀 있어요. 종료 전에 결과를 캡처해 주세요.'}
+function linkRoom(){const room=encodeURIComponent(ROOM);$('back').href='./?room='+room;$('room').textContent='방 '+ROOM}
+function startForm(){
+ $('area').innerHTML='<span class="pill">개별 예비 게임</span><h2>검색 없이! 기억력 스피드 챌린지</h2>'+
+ '<p>실시간 학급 대결이 연결되지 않을 때 혼자 풀 수 있는 게임이야. 사진과 설명을 보고 15초 안에 4개 보기 중 하나를 골라 봐.</p>'+
+ '<p><strong>15문제 · 한 번 선택 · 문제당 15초 · 정답일 때 빠를수록 고득점</strong></p>'+
+ '<label for="studentName"><strong>이름</strong></label><p><input type="text" maxlength="18" id="studentName" autocomplete="name" placeholder="학생 이름 입력"></p>'+
+ '<button id="begin" type="button">혼자 풀기 시작</button>'+
+ '<p class="muted">실시간 순위와는 별도야. 결과는 이 브라우저에 저장되므로 종료 후 선생님께 결과 화면이나 CSV를 제출해 줘.</p>';
+ const previous=storage.get('amap-name-'+ROOM)||storage.get('amap-solo-last-'+ROOM)||'';
+ $('studentName').value=previous;
+ $('begin').onclick=begin;
+ $('studentName').onkeydown=e=>{if(e.key==='Enter')begin()};
+}
+function begin(){
+ const name=$('studentName').value.trim();
+ if(!name){alert('이름을 입력해 주세요.');return}
+ if(!/^[\p{L}\p{N}\s._-]{1,18}$/u.test(name)){alert('이름은 한글·영문·숫자 등을 사용해 주세요.');return}
+ storeKey='amap-solo-v1-'+ROOM+'-'+encodeURIComponent(name.toLowerCase());
+ storage.put('amap-solo-last-'+ROOM,name);
+ try{
+  const old=JSON.parse(storage.get(storeKey)||'null');
+  if(old?.version===1&&old.room===ROOM&&old.name===name&&Array.isArray(old.order)&&old.order.length===Q.length){
+    state=old;render();return;
+  }
+ }catch(e){}
+ const now=Date.now(),seed=(now^(Math.floor(Math.random()*0xffffffff)))>>>0;
+ state={version:1,room:ROOM,name,seed,order:shuffled(Q.map((_,i)=>i),seed),index:0,
+  status:'question',startedAt:now,dueAt:now+ROUND_MS,revealUntil:0,
+  score:0,correct:0,totalMs:0,results:[],lastUpdated:now};
+ save();render();
+}
+function render(){
+ if(!state)return startForm();
+ if(state.status==='finished')return finishScreen();
+ const p=currentQ();if(!p){state.status='finished';save();return finishScreen()}
+ const ms=Math.max(0,(state.status==='reveal'?state.revealUntil:state.dueAt)-Date.now());
+ const answer=state.results[state.results.length-1];
+ let main='<div class="row"><span class="pill">문제 '+(state.index+1)+' / '+Q.length+'</span>'+
+ '<span class="timer" id="clock">'+Math.ceil(ms/1000)+'초</span><span><strong>'+state.score+'점</strong></span></div>'+
+ '<div class="picture"><img id="quizPhoto" alt="문제 단서 사진"><span id="photoFallback">사진을 불러오는 중이야. 설명만 보고 골라도 돼!</span></div>'+
+ '<p class="questionTitle">'+safe(clue(p))+'</p>';
+ if(state.status==='question'){
+  main+='<div class="choices">'+choices(p).map((opt,i)=>'<button type="button" data-choice="'+i+'">'+safe(['▲','◆','●','■'][i])+' '+safe(opt)+'</button>').join('')+'</div>'+
+  '<p class="muted">정답을 한 번만 선택할 수 있어. 15초가 지나면 자동으로 다음 문제로 넘어가.</p>';
+ }else{
+  main+='<div class="result"><strong>'+safe(answer?.correct?'정답! +'+answer.points+'점':answer?.selected?'아쉬워! 오답이야':'시간 초과!')+'</strong>'+
+  '<p>정답: <b>'+safe(p.answer)+'</b></p><p>'+safe(p.fact||'')+'</p></div>'+
+  '<p class="muted">잠시 뒤 자동으로 다음 문제로 이동해.</p>';
+ }
+ $('area').innerHTML=main;
+ if(state.status==='question'){
+  $('area').querySelectorAll('[data-choice]').forEach(btn=>btn.onclick=()=>selectAnswer(Number(btn.dataset.choice)));
+ }
+ loadPhoto(p);tick();
+}
+function loadPhoto(p){
+ const img=$('quizPhoto'),fallback=$('photoFallback');if(!img)return;
+ const id=++photoVersion;img.style.display='none';fallback.style.display='block';
+ const summary='https://en.wikipedia.org/api/rest_v1/page/summary/'+p.wiki;
+ const api='https://en.wikipedia.org/w/api.php?action=query&redirects=1&prop=pageimages&format=json&pithumbsize=900&origin=*&titles='+encodeURIComponent(decodeURIComponent(p.wiki));
+ const show=u=>{if(id!==photoVersion||!$('quizPhoto')||!u)return;const el=$('quizPhoto');el.onerror=()=>{el.style.display='none';if($('photoFallback'))$('photoFallback').textContent='사진을 불러올 수 없어. 설명으로 문제를 풀어 줘.'};el.src=u;el.style.display='block';if($('photoFallback'))$('photoFallback').style.display='none'};
+ fetch(api).then(r=>r.ok?r.json():Promise.reject()).then(d=>Object.values(d.query?.pages||{})[0]?.thumbnail?.source||'')
+ .then(u=>u||fetch(summary).then(r=>r.ok?r.json():Promise.reject()).then(d=>d.thumbnail?.source||''))
+ .then(show).catch(()=>{if(id===photoVersion&&$('photoFallback'))$('photoFallback').textContent='사진을 불러올 수 없어. 설명으로 문제를 풀어 줘.'});
+}
+function selectAnswer(i){
+ if(!state||state.status!=='question')return;
+ const now=Date.now(),p=currentQ();if(!p)return;
+ if(now>=state.dueAt){recordAnswer(null);return}
+ const options=choices(p);
+ if(!Number.isInteger(i)||i<0||i>=options.length)return;
+ recordAnswer(options[i]);
+}
+function recordAnswer(choice){
+ if(!state||state.status!=='question')return;
+ const p=currentQ(),now=Date.now();
+ const ms=Math.max(0,Math.min(ROUND_MS,now-state.startedAt));
+ const selected=now<=state.dueAt?choice:null;
+ const correct=selected===p.answer;
+ const points=correct?500+Math.round(500*(1-ms/ROUND_MS)):0;
+ state.results.push({id:p.id,kind:p.kind,answer:p.answer,selected:selected||'',correct,points,ms,at:now});
+ state.correct+=correct?1:0;state.score+=points;state.totalMs+=ms;
+ state.status='reveal';state.revealUntil=now+REVEAL_MS;state.lastUpdated=now;
+ save();render();
+}
+function advance(){
+ if(!state||state.status!=='reveal'||Date.now()<state.revealUntil)return;
+ state.index++;
+ if(state.index>=state.order.length){state.status='finished';state.finishedAt=Date.now()}
+ else{state.status='question';state.startedAt=Date.now();state.dueAt=state.startedAt+ROUND_MS}
+ state.lastUpdated=Date.now();save();render();
+}
+function tick(){
+ if(!state||state.status==='finished')return;
+ const now=Date.now(),end=state.status==='reveal'?state.revealUntil:state.dueAt;
+ const el=$('clock');if(el)el.textContent=Math.ceil(Math.max(0,end-now)/1000)+'초';
+ if(now>=end){if(state.status==='question')recordAnswer(null);else advance()}
+}
+function csvValue(v){let str=String(v??'');if(/^[=+\-@]/.test(str))str="'"+str;return '"'+str.replace(/"/g,'""')+'"'}
+function csvDownload(){
+ if(!state||state.status!=='finished')return;
+ const rows=[['방','학생','문항','유형','정답','선택','정답 여부','점수','소요 시간(ms)']];
+ state.results.forEach((x,i)=>rows.push([ROOM,state.name,i+1,x.kind,x.answer,x.selected,x.correct?'정답':'오답·시간초과',x.points,x.ms]));
+ rows.push([ROOM,state.name,'합계','','','',state.correct+'개 정답',state.score,state.totalMs]);
+ const csv='\uFEFF'+rows.map(a=>a.map(csvValue).join(',')).join('\r\n'),blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
+ a.download='기억력스피드_개별_'+ROOM+'_'+state.name.replace(/[^가-힣a-zA-Z0-9_-]/g,'_')+'.csv';
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);
+}
+function finishScreen(){
+ const result=state.correct+'/'+Q.length,seconds=(state.totalMs/1000).toFixed(1);
+ $('area').innerHTML='<span class="pill">개별 예비 게임 · 완료</span><h2>기억력 스피드 챌린지 완료!</h2>'+
+ '<div class="result"><h3>'+safe(state.name)+' 학생</h3><div class="bigScore">'+state.score+'점</div>'+
+ '<p><strong>'+result+'문제 정답</strong> · 총 응답 시간 '+seconds+'초</p></div>'+
+ '<p class="muted">이 점수는 학급 실시간 순위와 별도로 기록돼. 결과 화면을 캡처하거나 CSV 파일을 선생님께 제출해 줘.</p>'+
+ '<div class="actions"><button id="download">결과 CSV 저장</button><button id="repeat" class="secondary">처음부터 다시 풀기</button></div>'+
+ '<h3 style="margin-top:30px">문제별 결과</h3><div style="overflow:auto"><table><thead><tr><th>번호</th><th>정답</th><th>선택한 답</th><th>점수</th></tr></thead><tbody>'+
+ state.results.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+safe(x.answer)+'</td><td>'+safe(x.selected||'시간 초과')+'</td><td>'+x.points+'</td></tr>').join('')+
+ '</tbody></table></div>';
+ $('download').onclick=csvDownload;
+ $('repeat').onclick=()=>{
+   if(!confirm('기존 개별 게임 결과를 덮어쓰고 다시 시작할까요? 먼저 CSV를 저장해 주세요.'))return;
+   const name=state.name;state=null;storeKey='';
+   startForm();$('studentName').value=name;
+   begin();
+ };
+}
+function init(){
+ linkRoom();startForm();
+}
+init();timer=setInterval(tick,150);
+</script></body></html>

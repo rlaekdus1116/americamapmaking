@@ -332,6 +332,8 @@ async function verifyServerConnection(){
  if(firebaseState!=='online')throw Error('Firebase 실시간 연결이 끊겼어요.');
  serverVerified=true;showConn();
 }
+function soloLink(){return './solo.html?room='+encodeURIComponent(ROOM);}
+function soloFallbackButton(){return '<a class="btn mint" style="display:inline-block;text-decoration:none;margin-top:12px;box-shadow:none" href="'+soloLink()+'">개별 예비 게임 시작 · 15초 4지선다</a>';}
 function renderServerGate(reason){
  if(playerRef&&playerListener)playerRef.off('value',playerListener);
  playerRef=null;me=null;
@@ -340,7 +342,7 @@ function renderServerGate(reason){
  '<p><b>Firebase 서버 연결과 기록 읽기가 확인돼야 게임을 시작할 수 있어요.</b></p>'+
  '<p class="msg ng">'+esc(reason||'서버에 연결하지 못했어요.')+'</p>'+
  '<p class="muted">설정 키를 직접 입력할 필요는 없어요. 계속 실패하면 인터넷 연결이나 Firebase 데이터베이스 규칙을 확인해야 해요. 기존 기록은 지우지 않았어요.</p>'+
- '<button class="btn mint" id="tryServerAgain" type="button">서버 다시 연결</button></section></div>';
+ '<button class="btn mint" id="tryServerAgain" type="button">서버 다시 연결</button><p>실시간 연결이 안 될 때에도 아래 예비 게임은 별도로 사용할 수 있어요.</p>'+soloFallbackButton()+'</section></div>';
  $('tryServerAgain').onclick=()=>{firebaseState='connecting';start();};
 }
 function offlineDb(){
@@ -859,20 +861,21 @@ function liveRenderStudent(){
  if(!eligible)return;
  const q=liveQuiz,member=q?.members?.[me.id];
  const heading='<span class="smallPill">4단계 · 실시간 학급 대결</span><h2>검색 없이! 기억력 스피드 퀴즈</h2>';
- if(!q){root.innerHTML=heading+'<p>선생님이 대기실을 열면 친구들과 동시에 시작해요.</p>';return;}
+ const backup='<div class="liveBackupNote"><p class="muted">실시간 진행에 문제가 있으면 혼자 풀 수 있는 예비 게임을 이용해요. 예비 점수는 별도 저장돼요.</p>'+soloFallbackButton()+'</div>';
+ if(!q){root.innerHTML=heading+'<p>선생님이 대기실을 열면 친구들과 동시에 시작해요.</p>'+backup;return;}
  if(q.status==='lobby'){
   root.innerHTML=heading+'<p>대기 인원 '+liveMembers(q).length+'명</p>'+
   (member?'<p class="liveReady">입장 완료! 선생님이 시작하면 자동으로 문제가 나타나요.</p>':
    '<button class="btn mint" id="liveJoinButton">대기실 입장하기</button>')+
-  '<p class="muted">15문제, 각 15초. 정답을 빠르게 선택하면 더 높은 점수를 받아요.</p>';
+  '<p class="muted">15문제, 각 15초. 정답을 빠르게 선택하면 더 높은 점수를 받아요.</p>'+backup;
   if($('liveJoinButton'))$('liveJoinButton').onclick=liveJoinLobby;
   return;
  }
- if(!member){root.innerHTML=heading+'<p>이번 대결은 이미 시작했어요. 다음 대결을 기다려 주세요.</p>';return;}
+ if(!member){root.innerHTML=heading+'<p>이번 대결은 이미 시작했어요. 다음 대결을 기다려 주세요.</p>'+backup;return;}
  if(q.status==='finished'){
   const pos=liveScores(q).findIndex(x=>x.key===me.id);
   root.innerHTML=heading+'<div class="liveFinishCard"><h3>대결 완료!</h3><strong>'+member.points+'점 · '+(pos+1)+'위</strong><p>'+
-  member.correct+' / '+q.order.length+'문제 정답</p></div><h3>학급 순위</h3>'+liveRankingHtml(q);
+  member.correct+' / '+q.order.length+'문제 정답</p></div><h3>학급 순위</h3>'+liveRankingHtml(q)+backup;
   return;
  }
  const p=liveProblem(q),myAnswer=q.answers?.[me.id],revealing=q.status==='reveal';
@@ -903,7 +906,7 @@ function liveRenderStudent(){
 function liveRenderTeacher(){
  const root=$('liveTeacherPanel');if(!root)return;
  const q=liveQuiz;
- const head='<h3>4단계 · 실시간 기억력 대결</h3><p class="muted">카훗 방식: 선생님이 시작 · 15초 선택 · 모두 답하면 조기 마감 · 자동 다음 문제 · 속도 점수</p>';
+ const head='<h3>4단계 · 실시간 기억력 대결</h3><p class="muted">카훗 방식: 선생님이 시작 · 15초 선택 · 모두 답하면 조기 마감 · 자동 다음 문제 · 속도 점수</p><p class="muted">문제가 발생하면 학생들은 아래 예비 게임으로 개별 참여할 수 있어요. 결과는 학생이 CSV로 제출하게 안내해 주세요.</p>'+soloFallbackButton();
  if(!q){
   root.innerHTML=head+'<button type="button" class="btn mint" id="liveLobbyOpen">대기실 열기</button>';
  }else if(q.status==='lobby'){
@@ -1022,7 +1025,7 @@ function renderJoin(error=''){
     <h2>${iconArt("pen")} 이름을 입력하고 시작해요</h2>
     <p class="muted">같은 방에서 같은 이름으로 돌아오면 저장된 진도부터 이어서 풀어요. 서버 연결 상태는 화면 상단에서 확인하세요.</p>
     <input id="nm" maxlength="18" autocomplete="name" placeholder="예: 김민지">
-    <p class="msg ng" id="joinMsg">${esc(error)}</p><button class="btn" id="go">시작하기 ✨</button>
+    <p class="msg ng" id="joinMsg">${esc(error)}</p><button class="btn" id="go">시작하기 ✨</button><p class="muted">실시간 학급 대결에 문제가 있다면 예비 게임을 선택할 수 있어요.</p>${soloFallbackButton()}
   </section></div>`;
   $('go').onclick=()=>loadStudent($('nm').value);
   $('nm').onkeydown=e=>{if(e.key==='Enter')loadStudent($('nm').value)};
