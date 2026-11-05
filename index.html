@@ -506,6 +506,7 @@ function maybeStagePopup(){
 
 function renderProblem(){
   if(!map||!me)return;renderedSig=sig(me);
+  if(me.cur<PROBLEMS.length){const main=app.querySelector('main');if(main)main.style.display='';if($('liveStudentPanel'))$('liveStudentPanel').style.display='none';}
   // Only the student's explicit 'Next' action may close an open result dialog.
   // Firebase transactions can emit intermediate snapshots (including no pending result).
   const visibleResult=$('resultDialog');
@@ -674,12 +675,266 @@ async function pauseStudy(){
   $('resumeNow').onclick=()=>loadStudent(me.name);
  }catch(e){if(btn)btn.disabled=false;hintStatus('진도 저장 실패: '+e.message,'ng');}
 }
+
+/* Live 15-second 4-choice recall showdown. Classroom-specific, separate from map progress. */
+const LIVE_QUIZ_IDS=[0,1,2,5,10,11,13,20,22,24,25,28,29,30,31];
+const LIVE_QUIZ_DURATION=15000, LIVE_QUIZ_REVEAL=3200;
+let liveQuizRef=null,liveQuizListener=null,liveQuiz=null,liveQuizTimer=null;
+let liveQuizBusy=false,liveAnswerBusy=false,livePhotoVersion=0;
+function liveQuizPath(){return 'rooms/'+roomKey+'/v8/liveQuiz';}
+function liveNow(){return serverNow();}
+function liveMembers(q){return Object.entries(q?.members||{}).map(([key,v])=>({key,...v}));}
+function liveScores(q){
+ return liveMembers(q).sort((a,b)=>(b.points||0)-(a.points||0)||(b.correct||0)-(a.correct||0)||
+ (a.totalMs||0)-(b.totalMs||0)||(a.joinedAt||0)-(b.joinedAt||0));
+}
+function liveOrder(id){return stableShuffle(LIVE_QUIZ_IDS,'shared-memory-'+id);}
+function liveProblem(q){return PROBLEMS[q?.order?.[q.round]??-1]||null;}
+function liveClue(p){
+ if(!p)return '';
+ let result=p.q;
+ const word=p.stage==='country'?'이 나라':p.stage==='city'?'이 장소':'이 자연환경';
+ for(const v of [p.answer,...(p.aliases||[])].filter(Boolean).sort((a,b)=>b.length-a.length)){
+   result=result.split(v).join(word);
+ }
+ return result;
+}
+function liveOptions(p,q){
+ if(!p||!q)return [];
+ const alt=[...new Set(PROBLEMS.filter(x=>x.stage===p.stage&&x.answer!==p.answer).map(x=>x.answer))];
+ const options=[p.answer,...stableShuffle(alt,'choices-'+q.id+'-'+p.uid).slice(0,3)];
+ return stableShuffle(options,'arrange-'+q.id+'-'+p.uid);
+}
+function liveRankingHtml(q,max=10){
+ const data=liveScores(q).slice(0,max);
+ if(!data.length)return '<p class="muted">참가한 학생이 없어요.</p>';
+ return data.map((x,i)=>'<div class="liveRankingItem'+(me?.id===x.key?' liveRankingMe':'')+'"><span>'+(i<3?['🥇','🥈','🥉'][i]:(i+1)+'위')+
+ '</span><strong>'+esc(x.name||'학생')+'</strong><span>'+Number(x.points||0)+'점</span><span>'+Number(x.correct||0)+'개 정답</span></div>').join('');
+}
+function liveQuizOnline(){return !!(liveQuizRef&&db&&serverVerified&&firebaseState==='online');}
+function liveSubscribe(){
+ if(!db)return;
+ if(liveQuizRef&&liveQuizListener)liveQuizRef.off('value',liveQuizListener);
+ liveQuizRef=db.ref(liveQuizPath());
+ liveQuizListener=s=>{
+   liveQuiz=s.val();
+   liveRenderAll();
+   liveTick();
+ };
+ liveQuizRef.on('value',liveQuizListener,e=>{
+   const root=$(TEACHER?'liveTeacherPanel':'liveStudentPanel');
+   if(root)root.innerHTML='<p class="msg ng">실시간 퀴즈 연결 실패: '+esc(e.message)+'</p>';
+ });
+ if(liveQuizTimer)clearInterval(liveQuizTimer);
+ liveQuizTimer=setInterval(liveTick,250);
+}
+function liveTick(){
+ const q=liveQuiz;
+ if(!q)return;
+ const now=liveNow();
+ for(const id of ['liveCountStudent','liveCountTeacher']){
+  const el=$(id);
+  if(el)el.textContent=Math.ceil(Math.max(0,((q.status==='reveal'?q.revealEndsAt:q.endsAt)||now)-now)/1000)+'초';
+ }
+ const e=$('liveAnswerCounter');
+ if(e)e.textContent=Object.keys(q.answers||{}).length+'/'+liveMembers(q).length+'명 답변';
+ if(!liveQuizOnline()||liveQuizBusy)return;
+ const all=liveMembers(q).length>0&&Object.keys(q.answers||{}).length>=liveMembers(q).length;
+ if((q.status==='question'&&(now>=q.endsAt||all))||(q.status==='reveal'&&now>=q.revealEndsAt))liveAdvance();
+}
+async function liveAdvance(){
+ if(liveQuizBusy||!liveQuizOnline())return;
+ liveQuizBusy=true;
+ try{
+  await liveQuizRef.transaction(q=>{
+   if(!q)return;
+   const now=liveNow();
+   if(q.status==='question'){
+    const total=Object.keys(q.members||{}).length;
+    const all=total>0&&Object.keys(q.answers||{}).length>=total;
+    if(!all&&now<q.endsAt)return;
+    q.status='reveal';q.revealEndsAt=now+LIVE_QUIZ_REVEAL;return q;
+   }
+   if(q.status==='reveal'&&now>=q.revealEndsAt){
+    if(q.round+1>=q.order.length){q.status='finished';q.finishedAt=now;return q;}
+    q.round++;q.status='question';q.startedAt=now;q.endsAt=now+LIVE_QUIZ_DURATION;
+    q.answers={};return q;
+   }
+   return;
+  },undefined,false);
+ }catch(e){console.warn('퀴즈 라운드 진행 오류',e.message);}
+ finally{liveQuizBusy=false;}
+}
+async function liveOpenLobby(){
+ if(!TEACHER||!liveQuizOnline())return;
+ if(liveQuiz&&['question','reveal'].includes(liveQuiz.status))return alert('진행 중인 게임은 종료한 뒤 새로 시작할 수 있어요.');
+ if(liveQuiz?.status==='lobby')return;
+ if(liveQuiz?.status==='finished'&&!confirm('기존 결과를 새 게임으로 바꾸고 대기실을 열까요?'))return;
+ try{
+  const id=String(liveNow());
+  const tx=await liveQuizRef.transaction(q=>{
+   if(q&&['question','reveal'].includes(q.status))return;
+   return {id,status:'lobby',round:0,order:liveOrder(id),members:{},answers:{},
+    createdAt:liveNow(),startedAt:0,endsAt:0,revealEndsAt:0};
+  },undefined,false);
+  if(!tx.committed)throw Error('다른 교사용 화면에서 게임이 진행 중이에요.');
+ }catch(e){alert('대기실 생성 실패: '+e.message);}
+}
+async function liveJoinLobby(){
+ if(!liveQuizOnline()||!me||me.cur<PROBLEMS.length||me.pending)return;
+ try{
+  const tx=await liveQuizRef.transaction(q=>{
+   if(!q||q.status!=='lobby')return;
+   q.members=q.members||{};
+   if(!q.members[me.id])q.members[me.id]={name:me.name,joinedAt:liveNow(),points:0,correct:0,totalMs:0};
+   return q;
+  },undefined,false);
+  if(!tx.committed)alert('대기실이 닫혔어요. 화면을 확인해 주세요.');
+ }catch(e){alert('대기실 입장 실패: '+e.message);}
+}
+async function liveStartRound(){
+ if(!TEACHER||!liveQuizOnline())return;
+ try{
+  const tx=await liveQuizRef.transaction(q=>{
+   if(!q||q.status!=='lobby'||!Object.keys(q.members||{}).length)return;
+   const now=liveNow();
+   q.status='question';q.round=0;q.startedAt=now;q.endsAt=now+LIVE_QUIZ_DURATION;q.answers={};
+   return q;
+  },undefined,false);
+  if(!tx.committed)alert('학생이 대기실에 한 명 이상 입장해야 시작할 수 있어요.');
+ }catch(e){alert('시작 실패: '+e.message);}
+}
+async function liveSelect(choice){
+ const current=liveQuiz;
+ if(liveAnswerBusy||!liveQuizOnline()||!me||me.cur<PROBLEMS.length||
+    !current||current.status!=='question'||!current.members?.[me.id]||current.answers?.[me.id])return;
+ const question=liveProblem(current);
+ if(!liveOptions(question,current).includes(choice))return;
+ liveAnswerBusy=true;
+ const panel=$('liveStudentPanel');if(panel)panel.classList.add('liveSubmitting');
+ try{
+  const id=current.id,round=current.round,key=me.id;
+  const tx=await liveQuizRef.transaction(q=>{
+   if(!q||q.id!==id||q.status!=='question'||q.round!==round||!q.members?.[key]||q.answers?.[key])return;
+   const now=liveNow();if(now>=q.endsAt)return;
+   const p=liveProblem(q);
+   if(!liveOptions(p,q).includes(choice))return;
+   const ms=Math.max(0,Math.min(LIVE_QUIZ_DURATION,now-q.startedAt));
+   const correct=choice===p.answer;
+   const points=correct?500+Math.round(500*(1-ms/LIVE_QUIZ_DURATION)):0;
+   q.answers=q.answers||{};
+   q.answers[key]={choice,correct,ms,points,at:now};
+   q.members[key].points=Number(q.members[key].points||0)+points;
+   q.members[key].correct=Number(q.members[key].correct||0)+(correct?1:0);
+   q.members[key].totalMs=Number(q.members[key].totalMs||0)+ms;
+   return q;
+  },undefined,false);
+  if(!tx.committed)alert('이미 선택했거나 15초가 지났어요.');
+ }catch(e){alert('선택 저장 실패: '+e.message);}
+ finally{liveAnswerBusy=false;if(panel)panel.classList.remove('liveSubmitting');}
+}
+function liveLoadPhoto(p){
+ const img=$('livePhoto');if(!img||!p)return;
+ const version=++livePhotoVersion;
+ img.removeAttribute('src');img.style.display='none';
+ const show=url=>{
+  if(version!==livePhotoVersion||!$('livePhoto'))return;
+  if(!url)return;
+  const el=$('livePhoto');
+  el.onerror=()=>{el.style.display='none';};
+  el.src=url;el.style.display='block';
+  if($('livePhotoPlaceholder'))$('livePhotoPlaceholder').style.display='none';
+ };
+ if(thumbnailCache[p.wiki])return show(thumbnailCache[p.wiki]);
+ const api='https://en.wikipedia.org/w/api.php?action=query&redirects=1&prop=pageimages&format=json&pithumbsize=850&origin=*&titles='+encodeURIComponent(decodeURIComponent(p.wiki));
+ fetch(api).then(r=>r.ok?r.json():Promise.reject(Error('image')))
+ .then(data=>Object.values(data.query?.pages||{})[0]?.thumbnail?.source||'')
+ .then(url=>{if(url)thumbnailCache[p.wiki]=url;show(url);}).catch(()=>{});
+}
+function liveRenderAll(){if(TEACHER)liveRenderTeacher();else liveRenderStudent();}
+function liveRenderStudent(){
+ const root=$('liveStudentPanel');if(!root||!me)return;
+ const eligible=me.cur>=PROBLEMS.length&&!me.pending;
+ root.style.display=eligible?'block':'none';
+ if(!eligible)return;
+ const q=liveQuiz,member=q?.members?.[me.id];
+ const heading='<span class="smallPill">4단계 · 실시간 학급 대결</span><h2>검색 없이! 기억력 스피드 퀴즈</h2>';
+ if(!q){root.innerHTML=heading+'<p>선생님이 대기실을 열면 친구들과 동시에 시작해요.</p>';return;}
+ if(q.status==='lobby'){
+  root.innerHTML=heading+'<p>대기 인원 '+liveMembers(q).length+'명</p>'+
+  (member?'<p class="liveReady">입장 완료! 선생님이 시작하면 자동으로 문제가 나타나요.</p>':
+   '<button class="btn mint" id="liveJoinButton">대기실 입장하기</button>')+
+  '<p class="muted">15문제, 각 15초. 정답을 빠르게 선택하면 더 높은 점수를 받아요.</p>';
+  if($('liveJoinButton'))$('liveJoinButton').onclick=liveJoinLobby;
+  return;
+ }
+ if(!member){root.innerHTML=heading+'<p>이번 대결은 이미 시작했어요. 다음 대결을 기다려 주세요.</p>';return;}
+ if(q.status==='finished'){
+  const pos=liveScores(q).findIndex(x=>x.key===me.id);
+  root.innerHTML=heading+'<div class="liveFinishCard"><h3>대결 완료!</h3><strong>'+member.points+'점 · '+(pos+1)+'위</strong><p>'+
+  member.correct+' / '+q.order.length+'문제 정답</p></div><h3>학급 순위</h3>'+liveRankingHtml(q);
+  return;
+ }
+ const p=liveProblem(q),myAnswer=q.answers?.[me.id],revealing=q.status==='reveal';
+ if(!p){root.innerHTML=heading+'<p>문제 준비 중이에요.</p>';return;}
+ const opts=liveOptions(p,q);
+ root.innerHTML=heading+
+  '<div class="liveRoundHeader"><strong>'+(q.round+1)+' / '+q.order.length+'문제</strong>'+
+  '<span id="liveCountStudent" class="liveCountdown">'+Math.ceil(Math.max(0,(revealing?q.revealEndsAt:q.endsAt)-liveNow())/1000)+'초</span>'+
+  '<span>'+Number(member.points||0)+'점</span></div>'+
+  '<div class="liveQuestionBody"><div class="livePhotoFrame"><img id="livePhoto" alt="문제 단서 사진"><span id="livePhotoPlaceholder">사진을 불러오는 중이에요. 설명을 보고 골라도 돼요.</span></div>'+
+  '<p class="liveClue">'+esc(liveClue(p))+'</p></div>'+
+  (revealing?
+   '<div class="liveReveal"><h3>정답: '+esc(p.answer)+'</h3><p>'+esc(p.fact||'')+'</p>'+
+   '<strong>'+(myAnswer?(myAnswer.correct?'정답! +'+myAnswer.points+'점':'이번 문제는 오답!'):'시간 초과')+'</strong>'+
+   '<p>잠시 뒤 다음 문제로 자동 이동해요.</p></div>':
+   '<div class="liveChoiceGrid">'+opts.map((v,i)=>'<button class="liveChoice liveChoice'+i+'" type="button" data-answer="'+i+'"'+
+   (myAnswer||!liveQuizOnline()?' disabled':'')+'>'+['▲','◆','●','■'][i]+' '+esc(v)+'</button>').join('')+'</div>'+
+   '<p class="muted">'+(myAnswer?'선택 완료! '+Object.keys(q.answers||{}).length+'/'+liveMembers(q).length+'명 답변을 기다리고 있어요.':
+   '한 번만 선택할 수 있어요. 모두 답하면 곧바로 마감돼요.')+'</p>')+
+  '<details class="liveRankDetails"><summary>실시간 점수판</summary>'+liveRankingHtml(q)+'</details>';
+ if(!revealing&&!myAnswer){
+  root.querySelectorAll('[data-answer]').forEach(el=>{
+   el.onclick=()=>liveSelect(opts[Number(el.dataset.answer)]);
+  });
+ }
+ liveLoadPhoto(p);
+}
+function liveRenderTeacher(){
+ const root=$('liveTeacherPanel');if(!root)return;
+ const q=liveQuiz;
+ const head='<h3>4단계 · 실시간 기억력 대결</h3><p class="muted">카훗 방식: 선생님이 시작 · 15초 선택 · 모두 답하면 조기 마감 · 자동 다음 문제 · 속도 점수</p>';
+ if(!q){
+  root.innerHTML=head+'<button type="button" class="btn mint" id="liveLobbyOpen">대기실 열기</button>';
+ }else if(q.status==='lobby'){
+  root.innerHTML=head+'<p class="liveReady">대기실 · '+liveMembers(q).length+'명 입장 완료</p>'+
+   '<div class="liveMembers">'+liveMembers(q).map(x=>'<span class="smallPill">'+esc(x.name)+'</span>').join('')+'</div>'+
+   '<button type="button" class="btn mint" id="liveTeacherStart"'+(!liveMembers(q).length?' disabled':'')+'>전체 게임 시작</button>';
+ }else if(q.status==='question'||q.status==='reveal'){
+  const p=liveProblem(q),isReveal=q.status==='reveal';
+  root.innerHTML=head+'<div class="liveRoundHeader"><strong>'+(q.round+1)+' / '+q.order.length+'문제</strong>'+
+  '<span id="liveCountTeacher" class="liveCountdown">'+Math.ceil(Math.max(0,((isReveal?q.revealEndsAt:q.endsAt)||liveNow())-liveNow())/1000)+'초</span>'+
+  '<span id="liveAnswerCounter">'+Object.keys(q.answers||{}).length+'/'+liveMembers(q).length+'명 답변</span></div>'+
+  '<p><strong>'+esc(liveClue(p))+'</strong></p>'+
+  (isReveal?'<p class="liveReady">정답: '+esc(p?.answer||'')+' · 곧 다음 문제</p>':
+   '<p class="muted">시간이 끝나거나 모두 답하면 정답 공개 후 다음 문제로 자동 이동해요.</p>')+
+  '<h4>현재 점수판</h4>'+liveRankingHtml(q);
+ }else{
+  root.innerHTML=head+'<h4>최종 순위</h4>'+liveRankingHtml(q,100)+
+  '<button type="button" class="btn mint" id="liveLobbyOpen">새 게임 대기실 열기</button>';
+ }
+ if($('liveLobbyOpen'))$('liveLobbyOpen').onclick=liveOpenLobby;
+ if($('liveTeacherStart'))$('liveTeacherStart').onclick=liveStartRound;
+}
+
 function finish(){
   clearMapMarks();closeResultDialog();$('photoWrap').style.display='none';$('photoCredit').style.display='none';
   $('answerWrap').style.display='none';$('qtext').textContent='아메리카 지도 만들기 완성!';$('triesInfo').textContent='모든 장소를 탐험했어요!';
   hintStatus('최종 '+me.score+'점! '+PROBLEMS.length+'문제를 모두 완료했어요.','ok');
   closeResultDialog();
   refreshPieces();
+  const main=app.querySelector('main');if(main)main.style.display='none';
+  liveRenderStudent();
 }
 function destroyMap(){clearInterval(countdownTimer);clearInterval(questionClock);closeResultDialog();photoNonce++;if(map){map.remove();map=null;geo=null;labelLayer=null;pick=null;target=null;}}
 function renderStudent(){
@@ -693,7 +948,7 @@ function renderStudent(){
   </section><section class="card">
     <div class="smallPill">${iconArt("map")} 맞힌 나라를 마우스로 가리키면 사진이 보여요</div>
     <div id="map"></div><details class="rankDetails"><summary>${iconArt("star")} 실시간 순위 펼쳐보기</summary><div id="rank"></div></details>
-  </section></main><div id="photoLightbox" class="photo-modal" hidden><div class="photo-panel"><button class="modal-close" id="photoLightboxClose" aria-label="확대 사진 닫기">닫기 ×</button><img id="zoomedPhoto" alt="문제 사진 크게 보기"></div></div><div id="resultDialog" class="stage-modal result-modal" role="dialog" aria-modal="true" aria-labelledby="resultTitle" hidden>
+  </section></main><section id="liveStudentPanel" class="card liveStudentPanel" style="display:none"></section><div id="photoLightbox" class="photo-modal" hidden><div class="photo-panel"><button class="modal-close" id="photoLightboxClose" aria-label="확대 사진 닫기">닫기 ×</button><img id="zoomedPhoto" alt="문제 사진 크게 보기"></div></div><div id="resultDialog" class="stage-modal result-modal" role="dialog" aria-modal="true" aria-labelledby="resultTitle" hidden>
   <div class="result-panel">
     <div class="result-top"><span class="result-kicker">결과 확인</span><span class="result-score" id="resultPoints"></span></div>
     <h2 id="resultTitle">정답!</h2><div class="result-answer" id="resultAnswer"></div>
@@ -737,7 +992,7 @@ function renderStudent(){
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('photoLightbox'))$('photoLightbox').hidden=true;}});
 
   fetch(COUNTRY_GEO).then(r=>{if(!r.ok)throw Error('country border');return r.json()}).then(g=>{if(!map)return;geo=L.geoJSON(g,{style:styleFor,onEachFeature:onCountryFeature}).addTo(map);refreshPieces();if(me?.pending)drawResultMap(questionAt(me.pending.idx));}).catch(()=>{if($('msg'))hintStatus('지도 경계를 불러오지 못했어요. 인터넷을 확인해 주세요.','ng');});
-  watchPlayers(renderRank);watchMe();renderHdr();renderProblem();showConn();
+  watchPlayers(renderRank);watchMe();liveSubscribe();renderHdr();renderProblem();showConn();
 }
 async function loadStudent(name){
   if(!serverVerified||firebaseState!=='online'){renderServerGate('서버 저장이 확인되지 않아 시작하지 않았어요.');return;}
@@ -958,6 +1213,7 @@ function renderTeacher(){
         <button class="btn mint" id="shareCopy" type="button">학생 연결 링크 복사</button>
         <p id="shareLinkMsg" class="muted" aria-live="polite"></p>
       </div>
+      <section id="liveTeacherPanel" class="liveTeacherPanel"></section>
       <div style="margin:14px 0"><button class="btn mint" id="csvBtn">CSV 내보내기</button><span class="smallPill" id="studentTotal">참여 0명</span></div>
       <div class="tableWrap"><table><thead><tr><th>순위</th><th>이름</th><th>점수</th><th>진도</th><th>현재 상태</th></tr></thead><tbody id="tbl"></tbody></table></div>
     </section><section class="card" id="detail"><h2>학생 상세</h2><p class="muted">학생을 선택해 주세요.</p></section>
@@ -976,7 +1232,7 @@ function renderTeacher(){
     else if(e.target.closest('#teacherBackup'))teacherSaveBackup(selectedKey);
     else if(e.target.closest('#teacherMoveButton'))teacherMoveStudent();
   };
-  watchPlayers(renderTeacherViews);
+  watchPlayers(renderTeacherViews);liveSubscribe();
 }
 function renderTeacherViews(all){
   const list=ranked(all);$('studentTotal').textContent='참여 '+list.length+'명'+(firebaseState==='offline'?' · 이 브라우저 기록만':'');

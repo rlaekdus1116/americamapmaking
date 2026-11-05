@@ -180,3 +180,39 @@ main{grid-template-columns:minmax(440px,550px) minmax(0,1fr);max-width:1480px}
 .teacherMovePanel button{box-shadow:none}
 #classRoomMessage{font-weight:700;min-height:18px}
 @media(max-width:640px){.classRoomRow select{width:100%;flex-basis:100%}}
+
+
+/* 4단계: 학급 동시 기억력 스피드 대결 */
+.liveStudentPanel{max-width:860px;margin:22px auto 48px;padding:clamp(18px,4vw,34px);text-align:center}
+.liveStudentPanel h2{font-size:clamp(24px,5vw,34px);margin:12px 0}
+.liveStudentPanel>p{line-height:1.65}
+.liveTeacherPanel{margin:18px 0 20px;padding:18px;border:1px solid #d8e2ef;border-radius:20px;background:#f4faff}
+.liveTeacherPanel h3{font-size:19px;margin:4px 0 10px}
+.liveTeacherPanel h4{margin:16px 0 8px}
+.liveTeacherPanel p{line-height:1.6}
+.liveMembers{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 20px}
+.liveReady{background:#e4f8ed;color:#22634f;border-radius:13px;padding:13px;font-weight:750}
+.liveRoundHeader{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;background:#f1f4fc;border:1px solid #e0e6f5;padding:14px 17px;border-radius:15px;margin:14px 0}
+.liveCountdown{font-weight:900;font-size:clamp(25px,5vw,37px);color:#a84361;font-variant-numeric:tabular-nums}
+.liveQuestionBody{padding:14px 0}
+.livePhotoFrame{position:relative;height:clamp(170px,35vw,285px);background:#eef3f8;border-radius:19px;overflow:hidden;display:grid;place-items:center}
+.livePhotoFrame img{max-height:100%;width:100%;object-fit:contain}
+#livePhotoPlaceholder{font-size:14px;color:#6b7182;padding:28px;max-width:360px;line-height:1.65}
+.liveClue{font-size:clamp(17px,3vw,23px);font-weight:800;line-height:1.6;margin:18px 3px 24px}
+.liveChoiceGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.liveChoice{min-height:86px;border-radius:18px;border:2px solid rgba(0,0,0,.05);padding:16px 12px;font-size:clamp(15px,2.5vw,19px);font-family:inherit;color:#263048;font-weight:850;cursor:pointer;text-align:center;transition:transform .1s,filter .1s;overflow-wrap:anywhere}
+.liveChoice:hover:not(:disabled){transform:translateY(-2px);filter:brightness(.98)}
+.liveChoice:disabled{opacity:.66;cursor:default}
+.liveChoice0{background:#f9c6ce}.liveChoice1{background:#c5e4ff}.liveChoice2{background:#fff0b3}.liveChoice3{background:#c6f2df}
+.liveSubmitting .liveChoice{pointer-events:none}
+.liveReveal{border-radius:19px;padding:22px 18px;background:#e9faf1;border:1px solid #bee7cb}
+.liveReveal h3{font-size:25px;margin:0 0 10px}
+.liveReveal strong{display:block;font-size:23px;color:#25765a}
+.liveRankDetails{margin:22px auto;text-align:left}
+.liveRankDetails summary{cursor:pointer;font-weight:750}
+.liveRankingItem{display:grid;grid-template-columns:55px 1fr auto auto;gap:10px;align-items:center;border-bottom:1px solid #e9e2ef;padding:11px 8px;font-size:14px}
+.liveRankingItem span:last-child{font-size:12px;color:#7b8290}
+.liveRankingMe{background:#fff6d8;border-radius:12px}
+.liveFinishCard{background:#f7eafa;padding:24px;border-radius:19px;margin:18px 0}
+.liveFinishCard strong{font-size:clamp(26px,6vw,40px);color:#7855a2}
+@media(max-width:560px){.liveChoiceGrid{gap:8px}.liveChoice{min-height:74px;padding:11px 8px}.liveRankingItem{grid-template-columns:40px 1fr auto}.liveRankingItem span:last-child{display:none}}
