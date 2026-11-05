@@ -347,3 +347,35 @@ main{grid-template-columns:minmax(440px,550px) minmax(0,1fr);max-width:1480px}
  .countryPieceShape{height:100px}
  .resultPieceControls #resultSnapPiece{padding:11px 12px;font-size:13px}
 }
+
+
+/* Student photos: natural aspect ratio; no cropping or fixed-height side bars.
+   Applies to the map-learning photo and student-side live quiz. */
+#photoWrap{
+  height:auto!important;min-height:0!important;
+  margin-top:12px;display:block;
+  background:#ffffff!important;overflow:hidden
+}
+#photoWrap.photoLoading{min-height:210px!important;background:#f6f8fb!important}
+#photoWrap #img{
+  display:block;width:100%!important;height:auto!important;
+  min-height:0!important;max-height:none!important;
+  object-fit:contain!important;object-position:center
+}
+#photoWrap #cap{display:none!important}
+.liveStudentPanel .livePhotoFrame{
+  height:auto!important;min-height:0;display:block;
+  background:#fff;overflow:hidden;border:1px solid #e8edf3
+}
+.liveStudentPanel .livePhotoFrame img{
+  display:block;width:100%!important;height:auto!important;
+  max-height:none!important;object-fit:contain!important
+}
+.liveStudentPanel #livePhotoPlaceholder{
+  display:block;max-width:none;min-height:175px;
+  padding:55px 20px;text-align:center;background:#f5f8fc
+}
+@media(max-width:600px){
+  #photoWrap.photoLoading{min-height:170px!important}
+  .liveStudentPanel #livePhotoPlaceholder{min-height:130px;padding:38px 16px}
+}

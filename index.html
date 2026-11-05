@@ -68,7 +68,7 @@ td:first-child{border-left:1px solid var(--line);border-radius:14px 0 0 14px} td
 .btn.secondary{background:#f5f0fc;border:1px solid var(--line)}
 </style>
 <link rel="stylesheet" href="liquid-glass.css">
-<link rel="stylesheet" href="classroom-v8.css?v=20261106-photo-fit">
+<link rel="stylesheet" href="classroom-v8.css?v=20261106-student-photos">
 </head>
 <body>
 <header>
@@ -465,13 +465,15 @@ function openPhoto(){
 }
 function loadProblemPhoto(p){
  const nonce=++photoNonce,img=$('img'),cap=$('cap'),credit=$('photoCredit');
+ const wrap=$('photoWrap');if(wrap)wrap.classList.add('photoLoading');
  img.style.display='none';img.removeAttribute('src');
  cap.textContent='사진을 보고 맞혀 보세요';
  credit.innerHTML=photoCredit(p,!!me?.pending);
  const loaded=url=>{
   if(nonce!==photoNonce)return;
-  if(!url){img.style.display='none';credit.innerHTML=credit.innerHTML+' · 사진을 못 불러왔어요';return;}
-  img.onerror=()=>{if(nonce===photoNonce)img.style.display='none'};
+  if(!url){img.style.display='none';if(wrap)wrap.classList.add('photoLoading');credit.innerHTML=credit.innerHTML+' · 사진을 못 불러왔어요';return;}
+  img.onerror=()=>{if(nonce===photoNonce){img.style.display='none';if(wrap)wrap.classList.add('photoLoading');}};
+  img.onload=()=>{if(nonce===photoNonce&&wrap)wrap.classList.remove('photoLoading');};
   img.src=url;img.style.display='block';
  };
  if(thumbnailCache[p.wiki])return loaded(thumbnailCache[p.wiki]);
