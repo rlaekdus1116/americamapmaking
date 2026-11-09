@@ -240,6 +240,13 @@ body.inquiryView .inquiryRoot:has(#inqMigrationStage){display:flex;flex-directio
 body.inquiryView #inqMigrationStage,body.inquiryView #inqComparisonStage{display:contents}
 body.inquiryView .inquiryData,body.inquiryView .inquiryQuestion{width:100%;box-sizing:border-box}
 }
+</style><style id="globeInteractionStyle">
+body.inquiryView .migrationMap{position:relative;background:radial-gradient(ellipse at 45% 30%,#fffaf1,#e8ecfa 60%,#e3f6f0)!important;height:clamp(270px,36vh,410px)!important}
+body.inquiryView .globeCanvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+body.inquiryView .globeCanvas:active{cursor:grabbing}
+body.inquiryView .globeStatus{position:absolute;left:10px;top:10px;padding:7px 12px;background:#fffdf9e8;border-radius:14px;font-size:12px;font-weight:800;color:#68728c;pointer-events:none;max-width:80%}
+body.inquiryView .globeHint{position:absolute;bottom:9px;left:50%;transform:translateX(-50%);white-space:nowrap;background:#fff9efdf;border-radius:12px;padding:5px 10px;font-size:10px;color:#79879b;pointer-events:none}
+@media(min-width:860px) and (max-height:780px){body.inquiryView .migrationMap{height:clamp(230px,30vh,320px)!important}}
 </style></head>
 <body>
 <header>
@@ -353,40 +360,102 @@ let migrationChoices={},migrationSelected='ae',migrationRegion='anglo',migration
 function migrationRoutes(){return MIGRATION_ROUTES.filter(r=>r.region===migrationRegion);}
 function migrationCount(region){return MIGRATION_ROUTES.filter(r=>r.region===region&&migrationChoices[r.id]).length;}
 function migrationRouteHtml(){return migrationRoutes().map(r=>'<button type="button" class="migrationOrigin'+(r.id===migrationSelected?' selected':'')+'" data-migration-origin="'+r.id+'"><strong>'+esc(r.name)+'</strong> '+(migrationChoices[r.id]?'✓':'→')+'</button>').join('');}
+
+let globeAngle=-65,globeLat=14,globeCanvas=null,globeCtx=null,globeGeo=null,globeFrame=0,globeLast=0,globeDrag=null,globeTapStage=0,globeTapStart=null,globeDrawVersion=0;
+function globeProject(coord,cx,cy,R){
+ const lat=coord[0]*Math.PI/180,lon=(coord[1]-globeAngle)*Math.PI/180,center=globeLat*Math.PI/180;
+ const depth=Math.sin(center)*Math.sin(lat)+Math.cos(center)*Math.cos(lat)*Math.cos(lon);
+ return {x:cx+R*Math.cos(lat)*Math.sin(lon),y:cy-R*(Math.cos(center)*Math.sin(lat)-Math.sin(center)*Math.cos(lat)*Math.cos(lon)),z:depth};
+}
+function globeGreatCircle(a,b,t){
+ const toV=p=>{let x=p[0]*Math.PI/180,y=p[1]*Math.PI/180;return [Math.cos(x)*Math.cos(y),Math.cos(x)*Math.sin(y),Math.sin(x)]};
+ const v=toV(a),w=toV(b),dot=Math.max(-1,Math.min(1,v.reduce((n,x,i)=>n+x*w[i],0))),omega=Math.acos(dot),so=Math.sin(omega);
+ if(so<.0001)return a;
+ const A=Math.sin((1-t)*omega)/so,B=Math.sin(t*omega)/so;
+ const x=v[0]*A+w[0]*B,y=v[1]*A+w[1]*B,z=v[2]*A+w[2]*B;
+ return [Math.atan2(z,Math.hypot(x,y))*180/Math.PI,Math.atan2(y,x)*180/Math.PI];
+}
+function globeDraw(now){
+ if(!globeCanvas||!globeCanvas.isConnected)return;
+ const canvas=globeCanvas,ctx=globeCtx,w=canvas.clientWidth,h=canvas.clientHeight;
+ if(!w||!h){globeFrame=requestAnimationFrame(globeDraw);return}
+ const scale=Math.min(window.devicePixelRatio||1,2);
+ if(canvas.width!==Math.round(w*scale)||canvas.height!==Math.round(h*scale)){canvas.width=Math.round(w*scale);canvas.height=Math.round(h*scale)}
+ ctx.setTransform(scale,0,0,scale,0,0);ctx.clearRect(0,0,w,h);
+ if(!globeDrag&&now-globeLast>1800)globeAngle=(globeAngle+.035)%360;
+ const cx=w*.5,cy=h*.5,R=Math.min(h*.465,w*.34);
+ ctx.save();ctx.shadowColor='#b9c8dd';ctx.shadowBlur=19;ctx.shadowOffsetY=7;
+ const sea=ctx.createRadialGradient(cx-R*.4,cy-R*.45,R*.1,cx,cy,R);
+ sea.addColorStop(0,'#effcff');sea.addColorStop(.65,'#b7e3f1');sea.addColorStop(1,'#85bfd6');
+ ctx.fillStyle=sea;ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fill();ctx.restore();
+ ctx.save();ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.clip();
+ ctx.strokeStyle='rgba(255,255,255,.24)';ctx.lineWidth=1;
+ for(let lat=-60;lat<=60;lat+=30){ctx.beginPath();let started=false;for(let lon=-180;lon<=180;lon+=4){const p=globeProject([lat,lon],cx,cy,R);if(p.z<=0){started=false;continue}if(!started){ctx.moveTo(p.x,p.y);started=true}else ctx.lineTo(p.x,p.y)}ctx.stroke()}
+ if(globeGeo){
+  ctx.fillStyle='#cce7cf';ctx.strokeStyle='#a5cfbf';ctx.lineWidth=.65;
+  for(const feature of globeGeo.features||[]){
+   const g=feature.geometry;if(!g)continue;
+   const polys=g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];
+   for(const poly of polys)for(const ring of poly){
+    ctx.beginPath();let started=false,has=false;
+    for(const pair of ring){const p=globeProject([pair[1],pair[0]],cx,cy,R);if(p.z<=.015){started=false;continue}if(!started){ctx.moveTo(p.x,p.y);started=true}else ctx.lineTo(p.x,p.y);has=true}
+    if(has){ctx.fill();ctx.stroke()}
+   }
+  }
+ }
+ const current=MIGRATION_ROUTES.find(r=>r.id===migrationSelected);
+ for(const r of migrationRoutes()){
+  const done=!!migrationChoices[r.id],active=r.id===migrationSelected,ready=active&&globeTapStage===2;
+  if(!done&&!ready)continue;
+  const color=done?'#6dbaa5':'#f09cae',points=[];
+  for(let i=0;i<=80;i++)points.push(globeProject(globeGreatCircle(r.coords,r.target,i/80),cx,cy,R));
+  ctx.lineWidth=active?5:3.3;ctx.strokeStyle=color;ctx.lineCap='round';ctx.setLineDash(done?[]:[7,7]);
+  ctx.beginPath();let started=false;
+  for(const p of points){if(p.z<=0){started=false;continue}if(!started){ctx.moveTo(p.x,p.y);started=true}else ctx.lineTo(p.x,p.y)}ctx.stroke();ctx.setLineDash([]);
+  const tip=points[points.length-1],prev=points[points.length-4];
+  if(tip.z>0&&prev.z>0){const ang=Math.atan2(tip.y-prev.y,tip.x-prev.x);ctx.save();ctx.translate(tip.x,tip.y);ctx.rotate(ang);ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(11,0);ctx.lineTo(-9,-7);ctx.lineTo(-9,7);ctx.closePath();ctx.fill();ctx.restore()}
+ }
+ if(current){
+  for(const [pt,label,color] of [[current.coords,current.name,'#9d8bd6'],[current.target,current.destination,'#e88c9d']]){
+   const p=globeProject(pt,cx,cy,R);if(p.z<0)continue;
+   ctx.beginPath();ctx.arc(p.x,p.y,8,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='white';ctx.stroke();
+   ctx.font='bold 12px sans-serif';const tw=ctx.measureText(label).width+18,xx=Math.max(2,Math.min(w-tw,p.x-tw/2)),yy=p.y-31;
+   ctx.fillStyle='rgba(255,253,250,.95)';ctx.beginPath();ctx.roundRect(xx,yy,tw,22,9);ctx.fill();
+   ctx.fillStyle='#536179';ctx.fillText(label,xx+9,yy+15);
+  }
+ }
+ ctx.restore();
+ ctx.strokeStyle='#f9ffff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.stroke();
+ globeFrame=requestAnimationFrame(globeDraw);
+}
 function migrationMapInit(){
- const el=$('inqMigrationMap');if(!el||!window.L)return;
- if(migrationMap){try{migrationMap.remove()}catch(e){}}
- migrationMap=L.map(el,{zoomControl:false,attributionControl:false,scrollWheelZoom:false,dragging:false,touchZoom:false,doubleClickZoom:false,keyboard:false}).fitBounds([[-56,-178],[72,178]]);
- const m=migrationMap;
+ const el=$('inqMigrationMap');if(!el)return;
+ if(globeFrame)cancelAnimationFrame(globeFrame);
+ globeCanvas=document.createElement('canvas');globeCanvas.className='globeCanvas';
+ el.replaceChildren(globeCanvas);globeCtx=globeCanvas.getContext('2d');globeTapStage=0;globeTapStart=null;
+ const status=document.createElement('div');status.className='globeStatus';status.id='globeStatus';el.appendChild(status);
+ const hint=document.createElement('div');hint.className='globeHint';hint.textContent='지구본을 돌리고, 출발지와 도착지를 차례로 눌러 보세요';el.appendChild(hint);
+ globeCanvas.onpointerdown=e=>{globeDrag={x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY};globeCanvas.setPointerCapture(e.pointerId);globeLast=performance.now()};
+ globeCanvas.onpointermove=e=>{if(!globeDrag)return;const dx=e.clientX-globeDrag.x,dy=e.clientY-globeDrag.y;globeAngle-=dx*.36;globeLat=Math.max(-65,Math.min(65,globeLat+dy*.24));globeDrag.x=e.clientX;globeDrag.y=e.clientY;globeLast=performance.now()};
+ globeCanvas.onpointerup=e=>{if(!globeDrag)return;const moved=Math.hypot(e.clientX-globeDrag.startX,e.clientY-globeDrag.startY);globeDrag=null;if(moved<13)globeTap(e)};
  if(!migrationGeoPromise)migrationGeoPromise=fetch(COUNTRY_GEO).then(r=>r.json());
- migrationGeoPromise.then(data=>{if(migrationMap!==m)return;L.geoJSON(data,{interactive:false,style:{color:'#fffdf9',weight:1.4,fillColor:'#cfe7d7',fillOpacity:1}}).addTo(m);migrationMapDraw();}).catch(()=>{});
- migrationMapDraw();setTimeout(()=>{if(migrationMap===m)m.invalidateSize()},70);
+ migrationGeoPromise.then(data=>{globeGeo=data}).catch(()=>{});
+ globeLast=performance.now();migrationMapDraw();globeFrame=requestAnimationFrame(globeDraw);
+}
+function globeTap(e){
+ const r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected);if(!r)return;
+ const rect=globeCanvas.getBoundingClientRect(),w=rect.width,h=rect.height,cx=w*.5,cy=h*.5,R=Math.min(h*.465,w*.34);
+ const x=e.clientX-rect.left,y=e.clientY-rect.top,pt=globeTapStage===0?r.coords:r.target,p=globeProject(pt,cx,cy,R);
+ if(p.z<0){globeAngle=pt[1];globeLat=pt[0]*.3;globeLast=performance.now();migrationMapDraw();return}
+ if(Math.hypot(x-p.x,y-p.y)>38){$('globeStatus').textContent='표시된 '+(globeTapStage===0?'출발지':'도착지')+' 점을 눌러 줘.';return}
+ if(globeTapStage===0){globeTapStage=1;globeAngle=r.target[1];globeLat=r.target[0]*.3;globeLast=performance.now()}
+ else if(globeTapStage===1){globeTapStage=2;globeAngle=(r.coords[1]+r.target[1])/2;globeLast=performance.now()}
+ migrationMapDraw();
 }
 function migrationMapDraw(){
- if(!migrationMap)return;
- for(const l of migrationLayers)try{migrationMap.removeLayer(l)}catch(e){}
- migrationLayers=[];
- const add=l=>{l.addTo(migrationMap);migrationLayers.push(l);return l};
- for(const r of migrationRoutes()){
-  const selected=r.id===migrationSelected,done=!!migrationChoices[r.id],color=done?'#6ab6a5':({anglo:'#91a9e7',latin:'#e7a5b8'}[r.region]);
-  if(selected||done){
-   const start=r.coords,end=r.target;
-   let points=[start,end];
-   if(Math.abs(start[1]-end[1])>180){
-    const east=start[1]>0;
-    const cross=east?179:-179,other=east?-179:179;
-    const lat=(start[0]+end[0])/2;
-    points=[[start,[lat,cross]],[[lat,other],end]];
-   }
-   const paths=Array.isArray(points[0][0])?points:[points];
-   paths.forEach(path=>add(L.polyline(path,{color,weight:selected?6:4,dashArray:done?null:'10 9',lineCap:'round',lineJoin:'round',interactive:false})));
-   const last=paths[paths.length-1],a=last[last.length-2],b=last[last.length-1],ang=Math.atan2(b[0]-a[0],(b[1]-a[1])*Math.cos(b[0]*Math.PI/180));
-   const lng=b[1]-4*Math.cos(ang),lat=b[0]-4*Math.sin(ang);
-   add(L.polygon([b,[lat+1.6*Math.cos(ang),lng-1.6*Math.sin(ang)],[lat-1.6*Math.cos(ang),lng+1.6*Math.sin(ang)]],{stroke:false,fillColor:color,fillOpacity:.9,interactive:false}));
-   add(L.circleMarker(end,{radius:5,color:'#fff',weight:2,fillColor:color,fillOpacity:1,interactive:false})).bindTooltip(r.destination,{permanent:selected,direction:'bottom'});
-  }
-  add(L.circleMarker(r.coords,{radius:selected?10:8,color:'#fff',weight:3,fillColor:color,fillOpacity:1})).bindTooltip(r.name,{permanent:selected,direction:'top'}).on('click',()=>migrationChooseOrigin(r.id));
- }
+ const r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected);
+ const status=$('globeStatus');
+ if(status&&r)status.textContent=globeTapStage===0?'① '+r.name+' 출발지 점 누르기':globeTapStage===1?'② '+r.destination+' 도착지 점 누르기':'✓ '+r.name+' → '+r.destination+' 연결 완료! 이유를 골라 줘.';
 }
 function migrationChooseOrigin(id){
  const r=MIGRATION_ROUTES.find(x=>x.id===id);if(!r)return;
@@ -396,7 +465,7 @@ function migrationChooseOrigin(id){
  if($('migrationQuestionCountry'))$('migrationQuestionCountry').textContent=r.name+' → '+r.destination;
  if($('migrationReason'))$('migrationReason').value=migrationChoices[id]||'';
  if($('migrationFeedback'))$('migrationFeedback').textContent=migrationChoices[id]?'확인 완료':'';
- migrationUpdate();migrationMapDraw();
+ globeTapStage=0;globeAngle=r.coords[1];globeLat=r.coords[0]*.3;globeLast=performance.now();migrationUpdate();migrationMapDraw();
 }
 function migrationSetRegion(region){
  if(!['anglo','latin'].includes(region))return;
@@ -410,6 +479,7 @@ function migrationUpdate(){
 }
 function migrationCheckReason(){
  const r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected),choice=$('migrationReason')?.value;
+ if(globeTapStage!==2&&!migrationChoices[r.id])return inquiryNotice('지구본에서 출발지와 도착지를 차례로 눌러 화살표를 연결해 줘.',true);
  if(!choice)return inquiryNotice('이동 이유를 골라 줘.',true);
  if(choice!==r.reason){$('migrationFeedback').textContent='이 사례의 역사적 배경을 다시 생각해 보자.';return}
  migrationChoices[r.id]=choice;$('migrationFeedback').textContent='이동 경로를 연결했어!';
@@ -421,7 +491,7 @@ function migrationSwitchTab(tab){
  const a=$('inqMigrationStage'),b=$('inqComparisonStage');if(!a||!b)return;
  a.hidden=false;b.hidden=false;
  // Both original textbook chart and illustrated map stay visible side-by-side.
- setTimeout(()=>{migrationMap?.invalidateSize();migrationMapDraw()},40);
+ migrationMapDraw();
 }
 function migrationInit(){
  migrationChoices={};const saved=me?.inquiry?.routeDraft||me?.inquiry?.demography?.migration;
@@ -524,12 +594,12 @@ function inquiryRender(){
     '<button data-migration-region="anglo" type="button">앵글로아메리카 <span>0/4</span></button>'+
     '<button data-migration-region="latin" type="button">라틴아메리카 <span>0/4</span></button></div>'+
     '<p id="migrationRegionDescription"></p><div id="inqMigrationMap" class="migrationMap"></div>'+
-    '<p class="inquirySource">화살표는 대표적인 역사적 이동 경로를 간략하게 나타낸 거야.</p></section>'+
+    '<p class="inquirySource">지구본을 손가락으로 돌릴 수 있어. 표시된 출발지 → 도착지 순서로 눌러 봐.</p></section>'+
     '<section class="inquiryQuestion inquiryAnswerPanel"><h3>이동 이유 고르기 <small id="migrationProgress"></small></h3>'+
     '<div id="migrationOriginList" class="migrationOriginList"></div>'+
     '<p class="migrationQuestionCountry" id="migrationQuestionCountry"></p>'+
     '<label for="migrationReason">사람들이 이동한 주요 이유는?</label><select id="migrationReason">'+reasons+'</select>'+
-    '<button type="button" class="btn secondary" id="migrationCheck">이유 확인 · 화살표 연결</button>'+
+    '<button type="button" class="btn secondary" id="migrationCheck">이동 이유 확인 · 경로 완성</button>'+
     '<p id="migrationFeedback" aria-live="polite"></p>'+
     '<p class="migrationNote">원주민은 이전부터 아메리카에 살고 있었어. 대표 사례를 살펴보는 활동이야.</p>'+
     '<button type="button" class="btn mint" id="migrationGoGraph" disabled>8개 경로 확인 완료</button></section></div>'+
