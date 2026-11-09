@@ -362,8 +362,22 @@ body.inquiryView .inquiryStep2 .migrationRouteProgress{font-size:14px;font-weigh
 .inquiryStep3 .culturePictureEmoji{font-size:clamp(54px,7vw,95px);line-height:1.2;filter:drop-shadow(0 4px 3px #718fa344)}
 .inquiryStep3 #cultureCaseProgress{font-size:14px;font-weight:850;color:#326a8a}
 .inquiryStep3 #cultureSaveReason{margin:6px 0!important}
+</style><style id="cultureAnswerCTAStyle">
+.inquiryStep3 #cultureQuizCheck{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;min-height:66px!important;padding:11px 15px!important;box-sizing:border-box!important;margin:9px 0 5px!important;border:3px solid #1a6599!important;border-radius:16px!important;background:#286ea8!important;color:#fff!important;font-size:clamp(17px,1.9vw,23px)!important;font-weight:900!important;line-height:1.35!important;box-shadow:0 5px 0 #184d79,0 9px 17px #285b8b34!important;cursor:pointer!important;touch-action:manipulation}
+.inquiryStep3 #cultureQuizCheck[data-ready="true"]{background:#118258!important;border-color:#006d47!important;box-shadow:0 5px 0 #07563a,0 0 0 5px #b9f1d8!important;animation:cultureCTAGlow 1.7s ease-in-out infinite}
+.inquiryStep3 #cultureQuizCheck:focus-visible{outline:4px solid #ffb84f!important;outline-offset:3px!important}
+.inquiryStep3 #cultureQuizCheck:disabled{opacity:1!important;cursor:default!important}
+.inquiryStep3 #cultureQuizCheck[data-state="solved"]{background:#e1f6e9!important;color:#155c40!important;border-color:#80ceab!important;box-shadow:0 3px 0 #80ceab!important;animation:none!important}
+.inquiryStep3 #cultureQuizCheck[data-state="locked"]{background:#8898a8!important;border-color:#728294!important;box-shadow:none!important;animation:none!important}
+.inquiryStep3 #cultureCheckInstruction{display:block;font-size:clamp(13px,1.35vw,16px)!important;font-weight:850!important;color:#254f73!important;margin:6px 0 4px!important}
+.inquiryStep3 #cultureQuizFeedback{font-size:clamp(13px,1.4vw,17px)!important;font-weight:800!important;padding:6px 9px!important;border-radius:9px!important;background:#ebf5ff!important;color:#234d6f!important;margin:5px 0 8px!important}
+.inquiryStep3 #cultureQuizFeedback[data-state="solved"]{background:#e3f9ec!important;color:#155b3f!important}
+.inquiryStep3 #cultureSaveReason{width:100%!important;min-height:50px!important;font-weight:850!important;font-size:clamp(14px,1.6vw,18px)!important;background:#eee3ff!important;border:2px solid #bc9de9!important;color:#523479!important;touch-action:manipulation}
+@keyframes cultureCTAGlow{50%{filter:brightness(1.13)}}
+@media(prefers-reduced-motion:reduce){.inquiryStep3 #cultureQuizCheck{animation:none!important}}
+@media(orientation:landscape) and (max-height:800px){.inquiryStep3 #cultureQuizCheck{min-height:55px!important;margin:4px 0!important;padding:7px 12px!important}.inquiryStep3 #cultureQuizFeedback{padding:4px 7px!important;margin:3px 0 5px!important}.inquiryStep3 #cultureSaveReason{min-height:44px!important}}
 </style></head>
-<body data-app-build="2026-11-09-redeploy-01">
+<body data-app-build="2026-11-10-culture-cta">
 <header>
   <div class="headIn">
     <h1>아메리카 지도 만들기 <span class="titleBadge">나라 20 · 랜드마크 8 · 자연 5</span></h1>
@@ -683,11 +697,23 @@ function inquiryUpdateEquation(){
   (selected.length?selected.map(x=>x.text).join('  +  '):'문화 요소 선택  +  문화 요소 선택')+
   '  =  '+culture.name+' ('+culture.country+')';
  if($('inqMixCount'))$('inqMixCount').textContent=selected.length+'개 선택 (2개)';
+ cultureUpdateCheckCTA();
+}
+function cultureUpdateCheckCTA(){
+ const button=$('cultureQuizCheck'),info=$('cultureCheckInstruction'),feedback=$('cultureQuizFeedback');if(!button)return;
+ const n=Number($('inqCultureCountry')?.value)||0,count=inquiryPickedRoots().length;
+ const solved=!!cultureSolved[n],locked=Date.now()<cultureLockUntil;
+ const ready=count===2&&!solved&&!locked;
+ button.dataset.ready=String(ready);button.dataset.state=solved?'solved':locked?'locked':ready?'ready':'select';
+ button.disabled=solved||locked||count!==2;
+ button.textContent=solved?'✓ 정답 확인 완료! 아래에 이유를 작성하세요':locked?'⏳ 10초 후 다시 선택할 수 있어요':ready?'② 선택 완료! 여기를 눌러 정답 확인하기 →':'② 문화 요소 2개를 선택해 주세요 ('+count+'/2)';
+ if(info)info.textContent=solved?'✓ 정답 확인 완료 · 이제 이유를 작성하고 저장하세요':ready?'✓ 두 개 선택 완료! 아래 초록색 버튼을 눌러 주세요':'선택한 문화 요소: '+count+' / 2';
+ if(feedback)feedback.dataset.state=solved?'solved':'pending';
 }
 function inquiryEnableMixer(){
  const country=$('inqCultureCountry');if(!country)return;
  const chips=[...document.querySelectorAll('.inquiryRootChip')];
- country.onchange=()=>{if(Number(country.value)!==cultureActive){country.value=String(cultureActive);return;}const old=Number(country.dataset.previous||0);if($('inqCultureReason')&&cultureSolved[old]){const value=$('inqCultureReason').value.trim();if(value.length>=18)cultureReasons[old]=value;}country.dataset.previous=country.value;if($('inqCultureReason'))$('inqCultureReason').value=cultureReasons[Number(country.value)]||'';chips.forEach(x=>x.setAttribute('aria-pressed','false'));inquiryUpdateEquation();cultureUpdatePicture();if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent=(cultureSolved[Number(country.value)]?'완료한 사례예요.':'문화 요소 두 개를 찾아보세요.');};
+ country.onchange=()=>{if(Number(country.value)!==cultureActive){country.value=String(cultureActive);return;}const old=Number(country.dataset.previous||0);if($('inqCultureReason')&&cultureSolved[old]){const value=$('inqCultureReason').value.trim();if(value.length>=18)cultureReasons[old]=value;}country.dataset.previous=country.value;if($('inqCultureReason'))$('inqCultureReason').value=cultureReasons[Number(country.value)]||'';chips.forEach(x=>x.setAttribute('aria-pressed','false'));inquiryUpdateEquation();cultureUpdatePicture();if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent=(cultureSolved[Number(country.value)]?'완료한 사례예요.':'문화 요소 두 개를 찾아보세요.');cultureUpdateCheckCTA();};
  if($('cultureQuizCheck'))$('cultureQuizCheck').onclick=cultureQuizCheck;
  if($('cultureSaveReason'))$('cultureSaveReason').onclick=cultureSaveReason;
  cultureUpdatePicture();
@@ -704,15 +730,15 @@ const CULTURE_PICTURES=['⛪🌺','💃🎻','🍔🥨','🎭🥁'];
 let cultureActive=0;
 function culturePersist(){if(!PREVIEW_ONLY&&playerRef&&serverVerified&&firebaseState==='online')playerRef.child('inquiry').update({cultureDraft:{solved:{...cultureSolved},reasons:{...cultureReasons},active:cultureActive}}).catch(()=>inquiryNotice('문화 답변 저장 실패. 연결을 확인해 줘.',true));}
 function cultureUpdatePicture(){const n=Number($('inqCultureCountry')?.value)||0;if($('inqCultureCountry')){$('inqCultureCountry').value=String(cultureActive);$('inqCultureCountry').disabled=true;}if($('cultureCasePicture'))$('cultureCasePicture').textContent=CULTURE_PICTURES[n]||'🎨';if($('cultureCaseProgress'))$('cultureCaseProgress').textContent='완료 '+Object.keys(cultureSolved).filter(i=>cultureReasons[i]&&cultureReasons[i].length>=18).length+' / '+INQUIRY_CULTURES.length;}
-function cultureSaveReason(){const n=Number($('inqCultureCountry')?.value)||0,reason=String($('inqCultureReason')?.value||'').trim();if(!cultureSolved[n])return inquiryNotice('문화 요소 정답을 먼저 확인해 줘.',true);if(reason.length<18)return inquiryNotice('이 문화가 결합한 이유를 18자 이상 적어 줘.',true);cultureReasons[n]=reason;if(n<INQUIRY_CULTURES.length-1){cultureActive=n+1;const country=$('inqCultureCountry');country.value=String(cultureActive);country.dataset.previous=String(cultureActive);if($('inqCultureReason'))$('inqCultureReason').value=cultureReasons[cultureActive]||'';document.querySelectorAll('.inquiryRootChip').forEach(x=>x.setAttribute('aria-pressed','false'));inquiryUpdateEquation();if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent='문화 요소 두 개를 찾아보세요.';inquiryNotice('이전 사례 완료! 다음 문화 사례를 탐구해 보자.');}else inquiryNotice('4개 사례 모두 완료! 역사 탐정 단계로 이동할 수 있어.');cultureUpdatePicture();culturePersist();}
+function cultureSaveReason(){const n=Number($('inqCultureCountry')?.value)||0,reason=String($('inqCultureReason')?.value||'').trim();if(!cultureSolved[n])return inquiryNotice('문화 요소 정답을 먼저 확인해 줘.',true);if(reason.length<18)return inquiryNotice('이 문화가 결합한 이유를 18자 이상 적어 줘.',true);cultureReasons[n]=reason;if(n<INQUIRY_CULTURES.length-1){cultureActive=n+1;const country=$('inqCultureCountry');country.value=String(cultureActive);country.dataset.previous=String(cultureActive);if($('inqCultureReason'))$('inqCultureReason').value=cultureReasons[cultureActive]||'';document.querySelectorAll('.inquiryRootChip').forEach(x=>x.setAttribute('aria-pressed','false'));inquiryUpdateEquation();if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent='① 문화 요소 두 개를 선택해 주세요.';inquiryUpdateEquation();inquiryNotice('이전 사례 완료! 다음 문화 사례를 탐구해 보자.');}else inquiryNotice('4개 사례 모두 완료! 역사 탐정 단계로 이동할 수 있어.');cultureUpdatePicture();culturePersist();}
 function cultureQuizCheck(){
  const index=Number($('inqCultureCountry')?.value)||0,chosen=inquiryPickedRoots().map(x=>x.id).sort(),expected=(CULTURE_ANSWERS[index]||[]).slice().sort();
  const notice=$('cultureQuizFeedback');if(!notice)return;
  if(Date.now()<cultureLockUntil)return;
  if(chosen.length!==2){notice.textContent='문화 요소 두 개를 골라 확인해 보세요.';return;}
- if(chosen.join('|')===expected.join('|')){cultureSolved[index]=chosen;notice.textContent='정답! 아래에 결합한 이유를 작성하고 저장해 주세요.';cultureUpdatePicture();culturePersist();}
- else{cultureLockUntil=Date.now()+10000;notice.textContent='다시 생각해 보세요. 10초 후 재도전할 수 있어요.';document.querySelectorAll('.inquiryRootChip,#cultureQuizCheck').forEach(x=>x.disabled=true);
- clearTimeout(cultureLockTimer);cultureLockTimer=setTimeout(()=>{document.querySelectorAll('.inquiryRootChip,#cultureQuizCheck').forEach(x=>x.disabled=false);if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent='다시 선택해 보세요.';},10000);}
+ if(chosen.join('|')===expected.join('|')){cultureSolved[index]=chosen;notice.textContent='✓ 정답! 아래에 결합한 이유를 작성한 뒤 [이 사례의 이유 저장하기]를 눌러 주세요.';cultureUpdatePicture();cultureUpdateCheckCTA();culturePersist();}
+ else{cultureLockUntil=Date.now()+10000;notice.textContent='다시 생각해 보세요. 10초 후 재도전할 수 있어요.';document.querySelectorAll('.inquiryRootChip,#cultureQuizCheck').forEach(x=>x.disabled=true);cultureUpdateCheckCTA();
+ clearTimeout(cultureLockTimer);cultureLockTimer=setTimeout(()=>{document.querySelectorAll('.inquiryRootChip,#cultureQuizCheck').forEach(x=>x.disabled=false);if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent='다시 선택한 다음 정답 확인 버튼을 눌러 주세요.';cultureUpdateCheckCTA();},10000);}
 }
 let inquirySaving=false;
 function inquiryStep(record=me){
@@ -799,11 +825,13 @@ function inquiryRender(){
     '<div class="culturePicturePanel" aria-label="문화 사례를 나타내는 그림"><div id="cultureCasePicture" class="culturePictureEmoji">⛪🌺</div><span id="cultureCaseProgress">완료 0 / 4</span></div>'+
     '<p class="inquirySource">교과서 98~99쪽 사례에서 문화가 결합하는 과정을 찾아보자.</p></div>'+
     '<div class="inquiryQuestion"><h3>결합한 문화 요소 직접 고르기</h3>'+
-    '<p>문화 요소 두 개를 골라 정답을 확인하세요. 오답이면 10초 동안 다시 선택할 수 없어요.</p>'+
+    '<p>① 문화 요소 <b>2개 선택</b> → ② 큰 <b>정답 확인</b> 버튼 누르기 → ③ 이유 작성·저장</p>'+
     '<div class="inquiryRoots" id="inqCultureRoots">'+roots+'</div>'+
     '<div class="inquiryEquationPanel" aria-live="polite">'+
     '<div id="inqMixFormula" class="inquiryMixFormula"></div><span id="inqMixCount" class="inquiryMixCount"></span></div>'+ 
-    '<button type="button" class="btn secondary" id="cultureQuizCheck">선택한 문화 요소 정답 확인</button><p id="cultureQuizFeedback" aria-live="polite">문화 요소 두 개를 찾아보세요.</p>'+
+    '<span id="cultureCheckInstruction" aria-live="polite">선택한 문화 요소: 0 / 2</span>'+ 
+    '<button type="button" class="btn secondary" id="cultureQuizCheck" data-ready="false" data-state="select" disabled>② 문화 요소 2개를 선택해 주세요 (0/2)</button>'+ 
+    '<p id="cultureQuizFeedback" aria-live="polite">① 위에서 문화 요소 두 개를 선택해 주세요.</p>'+
     '<label for="inqCultureReason">이 요소들을 선택한 역사적 근거는?</label>'+
     '<textarea id="inqCultureReason" rows="3" placeholder="이 문화가 어떤 역사적 만남을 통해 만들어졌을지 설명해 보자."></textarea>'+ 
     '<button class="btn secondary" type="button" id="cultureSaveReason">이 사례의 이유 저장하기</button>'+
