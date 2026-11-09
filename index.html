@@ -468,8 +468,8 @@ const INQUIRY_POPULATION=[
 /* 교과서 97쪽: 여러 지역에서 미국으로 인구가 이동한 역사적 과정.
    이주 사유를 특정할 수 없는 히스패닉 이주는 '자료에 제시되지 않음'으로 판단. */
 const INQUIRY_GRAPH_COUNTRIES=['미국','멕시코','쿠바','자메이카','콜롬비아','페루','브라질','아르헨티나','우루과이'];
-const MIGRATION_REASONS=[{id:'settlement',label:'식민 지배와 정착'},{id:'forced',label:'노예로 강제 이주'},{id:'economic',label:'일자리 등 경제적 이유'}];
-const MIGRATION_ROUTES=[{"id":"ae","region":"anglo","name":"영국·유럽","coords":[53,-2],"target":[50,-96],"destination":"캐나다","reason":"settlement"},{"id":"af","region":"anglo","name":"서아프리카","coords":[10,-5],"target":[33,-81],"destination":"미국","reason":"forced"},{"id":"aa","region":"anglo","name":"동아시아","coords":[36,119],"target":[39,-122],"destination":"미국","reason":"economic"},{"id":"al","region":"anglo","name":"라틴아메리카","coords":[18,-100],"target":[33,-99],"destination":"미국","reason":"economic"},{"id":"ls","region":"latin","name":"에스파냐","coords":[40,-4],"target":[21,-101],"destination":"멕시코","reason":"settlement"},{"id":"lp","region":"latin","name":"포르투갈","coords":[39,-9],"target":[-16,-48],"destination":"브라질","reason":"settlement"},{"id":"lf","region":"latin","name":"서아프리카","coords":[8,-9],"target":[-14,-42],"destination":"브라질","reason":"forced"},{"id":"la","region":"latin","name":"동아시아","coords":[35,137],"target":[-23,-47],"destination":"브라질","reason":"economic"}];
+const MIGRATION_REASONS=[{id:'settlement',label:'식민 지배와 정착'},{id:'forced',label:'노예로 강제 이주'},{id:'economic',label:'일자리 등 경제적 이유'},{id:'unspecified',label:'교과서에 이동 이유가 명시되지 않음'}];
+const MIGRATION_ROUTES=[{"id":"ae","region":"anglo","name":"영국·유럽","coords":[53,-2],"target":[50,-96],"destination":"캐나다","reason":"settlement"},{"id":"af","region":"anglo","name":"서아프리카","coords":[10,-5],"target":[33,-81],"destination":"미국","reason":"forced"},{"id":"aa","region":"anglo","name":"동아시아","coords":[36,119],"target":[39,-122],"destination":"미국","reason":"economic"},{"id":"al","region":"anglo","name":"멕시코(히스패닉)","coords":[19.43,-99.13],"target":[33,-99],"destination":"미국","reason":"unspecified"},{"id":"ls","region":"latin","name":"에스파냐","coords":[40,-4],"target":[21,-101],"destination":"멕시코","reason":"settlement"},{"id":"lp","region":"latin","name":"포르투갈","coords":[39,-9],"target":[-16,-48],"destination":"브라질","reason":"settlement"},{"id":"lf","region":"latin","name":"서아프리카","coords":[8,-9],"target":[-14,-42],"destination":"브라질","reason":"forced"},{"id":"la","region":"latin","name":"동아시아","coords":[35,137],"target":[-23,-47],"destination":"브라질","reason":"economic"}];
 let migrationExplanations={},migrationChoices={},migrationSelected='ae',migrationRegion='anglo',migrationMap=null,migrationGeoPromise=null,migrationLayers=[];
 
 function migrationRoutes(){return MIGRATION_ROUTES.filter(r=>r.region===migrationRegion);}
@@ -578,6 +578,9 @@ function migrationChooseOrigin(id){
  if($('migrationRouteProgress'))$('migrationRouteProgress').textContent='이동 경로 '+(migrationRoutes().findIndex(x=>x.id===id)+1)+' / 4';
  if($('migrationQuestionCountry'))$('migrationQuestionCountry').textContent=r.name+' → '+r.destination;
  if($('migrationExplanation'))$('migrationExplanation').value=migrationExplanations[id]||'';
+ if($('migrationReason'))$('migrationReason').value=migrationChoices[id+'-reason']||'';
+ migrationRenderReasons();
+ if($('migrationFeedback')&&r.id==='al')$('migrationFeedback').textContent='히스패닉: 에스파냐어를 모국어로 사용하면서 미국에 거주하는 라틴 아메리카 출신 사람. 교과서에는 유입 이유가 명시되지 않았어.';
  if($('migrationFeedback'))$('migrationFeedback').textContent=migrationChoices[id]?'확인 완료':'';
  globeTapStage=migrationChoices[id]?2:0;globeAngle=r.coords[1];globeLat=r.coords[0]*.3;globeLast=performance.now();migrationUpdate();migrationMapDraw();
 }
@@ -590,6 +593,7 @@ function migrationShowChapter(region){
  $('migrationChapterStart').onclick=()=>{modal.remove();migrationSetRegion(region);};
 }
 function migrationNextRegion(){
+ if(migrationCount(migrationRegion)<4)return inquiryNotice('이 지역의 인구 이동 경로 4개를 모두 완료해 줘.',true);
  if(migrationRegion==='anglo'){
   
   migrationShowChapter('latin');
@@ -600,24 +604,29 @@ function migrationNextRegion(){
 }
 function migrationSetRegion(region){
  if(!['anglo','latin'].includes(region))return;
- migrationChooseOrigin(migrationRoutes().find(r=>!migrationChoices[r.id])?.id||MIGRATION_ROUTES.find(r=>r.region===region).id);
+ migrationRegion=region;
+ const routes=MIGRATION_ROUTES.filter(r=>r.region===region);
+ migrationChooseOrigin(routes.find(r=>!migrationChoices[r.id])?.id||routes[0].id);
  if($('migrationRegionDescription'))$('migrationRegionDescription').textContent=region==='anglo'?'미국·캐나다로 향한 대표적인 인구 이동':'멕시코·브라질로 향한 대표적인 인구 이동';
 }
 function migrationUpdate(){
  if($('migrationProgress'))$('migrationProgress').textContent='앵글로 '+migrationCount('anglo')+'/4 · 라틴 '+migrationCount('latin')+'/4';
  if($('migrationGoGraph')){$('migrationGoGraph').disabled=false;$('migrationGoGraph').hidden=true;}
- if($('migrationNextRegion')){$('migrationNextRegion').textContent=migrationRegion==='anglo'?'라틴아메리카 인구로 →':'원그래프 분석으로 →';$('migrationNextRegion').disabled=false;}
+ if($('migrationNextRegion')){$('migrationNextRegion').textContent=migrationRegion==='anglo'?'라틴아메리카 인구로 →':'원그래프 분석으로 →';$('migrationNextRegion').disabled=migrationCount(migrationRegion)<4;}
  document.querySelectorAll('[data-migration-region]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.migrationRegion===migrationRegion));b.querySelector('span').textContent=migrationCount(b.dataset.migrationRegion)+'/4'});
 }
 function migrationCheckReason(){
  const r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected),explanation=String($('migrationExplanation')?.value||'').trim();
  if(!r)return;
  if(globeTapStage!==2&&!migrationChoices[r.id])return inquiryNotice('지구본에서 출발지와 도착지를 차례로 눌러 화살표를 연결해 줘.',true);
- if(explanation.length<12)return inquiryNotice('이동 이유를 12자 이상 적어 줘. 지금은 다음으로 넘어가도 돼.',true);
+ const selectedReason=$('migrationReason')?.value||'';
+ if(!selectedReason)return inquiryNotice('이동 이유를 먼저 선택해 줘.',true);
+ if(selectedReason!==r.reason)return inquiryNotice('교과서의 이동 배경을 다시 살펴보고 선택해 줘.',true);
+ if(explanation.length<12)return inquiryNotice('이동 이유를 12자 이상 적어 줘.',true);
  const keywords={settlement:['식민','정착','지배','개척'],forced:['노예','강제','납치','강제로'],economic:['경제','일자리','취업','생계','돈','직업','노동','생활']};
- const ok=(keywords[r.reason]||[]).some(k=>explanation.includes(k));
+ const ok=r.reason==='unspecified'||(keywords[r.reason]||[]).some(k=>explanation.includes(k));
  migrationExplanations[r.id]=explanation;
- migrationChoices[r.id]=ok?'keyword-ok':'needs-review';
+ migrationChoices[r.id]=ok?'keyword-ok':'needs-review';migrationChoices[r.id+'-reason']=selectedReason;
  $('migrationFeedback').textContent=ok?'핵심 단어가 포함됐어!':'핵심 단어가 부족해. 기록은 저장했고, 다음으로 넘어갈 수 있어.';
  migrationUpdate();migrationMapDraw();inquiryNotice('');
  const next=migrationRoutes().find(x=>!migrationChoices[x.id]);if(next)migrationChooseOrigin(next.id);
@@ -641,8 +650,8 @@ function migrationRenderReasons(){
  });
 }
 function migrationInit(){
- migrationChoices={};migrationExplanations={...(me?.inquiry?.routeExplanations||{})};const saved=me?.inquiry?.routeDraft||me?.inquiry?.demography?.migration;
- if(saved)for(const r of MIGRATION_ROUTES)if(migrationExplanations[r.id]&&String(migrationExplanations[r.id]).length>=12)migrationChoices[r.id]='written';
+ migrationChoices={...(me?.inquiry?.routeDraft||me?.inquiry?.demography?.migration||{})};migrationExplanations={...(me?.inquiry?.routeExplanations||{})};const saved=me?.inquiry?.routeDraft||me?.inquiry?.demography?.migration;
+ if(saved)for(const r of MIGRATION_ROUTES)if(!migrationExplanations[r.id]||String(migrationExplanations[r.id]).length<12)delete migrationChoices[r.id];
  migrationRegion='anglo';migrationSelected='ae';
  $('migrationGoGraph').onclick=()=>migrationSwitchTab('graph');
  $('migrationNextRegion').onclick=migrationNextRegion;
@@ -701,14 +710,15 @@ function inquiryEnableMixer(){
 let cultureSolved={},cultureReasons={},cultureLockUntil=0,cultureLockTimer=null;
 const CULTURE_PICTURES=['⛪🌺','💃🎻','🍔🥨','🎭🥁'];
 let cultureActive=0;
+function culturePersist(){if(!PREVIEW_ONLY&&playerRef&&serverVerified&&firebaseState==='online')playerRef.child('inquiry').update({cultureDraft:{solved:{...cultureSolved},reasons:{...cultureReasons},active:cultureActive}}).catch(()=>inquiryNotice('문화 답변 저장 실패. 연결을 확인해 줘.',true));}
 function cultureUpdatePicture(){const n=Number($('inqCultureCountry')?.value)||0;if($('inqCultureCountry')){$('inqCultureCountry').value=String(cultureActive);$('inqCultureCountry').disabled=true;}if($('cultureCasePicture'))$('cultureCasePicture').textContent=CULTURE_PICTURES[n]||'🎨';if($('cultureCaseProgress'))$('cultureCaseProgress').textContent='완료 '+Object.keys(cultureSolved).filter(i=>cultureReasons[i]&&cultureReasons[i].length>=18).length+' / '+INQUIRY_CULTURES.length;}
-function cultureSaveReason(){const n=Number($('inqCultureCountry')?.value)||0,reason=String($('inqCultureReason')?.value||'').trim();if(!cultureSolved[n])return inquiryNotice('문화 요소 정답을 먼저 확인해 줘.',true);if(reason.length<18)return inquiryNotice('이 문화가 결합한 이유를 18자 이상 적어 줘.',true);cultureReasons[n]=reason;if(n<INQUIRY_CULTURES.length-1){cultureActive=n+1;const country=$('inqCultureCountry');country.disabled=false;country.value=String(cultureActive);country.dispatchEvent(new Event('change'));country.disabled=true;inquiryNotice('이전 사례 완료! 다음 문화 사례를 탐구해 보자.');}else inquiryNotice('4개 사례 모두 완료! 역사 탐정 단계로 이동할 수 있어.');cultureUpdatePicture();}
+function cultureSaveReason(){const n=Number($('inqCultureCountry')?.value)||0,reason=String($('inqCultureReason')?.value||'').trim();if(!cultureSolved[n])return inquiryNotice('문화 요소 정답을 먼저 확인해 줘.',true);if(reason.length<18)return inquiryNotice('이 문화가 결합한 이유를 18자 이상 적어 줘.',true);cultureReasons[n]=reason;if(n<INQUIRY_CULTURES.length-1){cultureActive=n+1;const country=$('inqCultureCountry');country.value=String(cultureActive);country.dataset.previous=String(cultureActive);if($('inqCultureReason'))$('inqCultureReason').value=cultureReasons[cultureActive]||'';document.querySelectorAll('.inquiryRootChip').forEach(x=>x.setAttribute('aria-pressed','false'));inquiryUpdateEquation();if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent='문화 요소 두 개를 찾아보세요.';inquiryNotice('이전 사례 완료! 다음 문화 사례를 탐구해 보자.');}else inquiryNotice('4개 사례 모두 완료! 역사 탐정 단계로 이동할 수 있어.');cultureUpdatePicture();culturePersist();}
 function cultureQuizCheck(){
  const index=Number($('inqCultureCountry')?.value)||0,chosen=inquiryPickedRoots().map(x=>x.id).sort(),expected=(CULTURE_ANSWERS[index]||[]).slice().sort();
  const notice=$('cultureQuizFeedback');if(!notice)return;
  if(Date.now()<cultureLockUntil)return;
  if(chosen.length!==2){notice.textContent='문화 요소 두 개를 골라 확인해 보세요.';return;}
- if(chosen.join('|')===expected.join('|')){cultureSolved[index]=chosen;notice.textContent='정답! 아래에 결합한 이유를 작성하고 저장해 주세요.';cultureUpdatePicture();}
+ if(chosen.join('|')===expected.join('|')){cultureSolved[index]=chosen;notice.textContent='정답! 아래에 결합한 이유를 작성하고 저장해 주세요.';cultureUpdatePicture();culturePersist();}
  else{cultureLockUntil=Date.now()+10000;notice.textContent='다시 생각해 보세요. 10초 후 재도전할 수 있어요.';document.querySelectorAll('.inquiryRootChip,#cultureQuizCheck').forEach(x=>x.disabled=true);
  clearTimeout(cultureLockTimer);cultureLockTimer=setTimeout(()=>{document.querySelectorAll('.inquiryRootChip,#cultureQuizCheck').forEach(x=>x.disabled=false);if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent='다시 선택해 보세요.';},10000);}
 }
@@ -847,7 +857,7 @@ function inquiryRender(){
    $('inqCountryB').value='자메이카';
    migrationInit();
  }
- if(step===3)inquiryEnableMixer();
+ if(step===3){const draft=me?.inquiry?.cultureDraft||{};cultureSolved={...(draft.solved||{})};cultureReasons={...(draft.reasons||{})};cultureActive=Math.max(0,Math.min(INQUIRY_CULTURES.length-1,Number(draft.active)||0));inquiryEnableMixer();}
  if($('inquirySubmit'))$('inquirySubmit').onclick=()=>inquirySubmit(step);
  showConn();
 }
@@ -864,6 +874,7 @@ async function inquirySubmit(step){
    if(evidence.length<25){
      return inquiryNotice('원그래프에서 관찰한 두 나라의 인구 구성 차이를 25자 이상 적어 줘.',true);
    }
+   if(migrationCount('anglo')<4||migrationCount('latin')<4)return inquiryNotice('앵글로와 라틴아메리카 인구 이동 경로를 모두 완료해 줘.',true);
    answer={a,b,evidence,cause:'',migration:{...migrationChoices},migrationExplanations:{...migrationExplanations}};
  }else if(step===3){
    const index=Number($('inqCultureCountry')?.value);
@@ -871,8 +882,7 @@ async function inquirySubmit(step){
    if(!culture)return inquiryNotice('탐구할 국가를 선택해 줘.',true);
    if(cultureSolved[index]&&reason.length>=18)cultureReasons[index]=reason;
    if(INQUIRY_CULTURES.some((c,i)=>!cultureSolved[i]||!cultureReasons[i]||cultureReasons[i].length<18))return inquiryNotice('4개 사례 모두 정답을 확인하고 결합 이유까지 작성해 줘.',true);
-   if(roots.length<2)return inquiryNotice('현재 사례의 문화 요소 두 개를 골라 줘.',true);
-   if(reason.length<18)return inquiryNotice('왜 그렇게 결합했다고 생각했는지 근거를 적어 줘.',true);
+   if(index!==INQUIRY_CULTURES.length-1)return inquiryNotice('마지막 사례까지 순서대로 완료해 줘.',true);
    answer={completedCases:Object.keys(cultureSolved).map(i=>({name:INQUIRY_CULTURES[i].name,country:INQUIRY_CULTURES[i].country,elements:cultureSolved[i],reason:cultureReasons[i]})),country:culture.country,culture:culture.name,elements:roots.map(x=>x.text),
     formula:roots.map(x=>x.text).join(' + ')+' = '+culture.name+' ('+culture.country+')',
     reason,link:''};
