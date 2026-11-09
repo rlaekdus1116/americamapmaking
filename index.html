@@ -338,6 +338,10 @@ body.inquiryView .inquiryStep2 #migrationExplanation{width:100%!important;min-he
 .migrationChapterCard button{min-height:52px;font-size:clamp(16px,2vw,21px);padding:12px 32px;border-radius:16px}
 body.inquiryView .inquiryStep2 #migrationNextRegion{width:100%;font-size:16px;font-weight:850;min-height:43px;background:#b5e9d5;color:#254e46}
 body.inquiryView .inquiryStep2 #migrationGoGraph[hidden]{display:none!important}
+</style><style id="graphOnlyObservationStage">
+body.inquiryView .inquiryStep2 #inqComparisonStage .inquiryOriginalGraph{max-height:calc(100dvh - 230px)!important;object-fit:contain!important}
+body.inquiryView .inquiryStep2 #inqComparisonStage #inqEvidence{min-height:110px!important;font-size:clamp(14px,1.5vw,18px)!important;line-height:1.5!important}
+body.inquiryView .inquiryStep2 #inqComparisonStage .migrationBigQuestion{font-size:clamp(19px,2.5vw,28px)!important}
 </style></head>
 <body>
 <header>
@@ -554,7 +558,7 @@ function migrationChooseOrigin(id){
  if($('migrationOriginList'))$('migrationOriginList').innerHTML=migrationRouteHtml();
  migrationBindOriginButtons();
  if($('migrationQuestionCountry'))$('migrationQuestionCountry').textContent=r.name+' → '+r.destination;
- if($('migrationReason'))$('migrationReason').value=migrationChoices[id]||'';if($('migrationExplanation'))$('migrationExplanation').value=migrationExplanations[id]||'';migrationRenderReasons();
+ if($('migrationExplanation'))$('migrationExplanation').value=migrationExplanations[id]||'';
  if($('migrationFeedback'))$('migrationFeedback').textContent=migrationChoices[id]?'확인 완료':'';
  globeTapStage=migrationChoices[id]?2:0;globeAngle=r.coords[1];globeLat=r.coords[0]*.3;globeLast=performance.now();migrationUpdate();migrationMapDraw();
 }
@@ -587,13 +591,13 @@ function migrationUpdate(){
  document.querySelectorAll('[data-migration-region]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.migrationRegion===migrationRegion));b.querySelector('span').textContent=migrationCount(b.dataset.migrationRegion)+'/4'});
 }
 function migrationCheckReason(){
- const r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected),choice=$('migrationReason')?.value,explanation=String($('migrationExplanation')?.value||'').trim();
+ const r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected),explanation=String($('migrationExplanation')?.value||'').trim();
+ if(!r)return;
  if(globeTapStage!==2&&!migrationChoices[r.id])return inquiryNotice('지구본에서 출발지와 도착지를 차례로 눌러 화살표를 연결해 줘.',true);
- if(!choice)return inquiryNotice('이동 이유를 골라 줘.',true);
- if(choice!==r.reason){$('migrationFeedback').textContent='이 사례의 역사적 배경을 다시 생각해 보자.';return}
  if(explanation.length<12)return inquiryNotice('이동 이유를 12자 이상 내 생각으로 적어 줘.',true);
  migrationExplanations[r.id]=explanation;
- migrationChoices[r.id]=choice;$('migrationFeedback').textContent='이동 경로를 연결했어!';
+ migrationChoices[r.id]='written';
+ $('migrationFeedback').textContent='이동 이유를 저장했어!';
  $('migrationOriginList').innerHTML=migrationRouteHtml();migrationBindOriginButtons();migrationUpdate();migrationMapDraw();inquiryNotice('');
  if(!PREVIEW_ONLY&&playerRef&&serverVerified&&firebaseState==='online')playerRef.child('inquiry').update({routeDraft:{...migrationChoices},routeExplanations:{...migrationExplanations}}).catch(()=>{});
 }
@@ -616,7 +620,7 @@ function migrationRenderReasons(){
 }
 function migrationInit(){
  migrationChoices={};migrationExplanations={...(me?.inquiry?.routeExplanations||{})};const saved=me?.inquiry?.routeDraft||me?.inquiry?.demography?.migration;
- if(saved)for(const r of MIGRATION_ROUTES)if(saved[r.id]===r.reason)migrationChoices[r.id]=r.reason;
+ if(saved)for(const r of MIGRATION_ROUTES)if(migrationExplanations[r.id]&&String(migrationExplanations[r.id]).length>=12)migrationChoices[r.id]='written';
  migrationRegion='anglo';migrationSelected='ae';
  $('migrationGoGraph').onclick=()=>migrationSwitchTab('graph');
  $('migrationNextRegion').onclick=migrationNextRegion;
@@ -718,14 +722,14 @@ function inquiryRender(){
     '<button data-migration-region="latin" type="button">라틴아메리카 <span>0/4</span></button></div>'+
     '<div id="inqMigrationMap" class="migrationMap"></div>'+
     '</section>'+
-    '<section class="inquiryQuestion inquiryAnswerPanel"><h3>이동 이유 고르기 <small id="migrationProgress"></small></h3>'+
+    '<section class="inquiryQuestion inquiryAnswerPanel"><h3>인구 이동 탐구 <small id="migrationProgress"></small></h3>'+
     '<div id="migrationOriginList" class="migrationOriginList"></div>'+
     '<p class="migrationQuestionCountry" id="migrationQuestionCountry"></p>'+
-    '<div class="migrationBigQuestion">이 사람들은 왜 이동했을까?</div><select id="migrationReason" hidden aria-label="이동 이유">'+reasons+'</select><div id="migrationReasonLinks" class="migrationReasonLinks" role="group" aria-label="이동 이유 연결하기"></div>'+
-    '<label class="migrationWriteLabel" for="migrationExplanation">왜 그렇게 연결했나요? 내 생각 쓰기</label>'+ 
+    '<div class="migrationBigQuestion">이 사람들은 왜 이동했을까?</div>'+
+    '<label class="migrationWriteLabel" for="migrationExplanation">이동 이유를 내 생각으로 설명해 보자.</label>'+ 
     '<p class="migrationWriteExample">예시 문장: “나는 ○○에서 ○○로 이동한 이유가 ______ 때문이라고 생각한다.”</p>'+ 
     '<textarea id="migrationExplanation" rows="2" placeholder="이동 경로와 역사적 배경을 연결해 내 생각을 써 보세요."></textarea>'+ 
-    '<button type="button" class="btn secondary" id="migrationCheck">짝짓기와 이유 저장하기 →</button>'+
+    '<button type="button" class="btn secondary" id="migrationCheck">이동 이유 저장하기 →</button>'+
     '<p id="migrationFeedback" aria-live="polite"></p>'+
     ''+
     '<button type="button" class="btn mint" id="migrationNextRegion">다음으로 →</button>'+ 
@@ -734,13 +738,13 @@ function inquiryRender(){
     '<section class="inquiryData inquiryChartPanel"><button type="button" class="btn secondary migrationBack" id="migrationBack">← 인구 이동 단계로</button><h3>교과서 원그래프 · 민족과 인종 구성</h3>'+
     '<div class="inquiryGraphWrap"><img class="inquiryOriginalGraph" src="assets/americas_population_97.webp" alt="아메리카 국가별 민족과 인종 구성 원그래프"></div>'+
     '<p class="inquirySource"><a href="assets/americas_population_97.webp" target="_blank" rel="noopener">원그래프 크게 보기</a></p></section>'+
-    '<section class="inquiryQuestion inquiryAnswerPanel"><div class="migrationBigQuestion">두 나라의 인구 구성은 왜 다를까?</div><h3>두 나라의 인구 구성 비교</h3>'+
+    '<section class="inquiryQuestion inquiryAnswerPanel"><div class="migrationBigQuestion">원그래프에서 어떤 차이를 발견했나요?</div><h3>원그래프 관찰 · 서술형</h3>'+
     ''+
     '<div class="inquiryCountryPick"><label>첫 번째 국가<select id="inqCountryA">'+options+'</select></label>'+
     '<label>두 번째 국가<select id="inqCountryB">'+options+'</select></label></div>'+
-    '<label for="inqEvidence">① 비율 관찰 → ② 국가 비교 → ③ 이동 경로로 이유 설명</label>'+
-    '<textarea id="inqEvidence" rows="2" placeholder="두 나라의 비율(%)을 비교하고, 이동 경로를 근거로 차이를 설명해 보자."></textarea>'+
-    '<button type="button" class="btn mint" id="inquirySubmit">분석 저장 · 다음 단계 →</button></section></div>';
+    '<label for="inqEvidence">원그래프만 보고 두 나라의 인구 구성을 비교해 보자.</label>'+
+    '<textarea id="inqEvidence" rows="4" placeholder="예: ○○은 △△의 비율이 높지만, □□은 ◇◇의 비율이 높다. 원그래프에서 보이는 차이를 구체적으로 적어 보자."></textarea>'+
+    '<button type="button" class="btn mint" id="inquirySubmit">원그래프 관찰 저장 · 다음 단계 →</button></section></div>';
  }else if(step===3){
    title='서로 다른 문화가 만나면 무엇이 만들어질까?';
    lead='국가를 선택하고, 다양한 문화 요소 중 어울리는 재료 2~3개를 직접 골라 조합식을 완성해 보자.';
@@ -813,9 +817,8 @@ async function inquirySubmit(step){
    const a=v('inqCountryA'),b=v('inqCountryB'),evidence=v('inqEvidence');
    if(!a||!b||a===b)return inquiryNotice('서로 다른 두 나라를 골라 줘.',true);
    if(Object.keys(migrationChoices).length!==MIGRATION_ROUTES.length||MIGRATION_ROUTES.some(r=>!migrationExplanations[r.id]||migrationExplanations[r.id].length<12))return inquiryNotice('8개 경로의 짝짓기와 이동 이유 쓰기를 모두 완료해 줘.',true);
-   const ratios=evidence.match(/\d+(?:\.\d+)?\s*%/g)||[];
-   if(evidence.length<35||ratios.length<2){
-     return inquiryNotice('두 나라의 비율(%)을 각각 하나 이상 쓰고 역사적 이유를 함께 설명해 줘.',true);
+   if(evidence.length<25){
+     return inquiryNotice('원그래프에서 관찰한 두 나라의 인구 구성 차이를 25자 이상 적어 줘.',true);
    }
    answer={a,b,evidence,cause:'',migration:{...migrationChoices},migrationExplanations:{...migrationExplanations}};
  }else if(step===3){
