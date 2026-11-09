@@ -384,6 +384,8 @@ const QUIZ_ONLY = params.get('mode') === 'quiz';
 const PREVIEW_ONLY = params.get('mode') === 'preview';
 const roomKey = encodeURIComponent(ROOM).replace(/\./g,'%2E');
 const PLAYERS_PATH = 'rooms/' + roomKey + '/v8/players';
+const CLASS_CONTROL_PATH = 'rooms/' + roomKey + '/v8/classControl';
+let classroomCommand=null, classroomControlRef=null, classroomControlListener=null, classroomApplying=false;
 const $ = id => document.getElementById(id);
 const app = $('app');
 const localMem = {};
@@ -452,7 +454,7 @@ function validQuestionOrder(o){
  return Array.isArray(o)&&o.length===PROBLEMS.length&&new Set(o).size===PROBLEMS.length&&o.every((n,i)=>Number.isInteger(n)&&(i<COUNTRY_END?n>=0&&n<COUNTRY_END:i<CITY_END?n>=COUNTRY_END&&n<CITY_END:n===i));
 }
 function ensureQuestionOrder(p){if(!validQuestionOrder(p.questionOrder))p.questionOrder=createQuestionOrder(p.id||p.name||'');return p;}
-function questionAt(n,record=me){return PROBLEMS[record&&validQuestionOrder(record.questionOrder)?record.questionOrder[n]:n];}
+function questionAt(n,record=me){const teacherIndex=record&&n===Number(record.cur)&&Number.isInteger(record.teacherQuestionIndex)?record.teacherQuestionIndex:null;return PROBLEMS[teacherIndex!==null?teacherIndex:(record&&validQuestionOrder(record.questionOrder)?record.questionOrder[n]:n)];}
 
 
 /* 교과서 기반 단계형 탐구: 지도 완성 후 인구 자료 -> 문화 혼종성 -> 수정 판단.
@@ -1009,8 +1011,8 @@ function previewOnlyApply(x){
 }
 
 function fresh(name){return {id:nameKey(name),name:normName(name),score:0,done:0,cur:0,tries:0,coolUntil:0,log:[],unlocked:[],pending:null,t:serverNow(),createdAt:serverNow(),startedAt:serverNow(),timeSpent:0,paused:false,pausedElapsed:0,schemaVersion:11,questionOrder:createQuestionOrder(nameKey(name))};}
-function norm(p,key){p=p||{};return {id:key||p.id||'',name:p.name||'',score:Number(p.score)||0,done:Number(p.done)||0,cur:Number(p.cur)||0,tries:Number(p.tries)||0,coolUntil:Number(p.coolUntil)||0,log:Array.isArray(p.log)?p.log:[],unlocked:Array.isArray(p.unlocked)?p.unlocked:[],pending:p.pending||null,t:Number(p.t)||0,createdAt:Number(p.createdAt)||0,startedAt:Number(p.startedAt)||0,timeSpent:Number(p.timeSpent)||0,paused:!!p.paused,pausedElapsed:Number(p.pausedElapsed)||0,schemaVersion:Number(p.schemaVersion)||8,teacherRevision:Number(p.teacherRevision)||0,teacherAdjustments:Array.isArray(p.teacherAdjustments)?p.teacherAdjustments:[],teacherSkipped:Array.isArray(p.teacherSkipped)?p.teacherSkipped:[],wrongAttempts:Array.isArray(p.wrongAttempts)?p.wrongAttempts:[],lastSubmission:p.lastSubmission||null,questionOrder:Array.isArray(p.questionOrder)?p.questionOrder:null,inquiry:p.inquiry&&typeof p.inquiry==='object'?p.inquiry:null};}
-function sig(p){return [p.cur,p.tries,p.coolUntil,p.done,p.score,p.pending?String(p.pending.idx)+p.pending.mode:'',p.paused?'pause':'play',p.teacherRevision||0,p.lastSubmission?.at||0,p.inquiry?.step||0,p.inquiry?.updatedAt||0,p.pending?.piecePlaced?'piece-placed':'piece-open'].join('|');}
+function norm(p,key){p=p||{};return {id:key||p.id||'',name:p.name||'',score:Number(p.score)||0,done:Number(p.done)||0,cur:Number(p.cur)||0,tries:Number(p.tries)||0,coolUntil:Number(p.coolUntil)||0,log:Array.isArray(p.log)?p.log:[],unlocked:Array.isArray(p.unlocked)?p.unlocked:[],pending:p.pending||null,t:Number(p.t)||0,createdAt:Number(p.createdAt)||0,startedAt:Number(p.startedAt)||0,timeSpent:Number(p.timeSpent)||0,paused:!!p.paused,pausedElapsed:Number(p.pausedElapsed)||0,schemaVersion:Number(p.schemaVersion)||8,teacherRevision:Number(p.teacherRevision)||0,teacherAdjustments:Array.isArray(p.teacherAdjustments)?p.teacherAdjustments:[],teacherSkipped:Array.isArray(p.teacherSkipped)?p.teacherSkipped:[],wrongAttempts:Array.isArray(p.wrongAttempts)?p.wrongAttempts:[],lastSubmission:p.lastSubmission||null,questionOrder:Array.isArray(p.questionOrder)?p.questionOrder:null,teacherQuestionIndex:Number.isInteger(p.teacherQuestionIndex)?p.teacherQuestionIndex:null,classControlRevision:Number(p.classControlRevision)||0,inquiry:p.inquiry&&typeof p.inquiry==='object'?p.inquiry:null};}
+function sig(p){return [p.classControlRevision||0,p.cur,p.tries,p.coolUntil,p.done,p.score,p.pending?String(p.pending.idx)+p.pending.mode:'',p.paused?'pause':'play',p.teacherRevision||0,p.lastSubmission?.at||0,p.inquiry?.step||0,p.inquiry?.updatedAt||0,p.pending?.piecePlaced?'piece-placed':'piece-open'].join('|');}
 function ranked(all){return Object.keys(all||{}).map(k=>norm(migrateGameFormat(all[k]),k)).sort((a,b)=>(b.score-a.score)||(b.done-a.done)||(totalTime(a)-totalTime(b))||((a.t||0)-(b.t||0)));}
 function hintStatus(text,cls=''){const el=$('msg');if(el){el.textContent=text;el.className='msg '+cls;}}
 function showConn(){
@@ -1212,6 +1214,42 @@ function watchPlayers(cb){
   playersListener=s=>{lastAll=s.val()||{};cb(lastAll);};
   playersRef.on('value',playersListener,err=>{const node=$('rank')||$('tbl');if(node)node.textContent='Firebase 읽기 실패: '+err.message+' (데이터베이스 규칙을 확인해 주세요.)';});
 }
+function applyClassroomCommand(command){
+ if(TEACHER||PREVIEW_ONLY||QUIZ_ONLY||!playerRef||!command||!Number.isInteger(Number(command.scene)))return;
+ const revision=Number(command.revision)||0;
+ if(!revision||classroomApplying||Number(me?.classControlRevision)>=revision)return;
+ classroomApplying=true;
+ playerRef.transaction(raw=>{
+  if(!raw||Number(raw.classControlRevision)>=revision)return;
+  const scene=Number(command.scene),now=serverNow();
+  if(scene<0||scene>36)return;
+  const x=norm(migrateGameFormat(raw),me?.id);
+  const old=x.cur;
+  const to=scene<PROBLEMS.length?scene:PROBLEMS.length;
+  x.cur=to;x.done=to;x.pending=null;x.tries=0;x.coolUntil=0;x.paused=false;x.pausedElapsed=0;x.startedAt=now;x.t=now;
+  x.teacherQuestionIndex=scene<PROBLEMS.length?scene:null;
+  x.classControlRevision=revision;
+  x.teacherRevision=(Number(x.teacherRevision)||0)+1;
+  x.teacherAdjustments=[...(x.teacherAdjustments||[]),{from:old,to,scene,at:now,group:true}].slice(-30);
+  if(scene>=PROBLEMS.length){
+   const step=Math.max(2,Math.min(5,scene-PROBLEMS.length+2));
+   x.inquiry={...(x.inquiry||{}),step,updatedAt:now};
+  }
+  return x;
+ }).then(result=>{
+   if(!result.committed&&Number(me?.classControlRevision)<revision)console.warn('Classroom navigation not committed');
+ }).catch(e=>{console.warn('Classroom navigation failed',e);}).finally(()=>{
+   classroomApplying=false;
+   if(classroomCommand&&Number(me?.classControlRevision)<Number(classroomCommand.revision)&&classroomCommand.revision!==revision)
+    applyClassroomCommand(classroomCommand);
+ });
+}
+function watchClassroomControl(){
+ if(!db||TEACHER||PREVIEW_ONLY||QUIZ_ONLY||classroomControlRef)return;
+ classroomControlRef=db.ref(CLASS_CONTROL_PATH);
+ classroomControlListener=s=>{classroomCommand=s.val();if(classroomCommand)applyClassroomCommand(classroomCommand);};
+ classroomControlRef.on('value',classroomControlListener,e=>console.warn('Classroom control listener:',e.message));
+}
 function watchMe(){
   if(!playerRef)return;
   if(playerListener)playerRef.off('value',playerListener);
@@ -1225,10 +1263,16 @@ function watchMe(){
     const teacherMoved=!!me&&next.teacherRevision!==me.teacherRevision;
     const changed=(!me)||sig(next)!==renderedSig;
     me=next;renderHdr();
-    if(teacherMoved&&$('resultDialog')&&!$('resultDialog').hidden)closeResultDialog();
-    if(changed&&map){renderProblem();if(teacherMoved&&map)hintStatus('선생님이 진도를 조정했어요. 현재 문제부터 다시 시작해요.','ok');}
-    else if(changed&&$('inquiryRoot'))inquiryRender();
-    else if(map)refreshPieces();
+    if(classroomCommand)applyClassroomCommand(classroomCommand);
+    if(teacherMoved){
+      if($('resultDialog')&&!$('resultDialog').hidden)closeResultDialog();
+      if(me.cur>=PROBLEMS.length&&!me.pending)inquiryRender();else renderStudent();
+      if(map)hintStatus('선생님이 모두의 학습 화면을 이동했어요.','ok');
+    }else if(changed&&map){
+      if(me.cur>=PROBLEMS.length&&!me.pending)inquiryRender();else renderProblem();
+    }else if(changed&&$('inquiryRoot')){
+      if(me.cur<PROBLEMS.length||me.pending)renderStudent();else inquiryRender();
+    }else if(map)refreshPieces();
   };
   playerRef.on('value',playerListener,err=>{hintStatus('Firebase에서 진도를 읽지 못했어요: '+err.message,'ng');});
 }
@@ -2274,6 +2318,8 @@ async function loadStudent(name){
     if(!tx.committed||!tx.snapshot.exists())throw Error('서버에서 진도 저장을 확인하지 못했어요.');
     playerRef=ref;me=norm(tx.snapshot.val(),key);
     store.set('amap-name-'+ROOM,name);
+    watchClassroomControl();
+    if(classroomCommand)applyClassroomCommand(classroomCommand);
     if(me.cur>=PROBLEMS.length&&!me.pending){inquiryRender();watchMe();}else renderStudent();
     if(recovered)hintStatus('이전에 이 기기에 저장된 진도와 점수를 Firebase로 옮겼어요.','ok');
   }catch(e){renderJoin('기록 연결에 실패했어요. 원래 기기에 남은 기록은 삭제되지 않았어요. '+e.message);}
@@ -2628,6 +2674,58 @@ function teacherPopulationAnswerGuide(){
  '<p class="teacherAnswerNote">교과서의 정확한 비율(%)은 원본 자료에서 확인해 평가하세요. 수치를 임의로 제시하지 않았습니다. <a href="assets/americas_population_97.webp" target="_blank" rel="noopener">교과서 원그래프 크게 보기</a></p>'+
  '</div></details>';
 }
+function teacherClassControlHtml(){
+ return '<section class="card" id="teacherClassControl" style="margin-bottom:14px;border:2px solid #9dcbbe">'+
+  '<h2>📺 전체 학생 화면 · 실시간 진도 통제</h2>'+
+  '<p class="muted">미리보기와 별개로 실제 학생 화면을 같은 위치로 이동해요. 답변·점수는 지우지 않고 보존해요. 아직 접속하지 않은 학생도 같은 반에 들어오면 현재 지시를 받아요.</p>'+
+  '<div class="teacherMirrorControls"><label class="teacherMirrorField">모두에게 보여줄 화면<select id="teacherClassScene">'+teacherMirrorSceneOptions().replace(/<option value="(37|38|39|40|41|42)"[^>]*>[^<]*<\/option>/g,'')+'</select></label>'+
+  '<button type="button" class="btn mint" id="teacherClassApply">이 화면으로 전체 이동 →</button>'+
+  '<button type="button" class="btn secondary" id="teacherClassPrevious">← 한 화면 이전</button>'+
+  '<button type="button" class="btn secondary" id="teacherClassNext">한 화면 다음 →</button></div>'+
+  '<div class="teacherMirrorQuick"><button type="button" class="btn secondary" data-class-scene="0">나라 첫 문제</button>'+
+  '<button type="button" class="btn secondary" data-class-scene="20">랜드마크</button>'+
+  '<button type="button" class="btn secondary" data-class-scene="28">자연환경</button>'+
+  '<button type="button" class="btn mint" data-class-scene="33">인구 탐구</button>'+
+  '<button type="button" class="btn secondary" data-class-scene="34">문화 혼종성</button>'+
+  '<button type="button" class="btn secondary" data-class-scene="35">최종 판단</button></div>'+
+  '<p id="teacherClassStatus" aria-live="polite" class="muted">현재 학급 통제 정보 확인 중...</p></section>';
+}
+let teacherClassControlUnsub=null,teacherClassControlState=null;
+function teacherClassControlRender(){
+ const status=$('teacherClassStatus'),select=$('teacherClassScene');if(!status||!select)return;
+ const command=teacherClassControlState;
+ if(!command){status.textContent='아직 전체 진도 이동 지시가 없어요.';return;}
+ select.value=String(command.scene);
+ const total=Object.keys(lastAll||{}).length;
+ const matched=Object.values(lastAll||{}).filter(p=>Number(p?.classControlRevision)>=Number(command.revision)).length;
+ status.textContent='현재 지시: '+(select.selectedOptions[0]?.textContent||'')+' · 적용 확인 '+matched+'/'+total+'명 (접속 및 동기화 상황에 따라 차이)';
+}
+async function teacherClassApply(scene){
+ if(!TEACHER||!db||!serverVerified||firebaseState!=='online')return alert('Firebase 서버가 연결되어야 전체 진도를 이동할 수 있어요.');
+ scene=Number(scene);
+ if(!Number.isInteger(scene)||scene<0||scene>36)return alert('실제 학생 화면으로 이동 가능한 단계를 선택해 줘.');
+ const button=$('teacherClassApply');if(button)button.disabled=true;
+ const status=$('teacherClassStatus');if(status)status.textContent='전체 학생에게 화면 이동 지시 전송 중...';
+ try{
+  const result=await db.ref(CLASS_CONTROL_PATH).transaction(old=>({
+   scene,revision:(Number(old?.revision)||0)+1,at:serverNow()
+  }));
+  if(!result.committed)throw Error('학급 이동 지시가 저장되지 않았어요.');
+  teacherClassControlState=result.snapshot.val();teacherClassControlRender();
+ }catch(e){if(status)status.textContent='전체 이동 실패: '+e.message;}
+ finally{if(button)button.disabled=false;}
+}
+function teacherClassControlAttach(){
+ const select=$('teacherClassScene');if(!select||!db)return;
+ $('teacherClassApply').onclick=()=>teacherClassApply(select.value);
+ $('teacherClassNext').onclick=()=>teacherClassApply(Math.min(36,Number(select.value)+1));
+ $('teacherClassPrevious').onclick=()=>teacherClassApply(Math.max(0,Number(select.value)-1));
+ $('teacherClassControl').addEventListener('click',e=>{const b=e.target.closest('[data-class-scene]');if(b)teacherClassApply(b.dataset.classScene);});
+ const ref=db.ref(CLASS_CONTROL_PATH);
+ ref.on('value',snapshot=>{teacherClassControlState=snapshot.val();teacherClassControlRender();},e=>{
+  const status=$('teacherClassStatus');if(status)status.textContent='학급 제어 정보 읽기 실패: '+e.message;
+ });
+}
 function teacherMirrorHtml(){
  const url=new URL(location.origin+location.pathname);
  url.searchParams.set('mode','preview');
@@ -2658,7 +2756,7 @@ function teacherMirrorHtml(){
 function renderTeacher(){
   document.body.classList.remove('inquiryView','mapLearningView');
   renderHdr();
-  app.innerHTML=`${teacherPopulationAnswerGuide()}${teacherMirrorHtml()}<details class="teacherOptionalQuiz"><summary>별도 활동 · 기억력 대결 운영 (열어서 사용)</summary><section id="liveTeacherPanel" class="liveTeacherPanel teacherProjector"></section></details><main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
+  app.innerHTML=`${teacherClassControlHtml()}${teacherPopulationAnswerGuide()}${teacherMirrorHtml()}<details class="teacherOptionalQuiz"><summary>별도 활동 · 기억력 대결 운영 (열어서 사용)</summary><section id="liveTeacherPanel" class="liveTeacherPanel teacherProjector"></section></details><main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
     <section class="card"><div class="smallPill">${iconArt("book")} 교사용 관리</div><h2>${esc(roomTitle(ROOM))} 탐험 현황</h2>
       <p class="muted">학생 이름을 누르면 문제별 결과를 확인할 수 있어요.</p>
       <div class="teacherShare">
@@ -2676,7 +2774,7 @@ function renderTeacher(){
       <div class="tableWrap"><table><thead><tr><th>순위</th><th>이름</th><th>점수</th><th>진도</th><th>현재 상태</th></tr></thead><tbody id="tbl"></tbody></table></div>
     </section><section class="card" id="detail"><h2>학생 상세</h2><p class="muted">학생을 선택해 주세요.</p></section>
   </main>`;
-  teacherMirrorAttach();
+  teacherMirrorAttach();teacherClassControlAttach();
   $('csvBtn').onclick=exportCSV;
   $('liveTeacherPanel').onclick=e=>{
     const student=e.target.closest('[data-live-member]');
@@ -2792,7 +2890,7 @@ function teacherInquiryHtml(p){
 }
 
 function renderTeacherViews(all){
-  const list=ranked(all);teacherMirrorRenderControls();$('studentTotal').textContent='참여 '+list.length+'명'+(firebaseState==='offline'?' · 이 브라우저 기록만':'');
+  const list=ranked(all);teacherMirrorRenderControls();teacherClassControlRender();$('studentTotal').textContent='참여 '+list.length+'명'+(firebaseState==='offline'?' · 이 브라우저 기록만':'');
   $('tbl').innerHTML=list.length?list.map((p,i)=>{
     const status=p.pending?'결과 확인 중':p.cur>=PROBLEMS.length?inquiryLabel(inquiryStep(p)):(p.cur+1)+'번 진행';
     return `<tr><td>${i+1}</td><td><button class="nameBtn" data-key="${esc(p.id)}">${esc(p.name)}</button></td><td>${p.score}점</td><td>${p.done}/${PROBLEMS.length}</td><td>${status}</td></tr>`;
