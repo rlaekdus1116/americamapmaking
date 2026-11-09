@@ -468,7 +468,7 @@ const INQUIRY_POPULATION=[
 /* 교과서 97쪽: 여러 지역에서 미국으로 인구가 이동한 역사적 과정.
    이주 사유를 특정할 수 없는 히스패닉 이주는 '자료에 제시되지 않음'으로 판단. */
 const INQUIRY_GRAPH_COUNTRIES=['미국','멕시코','쿠바','자메이카','콜롬비아','페루','브라질','아르헨티나','우루과이'];
-const MIGRATION_REASONS=[{id:'settlement',label:'식민 지배와 정착'},{id:'forced',label:'노예로 강제 이주'},{id:'economic',label:'일자리 등 경제적 이유'},{id:'unspecified',label:'교과서에 이동 이유가 명시되지 않음'}];
+const MIGRATION_REASONS=[];
 const MIGRATION_ROUTES=[{"id":"ae","region":"anglo","name":"영국·유럽","coords":[53,-2],"target":[50,-96],"destination":"캐나다","reason":"settlement"},{"id":"af","region":"anglo","name":"서아프리카","coords":[10,-5],"target":[33,-81],"destination":"미국","reason":"forced"},{"id":"aa","region":"anglo","name":"동아시아","coords":[36,119],"target":[39,-122],"destination":"미국","reason":"economic"},{"id":"al","region":"anglo","name":"멕시코(히스패닉)","coords":[19.43,-99.13],"target":[33,-99],"destination":"미국","reason":"unspecified"},{"id":"ls","region":"latin","name":"에스파냐","coords":[40,-4],"target":[21,-101],"destination":"멕시코","reason":"settlement"},{"id":"lp","region":"latin","name":"포르투갈","coords":[39,-9],"target":[-16,-48],"destination":"브라질","reason":"settlement"},{"id":"lf","region":"latin","name":"서아프리카","coords":[8,-9],"target":[-14,-42],"destination":"브라질","reason":"forced"},{"id":"la","region":"latin","name":"동아시아","coords":[35,137],"target":[-23,-47],"destination":"브라질","reason":"economic"}];
 let migrationExplanations={},migrationChoices={},migrationSelected='ae',migrationRegion='anglo',migrationMap=null,migrationGeoPromise=null,migrationLayers=[];
 
@@ -578,10 +578,13 @@ function migrationChooseOrigin(id){
  if($('migrationRouteProgress'))$('migrationRouteProgress').textContent='이동 경로 '+(migrationRoutes().findIndex(x=>x.id===id)+1)+' / 4';
  if($('migrationQuestionCountry'))$('migrationQuestionCountry').textContent=r.name+' → '+r.destination;
  if($('migrationExplanation'))$('migrationExplanation').value=migrationExplanations[id]||'';
- if($('migrationReason'))$('migrationReason').value=migrationChoices[id+'-reason']||'';
- migrationRenderReasons();
- if($('migrationFeedback')&&r.id==='al')$('migrationFeedback').textContent='히스패닉: 에스파냐어를 모국어로 사용하면서 미국에 거주하는 라틴 아메리카 출신 사람. 교과서에는 유입 이유가 명시되지 않았어.';
- if($('migrationFeedback'))$('migrationFeedback').textContent=migrationChoices[id]?'확인 완료':'';
+ const hispanic=r.id==='al';
+ const question=hispanic?'이러한 인구 이동은 미국의 인구 구성에 어떤 영향을 주었을까?':r.reason==='forced'?'이 사람들은 어떤 역사적 배경에서 강제로 이동했을까?':r.reason==='settlement'?'이 사람들은 어떤 식민 지배와 정착의 역사 속에서 이동했을까?':'이 사람들은 어떤 배경에서 이동했을까?';
+ if($('migrationBigQuestion'))$('migrationBigQuestion').textContent=question;
+ if($('migrationWriteLabel'))$('migrationWriteLabel').textContent=hispanic?'미국의 인구 구성에 미친 영향을 설명해 보자.':'이동의 역사적 배경을 설명해 보자.';
+ if($('migrationHispanicDefinition')){$('migrationHispanicDefinition').hidden=!hispanic;$('migrationHispanicDefinition').textContent=hispanic?'히스패닉: 에스파냐어를 모국어로 사용하면서 미국에 거주하는 라틴 아메리카 출신 사람.':'';}
+ if($('migrationExplanation'))$('migrationExplanation').placeholder=hispanic?'미국의 민족과 인종 구성이 어떻게 달라졌을까요?':'이동 경로와 역사적 배경을 연결해 설명해 보세요.';
+ if($('migrationFeedback'))$('migrationFeedback').textContent=migrationChoices[id]?'이전에 작성한 답변이 저장되어 있어.':'';
  globeTapStage=migrationChoices[id]?2:0;globeAngle=r.coords[1];globeLat=r.coords[0]*.3;globeLast=performance.now();migrationUpdate();migrationMapDraw();
 }
 function migrationShowChapter(region){
@@ -619,15 +622,11 @@ function migrationCheckReason(){
  const r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected),explanation=String($('migrationExplanation')?.value||'').trim();
  if(!r)return;
  if(globeTapStage!==2&&!migrationChoices[r.id])return inquiryNotice('지구본에서 출발지와 도착지를 차례로 눌러 화살표를 연결해 줘.',true);
- const selectedReason=$('migrationReason')?.value||'';
- if(!selectedReason)return inquiryNotice('이동 이유를 먼저 선택해 줘.',true);
- if(selectedReason!==r.reason)return inquiryNotice('교과서의 이동 배경을 다시 살펴보고 선택해 줘.',true);
- if(explanation.length<12)return inquiryNotice('이동 이유를 12자 이상 적어 줘.',true);
- const keywords={settlement:['식민','정착','지배','개척'],forced:['노예','강제','납치','강제로'],economic:['경제','일자리','취업','생계','돈','직업','노동','생활']};
- const ok=r.reason==='unspecified'||(keywords[r.reason]||[]).some(k=>explanation.includes(k));
+ if(explanation.length<12)return inquiryNotice(r.id==='al'?'미국의 인구 구성에 미친 영향을 12자 이상 적어 줘.':'이동의 역사적 배경을 12자 이상 적어 줘.',true);
+ const ok=true; // 서술형 답변은 교사가 검토한다.
  migrationExplanations[r.id]=explanation;
- migrationChoices[r.id]=ok?'keyword-ok':'needs-review';migrationChoices[r.id+'-reason']=selectedReason;
- $('migrationFeedback').textContent=ok?'핵심 단어가 포함됐어!':'핵심 단어가 부족해. 기록은 저장했고, 다음으로 넘어갈 수 있어.';
+ migrationChoices[r.id]='written';
+ $('migrationFeedback').textContent='서술형 답변을 기록했어.';
  migrationUpdate();migrationMapDraw();inquiryNotice('');
  const next=migrationRoutes().find(x=>!migrationChoices[x.id]);if(next)migrationChooseOrigin(next.id);
  if(!PREVIEW_ONLY&&playerRef&&serverVerified&&firebaseState==='online')playerRef.child('inquiry').update({routeDraft:{...migrationChoices},routeExplanations:{...migrationExplanations}}).catch(()=>{});
@@ -658,7 +657,7 @@ function migrationInit(){
  if($('migrationBack'))$('migrationBack').onclick=()=>migrationSwitchTab('migration');
  $('migrationCheck').onclick=migrationCheckReason;
  document.querySelectorAll('[data-migration-region]').forEach(b=>b.onclick=()=>migrationSetRegion(b.dataset.migrationRegion));
- migrationSetRegion('anglo');migrationRenderReasons();migrationUpdate();migrationMapInit();migrationSwitchTab('migration');migrationShowChapter('anglo');
+ migrationSetRegion('anglo');migrationUpdate();migrationMapInit();migrationSwitchTab('migration');migrationShowChapter('anglo');
 }
 const INQUIRY_CULTURES=[
  {name:'과달루페 성모상',country:'멕시코'},
@@ -775,14 +774,11 @@ function inquiryRender(){
     '<section class="inquiryQuestion inquiryAnswerPanel"><h3>인구 이동 탐구 <small id="migrationProgress"></small></h3>'+
     '<div id="migrationRouteProgress" class="migrationRouteProgress" aria-live="polite"></div>'+
     '<p class="migrationQuestionCountry" id="migrationQuestionCountry"></p>'+
-    '<div class="migrationBigQuestion">이 사람들은 왜 이동했을까?</div>'+
-    '<label class="migrationWriteLabel" for="migrationReason">이동 이유를 선택해 보자.</label>'+
-    '<select id="migrationReason" aria-label="이동 이유 선택"><option value="">이동 이유 선택</option>'+reasons+'</select>'+
-    '<div id="migrationReasonLinks" class="migrationReasonLinks" role="group" aria-label="이동 이유 선택"></div>'+
-    '<label class="migrationWriteLabel" for="migrationExplanation">이동 이유를 내 생각으로 설명해 보자.</label>'+ 
-    '<p class="migrationWriteExample">예시 문장: “나는 ○○에서 ○○로 이동한 이유가 ______ 때문이라고 생각한다.”</p>'+ 
+    '<div class="migrationBigQuestion" id="migrationBigQuestion">이 사람들은 왜 이동했을까?</div>'+
+    '<p id="migrationHispanicDefinition" class="migrationWriteExample" hidden></p>'+
+    '<label class="migrationWriteLabel" id="migrationWriteLabel" for="migrationExplanation">이동 배경을 설명해 보자.</label>'+ 
     '<textarea id="migrationExplanation" rows="2" placeholder="이동 경로와 역사적 배경을 연결해 내 생각을 써 보세요."></textarea>'+ 
-    '<button type="button" class="btn secondary" id="migrationCheck">이동 이유 저장하기 →</button>'+
+    '<button type="button" class="btn secondary" id="migrationCheck">탐구 답변 저장하기 →</button>'+
     '<p id="migrationFeedback" aria-live="polite"></p>'+
     ''+
     '<button type="button" class="btn mint" id="migrationNextRegion">다음으로 →</button>'+ 
