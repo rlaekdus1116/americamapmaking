@@ -342,6 +342,9 @@ body.inquiryView .inquiryStep2 #migrationGoGraph[hidden]{display:none!important}
 body.inquiryView .inquiryStep2 #inqComparisonStage .inquiryOriginalGraph{max-height:calc(100dvh - 230px)!important;object-fit:contain!important}
 body.inquiryView .inquiryStep2 #inqComparisonStage #inqEvidence{min-height:110px!important;font-size:clamp(14px,1.5vw,18px)!important;line-height:1.5!important}
 body.inquiryView .inquiryStep2 #inqComparisonStage .migrationBigQuestion{font-size:clamp(19px,2.5vw,28px)!important}
+</style><style id="migrationRemoveRedundantChoices">
+body.inquiryView .inquiryStep2 #migrationOriginList,body.inquiryView .inquiryStep2 #migrationReasonLinks,body.inquiryView .inquiryStep2 #migrationReason{display:none!important}
+body.inquiryView .inquiryStep2 .migrationRouteProgress{font-size:14px;font-weight:800;color:#447899;background:#e5f4ff;border-radius:10px;padding:7px 12px;display:inline-block;margin-bottom:6px}
 </style></head>
 <body>
 <header>
@@ -555,8 +558,7 @@ function migrationMapDraw(){
 function migrationChooseOrigin(id){
  const r=MIGRATION_ROUTES.find(x=>x.id===id);if(!r)return;
  migrationRegion=r.region;migrationSelected=id;
- if($('migrationOriginList'))$('migrationOriginList').innerHTML=migrationRouteHtml();
- migrationBindOriginButtons();
+ if($('migrationRouteProgress'))$('migrationRouteProgress').textContent='이동 경로 '+(migrationRoutes().findIndex(x=>x.id===id)+1)+' / 4';
  if($('migrationQuestionCountry'))$('migrationQuestionCountry').textContent=r.name+' → '+r.destination;
  if($('migrationExplanation'))$('migrationExplanation').value=migrationExplanations[id]||'';
  if($('migrationFeedback'))$('migrationFeedback').textContent=migrationChoices[id]?'확인 완료':'';
@@ -581,7 +583,7 @@ function migrationNextRegion(){
 }
 function migrationSetRegion(region){
  if(!['anglo','latin'].includes(region))return;
- migrationChooseOrigin(MIGRATION_ROUTES.find(r=>r.region===region).id);
+ migrationChooseOrigin(migrationRoutes().find(r=>!migrationChoices[r.id])?.id||MIGRATION_ROUTES.find(r=>r.region===region).id);
  if($('migrationRegionDescription'))$('migrationRegionDescription').textContent=region==='anglo'?'미국·캐나다로 향한 대표적인 인구 이동':'멕시코·브라질로 향한 대표적인 인구 이동';
 }
 function migrationUpdate(){
@@ -598,10 +600,11 @@ function migrationCheckReason(){
  migrationExplanations[r.id]=explanation;
  migrationChoices[r.id]='written';
  $('migrationFeedback').textContent='이동 이유를 저장했어!';
- $('migrationOriginList').innerHTML=migrationRouteHtml();migrationBindOriginButtons();migrationUpdate();migrationMapDraw();inquiryNotice('');
+ migrationUpdate();migrationMapDraw();inquiryNotice('');
+ const next=migrationRoutes().find(x=>!migrationChoices[x.id]);if(next)migrationChooseOrigin(next.id);
  if(!PREVIEW_ONLY&&playerRef&&serverVerified&&firebaseState==='online')playerRef.child('inquiry').update({routeDraft:{...migrationChoices},routeExplanations:{...migrationExplanations}}).catch(()=>{});
 }
-function migrationBindOriginButtons(){document.querySelectorAll('[data-migration-origin]').forEach(b=>b.onclick=()=>migrationChooseOrigin(b.dataset.migrationOrigin));}
+function migrationBindOriginButtons(){}
 function migrationSwitchTab(tab){
  const a=$('inqMigrationStage'),b=$('inqComparisonStage');if(!a||!b)return;
  const graph=tab==='graph';
@@ -723,7 +726,7 @@ function inquiryRender(){
     '<div id="inqMigrationMap" class="migrationMap"></div>'+
     '</section>'+
     '<section class="inquiryQuestion inquiryAnswerPanel"><h3>인구 이동 탐구 <small id="migrationProgress"></small></h3>'+
-    '<div id="migrationOriginList" class="migrationOriginList"></div>'+
+    '<div id="migrationRouteProgress" class="migrationRouteProgress" aria-live="polite"></div>'+
     '<p class="migrationQuestionCountry" id="migrationQuestionCountry"></p>'+
     '<div class="migrationBigQuestion">이 사람들은 왜 이동했을까?</div>'+
     '<label class="migrationWriteLabel" for="migrationExplanation">이동 이유를 내 생각으로 설명해 보자.</label>'+ 
