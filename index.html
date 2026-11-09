@@ -108,6 +108,38 @@ td:first-child{border-left:1px solid var(--line);border-radius:14px 0 0 14px} td
 @media(max-width:700px){.inquiryRoot{padding:16px}.inquiryTrack{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.inquiryCultureGrid,.inquiryCountryPick{grid-template-columns:1fr}.inquiryTable{font-size:12px}.inquiryTable th,.inquiryTable td{padding:8px 4px}}
 </style>
 
+
+<style id="teacherStudentMirrorStyles">
+.teacherMirror{max-width:1320px;margin:16px auto 4px;padding:20px}
+.teacherMirrorHeader{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px}
+.teacherMirrorHeader h2{margin:4px 0}
+.teacherMirrorFlag{padding:7px 12px;border-radius:18px;font-size:12px;font-weight:800;background:#e8faf0;color:#237053}
+.teacherMirrorControls{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin:12px 0}
+.teacherMirrorField{display:flex;flex:1 1 190px;flex-direction:column;gap:6px;font-size:13px;font-weight:700}
+.teacherMirrorField select{width:100%;min-height:44px;border:1px solid #c9d9e5;border-radius:14px;padding:10px;background:#fff;color:#304768;font:inherit}
+.teacherMirrorControls .btn{padding:11px 14px}
+.teacherMirrorQuick{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:8px 0 16px}
+.teacherMirrorQuick .btn{padding:8px 13px;box-shadow:none;font-size:12px}
+.teacherMirrorResult{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:700}
+.teacherMirrorResult input{width:18px;height:18px;margin:0}
+.teacherMirrorNotice{margin:9px 0;color:#60758b;font-size:13px;line-height:1.65}
+.teacherMirrorDevice{max-width:100%;border:1px solid #cbdde9;border-radius:24px;overflow:hidden;background:linear-gradient(130deg,#fbfcff,#f1f7ff);box-shadow:0 9px 25px #4c71951a}
+.teacherMirrorDeviceTitle{background:#eef4fb;padding:12px 17px;display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:13px}
+.teacherMirrorFrame{display:block;width:100%;height:min(80vh,890px);min-height:460px;border:0;background:#fff}
+body.teacherPreviewBody header{position:relative}
+body.teacherPreviewBody .headIn{padding:3px 0}
+body.teacherPreviewBody header h1{font-size:20px}
+body.teacherPreviewBody main{padding:0 8px}
+body.teacherPreviewBody .card{border-radius:20px}
+body.teacherPreviewBody .inquiryRoot{margin:12px auto 30px}
+@media(max-width:650px){
+ .teacherMirror{margin:8px;padding:12px}
+ .teacherMirrorControls{gap:7px}
+ .teacherMirrorField{flex-basis:100%}
+ .teacherMirrorFrame{height:680px}
+ .teacherMirrorDeviceTitle{font-size:11px}
+}
+</style>
 </head>
 <body>
 <header>
@@ -127,6 +159,7 @@ const params = new URLSearchParams(location.search);
 const ROOM = params.get('room') || 'demo';
 const TEACHER = params.get('mode') === 'teacher' || params.get('t') === '1';
 const QUIZ_ONLY = params.get('mode') === 'quiz';
+const PREVIEW_ONLY = params.get('mode') === 'preview';
 const roomKey = encodeURIComponent(ROOM).replace(/\./g,'%2E');
 const PLAYERS_PATH = 'rooms/' + roomKey + '/v8/players';
 const $ = id => document.getElementById(id);
@@ -320,6 +353,7 @@ function inquiryRender(){
  showConn();
 }
 async function inquirySubmit(step){
+ if(PREVIEW_ONLY){previewOnlyNotify('next');return;}
  if(inquirySaving||!me||!playerRef)return;
  if(!serverVerified||firebaseState!=='online')return inquiryNotice('서버에 연결한 뒤 제출할 수 있어요. 현재 답을 복사해 보관해 주세요.',true);
  let answer={};
@@ -363,6 +397,112 @@ async function inquirySubmit(step){
    inquiryRender();
  }catch(e){inquiryNotice('저장되지 않았어요: '+e.message,true);if(button)button.disabled=false;}
  finally{inquirySaving=false;}
+}
+
+
+/* Safe, read-only student-perspective mirror. Loads in a teacher iframe.
+   Preview never creates a Firebase connection, reads player data directly,
+   or submits/updates a student record. Snapshots arrive from the teacher parent only. */
+function previewOnlyStart(){
+ document.body.classList.add('teacherPreviewBody');
+ firebaseState='online';serverVerified=true;
+ app.innerHTML='<section class="card" style="max-width:640px;margin:32px auto"><h2>학생 시점 미리보기</h2><p>교사용 화면에서 확인할 단계나 학생을 선택하세요.</p></section>';
+ window.addEventListener('message',e=>{
+  if(e.origin!==location.origin||e.source!==window.parent)return;
+  const x=e.data;
+  if(!x||x.type!=='AMAP_TEACHER_PREVIEW_STATE')return;
+  previewOnlyApply(x);
+ });
+ // Links from the student rendering may not navigate away from the preview.
+ document.addEventListener('click',e=>{
+  const a=e.target.closest('a[href]');
+  if(a){e.preventDefault();e.stopPropagation();}
+ },true);
+ window.parent.postMessage({type:'AMAP_TEACHER_PREVIEW_READY'},location.origin);
+}
+function previewOnlyNotify(action){
+ if(!PREVIEW_ONLY||window.parent===window)return;
+ window.parent.postMessage({type:'AMAP_TEACHER_PREVIEW_NAV',action},location.origin);
+}
+function previewOnlyFakeQuiz(status){
+ const now=serverNow(),member={name:me.name,points:170,correct:2,totalMs:3800,joinedAt:now-20000};
+ const q={id:'teacher-preview-only',round:0,order:[LIVE_QUIZ_IDS[0],LIVE_QUIZ_IDS[1]],
+  status,members:{[me.id]:member},answers:{},endsAt:now+15000,revealEndsAt:now+6000};
+ if(status==='reveal')q.answers[me.id]={choice:PROBLEMS[q.order[0]].answer,correct:true,points:100};
+ return q;
+}
+function previewOnlyApply(x){
+ const raw=x.record&&typeof x.record==='object'?x.record:null;
+ // In this iframe there are no write refs, even when the source is a real student.
+ const student=raw?norm(migrateGameFormat(raw),raw.id||nameKey(raw.name||'학생')):fresh('체험 학생');
+ let scene=Math.max(0,Math.min(42,Math.trunc(Number(x.scene)||0)));
+ const snapshot=x.mode==='snapshot'&&!!raw;
+ if(snapshot){
+   me=student;
+   liveQuiz=null;
+   if(me.paused){
+     destroyMap();renderHdr();
+     app.innerHTML='<div class="joinWrap"><section class="card"><h2>오늘은 여기까지!</h2>'+
+      '<p>현재 '+me.done+'/'+PROBLEMS.length+'문제를 진행했어요.</p>'+
+      '<p>서버에 저장된 학생의 일시 정지 상태를 재현한 화면이에요.</p></section></div>';
+     return;
+   }
+   if(me.cur<PROBLEMS.length||me.pending)renderStudent();
+   else inquiryRender();
+   return;
+ }
+ // Free exploration (optionally based on a particular student's identity/order).
+ const order=validQuestionOrder(student.questionOrder)?student.questionOrder:PROBLEMS.map((_,i)=>i);
+ me={...student,questionOrder:raw?order:PROBLEMS.map((_,i)=>i),paused:false,coolUntil:0,tries:0,pending:null};
+ if(scene===41){
+   destroyMap();renderHdr();
+   app.innerHTML='<div class="joinWrap"><section class="card"><h2>이름을 입력하고 시작해요</h2>'+
+     '<p>같은 반·같은 이름으로 돌아오면 저장한 진도부터 이어서 풀어요.</p>'+
+     '<input placeholder="예: 김민지" disabled><button class="btn mint" disabled>시작하기 ✨</button>'+
+     '<p class="muted">교사용 읽기 전용 미리보기 · 가입과 저장은 실행되지 않아요.</p></section></div>';
+   return;
+ }
+ if(scene===42){
+   destroyMap();renderHdr();app.innerHTML='<div class="joinWrap"><section class="card"><h2>오늘은 여기까지!</h2>'+
+    '<p>현재까지의 점수와 진도를 저장했어요.</p>'+
+    '<p class="muted">학생이 수업을 마치고 일시 정지했을 때의 화면을 미리 보여줘요.</p>'+
+    '<button class="btn mint" type="button" id="previewResume">이어서 풀기</button></section></div>';
+   $('previewResume').onclick=()=>previewOnlyNotify('first');
+   return;
+ }
+ if(scene<=32){
+   const count=Math.min(scene+(x.result?1:0),COUNTRY_END),unlocked=[];
+   for(let i=0;i<count;i++){
+     const q=PROBLEMS[me.questionOrder[i]];
+     if(q?.country&&!unlocked.includes(q.country))unlocked.push(q.country);
+   }
+   me.unlocked=unlocked;
+   me.cur=scene+(x.result?1:0);
+   me.done=me.cur;
+   me.score=raw?student.score:scene*100;
+   if(x.result){
+     const q=questionAt(scene,me);
+     me.pending={idx:scene,mode:'correct',points:100,seconds:6,piecePlaced:true};
+     if(q?.stage==='country'&&q.country&&!me.unlocked.includes(q.country))me.unlocked.push(q.country);
+   }
+   liveQuiz=null;renderStudent();return;
+ }
+ me.cur=PROBLEMS.length;me.done=me.cur;me.pending=null;
+ if(scene<=36){
+   const stage=scene-31;
+   me.inquiry={...(me.inquiry||{}),step:stage};
+   liveQuiz=null;inquiryRender();
+   if($('inquirySubmit'))$('inquirySubmit').textContent='교사 미리보기 · 저장 없이 다음 화면 →';
+   return;
+ }
+ destroyMap();renderHdr();
+ me.inquiry={...(me.inquiry||{}),step:5};
+ liveQuiz=previewOnlyFakeQuiz(scene===37?'lobby':scene===38?'question':scene===39?'reveal':'finished');
+ app.innerHTML='<div class="joinWrap" style="max-width:900px"><section class="card liveStudentPanel" id="liveStudentPanel"></section></div>';
+ liveRenderStudent();
+ // Quiz controls are visible as the student sees them, but disabled in read-only mode.
+ const btn=$('liveJoinButton');
+ if(btn)btn.disabled=true;
 }
 
 function fresh(name){return {id:nameKey(name),name:normName(name),score:0,done:0,cur:0,tries:0,coolUntil:0,log:[],unlocked:[],pending:null,t:serverNow(),createdAt:serverNow(),startedAt:serverNow(),timeSpent:0,paused:false,pausedElapsed:0,schemaVersion:11,questionOrder:createQuestionOrder(nameKey(name))};}
@@ -590,6 +730,11 @@ function watchMe(){
   playerRef.on('value',playerListener,err=>{hintStatus('Firebase에서 진도를 읽지 못했어요: '+err.message,'ng');});
 }
 function renderHdr(){
+ if(PREVIEW_ONLY){
+   $('hdr').innerHTML='<span class="chip">교사 미리보기 · 저장하지 않음</span>'+
+     (me?'<span class="chip">'+esc(me.name||'체험 학생')+'</span>':'');
+   return;
+ }
  if(QUIZ_ONLY){
   $('hdr').innerHTML='<span class="chip">'+esc(roomTitle(ROOM))+' · 실시간 퀴즈</span>'+
     (me?'<span class="chip">'+esc(me.name)+'</span>':'')+
@@ -720,6 +865,16 @@ function answerUI(){
 }
 function maybeStagePopup(){
   if(!me||!$ ('stageDialog'))return;
+  if(PREVIEW_ONLY){
+    const p=questionAt(me.cur,me);
+    if(p&&(me.cur===COUNTRY_END||me.cur===CITY_END)){
+      const city=me.cur===COUNTRY_END;
+      $('stageDialogTitle').textContent=city?'2단계 시작 · 유명 랜드마크':'3단계 시작 · 자연환경';
+      $('stageDialogText').textContent=city?'나라 퍼즐을 완성했어요. 이제 랜드마크로 넘어가요.':'자연환경 문제를 풀어 보세요.';
+      $('stageDialog').hidden=false;
+    }
+    return;
+  }
   const p=questionAt(me.cur);if(!p||p.stage==='country')return;
   const key='amap-stage-seen-v8-'+ROOM+'-'+me.id+'-'+p.stage;
   if(store.get(key))return;
@@ -1060,6 +1215,16 @@ function renderPending(){
 }
 function cleanAnswer(s){return String(s||'').toLowerCase().normalize('NFKC').replace(/[\s\-_.·()]/g,'');}
 async function guessTyped(){
+ if(PREVIEW_ONLY){
+  const q=questionAt(me?.cur,me),given=$('answerInput')?.value.trim()||'';
+  if(!given){hintStatus('입력한 뒤 정답 확인을 눌러 보세요.','ng');return;}
+  if(q&&[q.answer,...(q.aliases||[])].some(a=>cleanAnswer(a)===cleanAnswer(given))){
+    previewOnlyNotify('result');
+  }else{
+    hintStatus('미리보기에서의 오답이에요. 학생 기록에는 반영되지 않아요.','ng');
+  }
+  return;
+ }
  if(!serverVerified||firebaseState!=='online'){showConn();hintStatus('서버 연결이 없어 제출할 수 없어요.','ng');return;}
  if(!playerRef||!me||submitting||me.pending||me.paused||me.cur>=PROBLEMS.length)return;
  if(me.coolUntil>serverNow()){updateCooldownUI();return;}
@@ -1116,6 +1281,7 @@ async function guessTyped(){
  finally{submitting=false;}
 }
 async function nextProblem(){
+  if(PREVIEW_ONLY){previewOnlyNotify('next');return;}
   if(!serverVerified||firebaseState!=='online'){showConn();return;}
   if(!playerRef||!me||!me.pending||me.paused||me.coolUntil>serverNow())return;
   if(!isPendingPieceReady()){resultPieceStatus('지도 조각을 먼저 표시된 나라에 붙여 주세요.','ng');return;}
@@ -1581,7 +1747,8 @@ function renderStudent(){
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('photoLightbox'))$('photoLightbox').hidden=true;}});
 
   fetch(COUNTRY_GEO).then(r=>{if(!r.ok)throw Error('country border');return r.json()}).then(g=>{if(!map)return;geo=L.geoJSON(g,{style:styleFor,onEachFeature:onCountryFeature}).addTo(map);refreshPieces();if(me?.pending)drawResultMap(questionAt(me.pending.idx));}).catch(()=>{if($('msg'))hintStatus('지도 경계를 불러오지 못했어요. 인터넷을 확인해 주세요.','ng');});
-  watchPlayers(renderRank);watchMe();liveSubscribe();renderHdr();renderProblem();showConn();
+  if(!PREVIEW_ONLY){watchPlayers(renderRank);watchMe();liveSubscribe();}
+  renderHdr();renderProblem();showConn();
 }
 async function loadStudent(name){
   if(!serverVerified||firebaseState!=='online'){renderServerGate('서버 저장이 확인되지 않아 시작하지 않았어요.');return;}
@@ -1942,6 +2109,7 @@ function renderTeacherViews(all){
   teacherPreviewInit(p);
 }
 async function start(){
+  if(PREVIEW_ONLY){previewOnlyStart();return;}
   readClassLink();
   serverVerified=false;renderHdr();
   const connected=await initFirebase();
