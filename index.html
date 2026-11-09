@@ -648,7 +648,9 @@ function migrationInit(){
  if($('migrationBack'))$('migrationBack').onclick=()=>migrationSwitchTab('migration');
  $('migrationCheck').onclick=migrationCheckReason;
  document.querySelectorAll('[data-migration-region]').forEach(b=>b.onclick=()=>migrationSetRegion(b.dataset.migrationRegion));
- migrationSetRegion('anglo');migrationUpdate();migrationMapInit();migrationSwitchTab('migration');migrationShowChapter('anglo');
+ const scene=me?.inquiry?.teacherSubscene||'anglo';
+ migrationSetRegion(scene==='latin'?'latin':'anglo');migrationUpdate();migrationMapInit();migrationSwitchTab(scene==='graph'?'graph':'migration');
+ if(scene==='anglo'&&!PREVIEW_ONLY&&!Number(me?.classControlRevision))migrationShowChapter('anglo');
 }
 const INQUIRY_CULTURES=[
  {name:'과달루페 성모상',country:'멕시코'},
@@ -940,7 +942,7 @@ function previewOnlyApply(x){
  const raw=x.record&&typeof x.record==='object'?x.record:null;
  // In this iframe there are no write refs, even when the source is a real student.
  const student=raw?norm(migrateGameFormat(raw),raw.id||nameKey(raw.name||'학생')):fresh('체험 학생');
- let scene=Math.max(0,Math.min(42,Math.trunc(Number(x.scene)||0)));
+ let scene=Math.max(0,Math.min(49,Math.trunc(Number(x.scene)||0)));
  const snapshot=x.mode==='snapshot'&&!!raw;
  if(snapshot){
    me=student;
@@ -993,9 +995,10 @@ function previewOnlyApply(x){
    liveQuiz=null;renderStudent();return;
  }
  me.cur=PROBLEMS.length;me.done=me.cur;me.pending=null;
- if(scene<=36){
-   const stage=scene-31;
-   me.inquiry={...(me.inquiry||{}),step:stage};
+ if(scene<=36||scene>=43){
+   const stage=scene>=46?3:scene>=43?2:scene-31;
+   me.inquiry={...(me.inquiry||{}),step:stage,teacherSubscene:scene===44?'latin':scene===45?'graph':'anglo'};
+   if(scene>=46)me.inquiry.cultureDraft={...(me.inquiry.cultureDraft||{}),active:scene-46};
    liveQuiz=null;inquiryRender();
    if($('inquirySubmit'))$('inquirySubmit').textContent='교사 미리보기 · 저장 없이 다음 화면 →';
    return;
@@ -1222,7 +1225,7 @@ function applyClassroomCommand(command){
  playerRef.transaction(raw=>{
   if(!raw||Number(raw.classControlRevision)>=revision)return;
   const scene=Number(command.scene),now=serverNow();
-  if(scene<0||scene>36)return;
+  if(scene<0||scene>49||(scene>36&&scene<43))return;
   const x=norm(migrateGameFormat(raw),me?.id);
   const old=x.cur;
   const to=scene<PROBLEMS.length?scene:PROBLEMS.length;
@@ -1232,8 +1235,9 @@ function applyClassroomCommand(command){
   x.teacherRevision=(Number(x.teacherRevision)||0)+1;
   x.teacherAdjustments=[...(x.teacherAdjustments||[]),{from:old,to,scene,at:now,group:true}].slice(-30);
   if(scene>=PROBLEMS.length){
-   const step=Math.max(2,Math.min(5,scene-PROBLEMS.length+2));
-   x.inquiry={...(x.inquiry||{}),step,updatedAt:now};
+   const step=scene>=46?3:scene>=43?2:Math.max(2,Math.min(5,scene-PROBLEMS.length+2));
+   x.inquiry={...(x.inquiry||{}),step,teacherSubscene:scene===44?'latin':scene===45?'graph':'anglo',updatedAt:now};
+   if(scene>=46&&scene<=49){x.inquiry.cultureDraft={...(x.inquiry.cultureDraft||{}),active:scene-46};}
   }
   return x;
  }).then(result=>{
@@ -2524,6 +2528,13 @@ function teacherMirrorSceneOptions(){
   {id:34,label:'3단계 · 문화 혼종성 자료 분석'},
   {id:35,label:'4단계 · 최초 판단 재검토'},
   {id:36,label:'최종 제출 완료 화면'},
+  {id:43,label:'인구 탐구 · 앵글로아메리카'},
+  {id:44,label:'인구 탐구 · 라틴아메리카'},
+  {id:45,label:'인구 탐구 · 원그래프 분석'},
+  {id:46,label:'문화 혼종성 · 과달루페'},
+  {id:47,label:'문화 혼종성 · 탱고'},
+  {id:48,label:'문화 혼종성 · 햄버거'},
+  {id:49,label:'문화 혼종성 · 리우 카니발'},
   {id:37,label:'별도 활동 · 퀴즈 대기실'},
   {id:38,label:'별도 활동 · 퀴즈 풀이 화면'},
   {id:39,label:'별도 활동 · 퀴즈 정답 발표'},
@@ -2578,7 +2589,7 @@ function teacherMirrorSend(){
 }
 function teacherMirrorSetScene(scene,result=false){
  teacherMirrorMode='browse';
- teacherMirrorScene=Math.max(0,Math.min(42,Number(scene)||0));
+ teacherMirrorScene=Math.max(0,Math.min(49,Number(scene)||0));
  teacherMirrorResult=!!result&&teacherMirrorScene<PROBLEMS.length;
  teacherMirrorRenderControls();teacherMirrorSend();
 }
@@ -2703,7 +2714,7 @@ function teacherClassControlRender(){
 async function teacherClassApply(scene){
  if(!TEACHER||!db||!serverVerified||firebaseState!=='online')return alert('Firebase 서버가 연결되어야 전체 진도를 이동할 수 있어요.');
  scene=Number(scene);
- if(!Number.isInteger(scene)||scene<0||scene>36)return alert('실제 학생 화면으로 이동 가능한 단계를 선택해 줘.');
+ if(!Number.isInteger(scene)||scene<0||scene>49||(scene>36&&scene<43))return alert('실제 학생 화면으로 이동 가능한 단계를 선택해 줘.');
  const button=$('teacherClassApply');if(button)button.disabled=true;
  const status=$('teacherClassStatus');if(status)status.textContent='전체 학생에게 화면 이동 지시 전송 중...';
  try{
@@ -2718,8 +2729,9 @@ async function teacherClassApply(scene){
 function teacherClassControlAttach(){
  const select=$('teacherClassScene');if(!select||!db)return;
  $('teacherClassApply').onclick=()=>teacherClassApply(select.value);
- $('teacherClassNext').onclick=()=>teacherClassApply(Math.min(36,Number(select.value)+1));
- $('teacherClassPrevious').onclick=()=>teacherClassApply(Math.max(0,Number(select.value)-1));
+ const order=[...Array(PROBLEMS.length).keys(),33,43,44,45,34,46,47,48,49,35,36];
+ $('teacherClassNext').onclick=()=>{const i=order.indexOf(Number(select.value));teacherClassApply(order[Math.min(order.length-1,i+1)]);};
+ $('teacherClassPrevious').onclick=()=>{const i=order.indexOf(Number(select.value));teacherClassApply(order[Math.max(0,i-1)]);};
  $('teacherClassControl').addEventListener('click',e=>{const b=e.target.closest('[data-class-scene]');if(b)teacherClassApply(b.dataset.classScene);});
  const ref=db.ref(CLASS_CONTROL_PATH);
  ref.on('value',snapshot=>{teacherClassControlState=snapshot.val();teacherClassControlRender();},e=>{
