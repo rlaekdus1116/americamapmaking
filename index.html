@@ -247,6 +247,45 @@ body.inquiryView .globeCanvas:active{cursor:grabbing}
 body.inquiryView .globeStatus{position:absolute;left:10px;top:10px;padding:7px 12px;background:#fffdf9e8;border-radius:14px;font-size:12px;font-weight:800;color:#68728c;pointer-events:none;max-width:80%}
 body.inquiryView .globeHint{position:absolute;bottom:9px;left:50%;transform:translateX(-50%);white-space:nowrap;background:#fff9efdf;border-radius:12px;padding:5px 10px;font-size:10px;color:#79879b;pointer-events:none}
 @media(min-width:860px) and (max-height:780px){body.inquiryView .migrationMap{height:clamp(230px,30vh,320px)!important}}
+</style><style id="v3SingleScreenTablet">
+/* Step 2: strict landscape viewport composition, without page scrolling. */
+@media (orientation:landscape) and (min-width:850px){
+body.inquiryView:has(.inquiryStep2){overflow:hidden!important;height:100dvh!important}
+body.inquiryView:has(.inquiryStep2) #app{height:calc(100dvh - 66px)!important;min-height:0!important;overflow:hidden!important;padding:4px 10px!important;box-sizing:border-box}
+body.inquiryView:has(.inquiryStep2) header{height:60px!important;min-height:60px!important}
+body.inquiryView .inquiryStep2.inquiryRoot{height:100%!important;max-height:100%!important;min-height:0!important;box-sizing:border-box!important;overflow:hidden!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-rows:auto minmax(0,1.3fr) minmax(0,1fr) auto!important;gap:5px 9px!important;padding:6px 10px!important;align-items:stretch!important}
+body.inquiryView .inquiryStep2 .inquiryTop{grid-column:1/-1!important;min-height:0!important;margin:0!important;padding:0!important}
+body.inquiryView .inquiryStep2 .inquiryTop h2{font-size:clamp(16px,1.8vw,23px)!important;margin:0!important;line-height:1.15!important}
+body.inquiryView .inquiryStep2 .inquiryTop .inquiryLead{font-size:11px!important;margin:2px 0!important}
+body.inquiryView .inquiryStep2 .inquiryTop .inquiryProgress{display:none!important}
+body.inquiryView .inquiryStep2 .inquiryFoundations,body.inquiryView .inquiryStep2 .migrationIntro{display:none!important}
+body.inquiryView .inquiryStep2 #inqMigrationStage,body.inquiryView .inquiryStep2 #inqComparisonStage{display:contents!important}
+body.inquiryView .inquiryStep2 .inquiryChartPanel,body.inquiryView .inquiryStep2 .inquiryAnswerPanel{min-height:0!important;min-width:0!important;overflow:hidden!important;padding:7px 9px!important;gap:2px!important;display:flex!important;flex-direction:column!important}
+body.inquiryView .inquiryStep2 #inqMigrationStage .inquiryChartPanel{grid-column:1;grid-row:2}
+body.inquiryView .inquiryStep2 #inqComparisonStage .inquiryChartPanel{grid-column:2;grid-row:2}
+body.inquiryView .inquiryStep2 #inqMigrationStage .inquiryAnswerPanel{grid-column:1;grid-row:3}
+body.inquiryView .inquiryStep2 #inqComparisonStage .inquiryAnswerPanel{grid-column:2;grid-row:3}
+body.inquiryView .inquiryStep2 .inquiryChartPanel h3,body.inquiryView .inquiryStep2 .inquiryAnswerPanel h3{font-size:13px!important;line-height:1.15!important;margin:0 0 2px!important}
+body.inquiryView .inquiryStep2 .migrationRegions{gap:5px!important;flex:0 0 auto}
+body.inquiryView .inquiryStep2 .migrationRegions button{padding:3px 6px!important;font-size:11px!important;line-height:1.3!important}
+body.inquiryView .inquiryStep2 .migrationMap,body.inquiryView .inquiryStep2 .inquiryGraphWrap{height:auto!important;min-height:0!important;flex:1 1 0!important;margin:0!important}
+body.inquiryView .inquiryStep2 .migrationMap{border-width:2px!important}
+body.inquiryView .inquiryStep2 .globeHint{display:none!important}
+body.inquiryView .inquiryStep2 .globeStatus{font-size:10px!important;padding:4px 7px!important}
+body.inquiryView .inquiryStep2 .inquiryGraphWrap{padding:1px!important}
+body.inquiryView .inquiryStep2 .inquiryOriginalGraph{max-height:100%!important;object-fit:contain!important}
+body.inquiryView .inquiryStep2 .inquirySource{font-size:10px!important;margin:0!important;line-height:1.1!important}
+body.inquiryView .inquiryStep2 .migrationOriginList{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;margin:2px 0!important}
+body.inquiryView .inquiryStep2 .migrationOrigin{font-size:10px!important;padding:5px 2px!important;line-height:1.1!important;white-space:nowrap!important}
+body.inquiryView .inquiryStep2 .migrationQuestionCountry{font-size:11px!important;padding:3px 6px!important;margin:2px 0!important}
+body.inquiryView .inquiryStep2 .inquiryAnswerPanel label{font-size:11px!important;margin:0!important;line-height:1.2!important}
+body.inquiryView .inquiryStep2 .inquiryAnswerPanel select{min-height:0!important;height:28px!important;padding:2px 7px!important;font-size:12px!important}
+body.inquiryView .inquiryStep2 .inquiryAnswerPanel textarea{height:clamp(38px,8vh,65px)!important;min-height:0!important;flex:1 1 auto!important;resize:none!important;font-size:12px!important;padding:5px!important}
+body.inquiryView .inquiryStep2 .inquiryAnswerPanel .btn{font-size:11px!important;padding:6px!important;min-height:27px!important;line-height:1.1!important;margin:2px 0 0!important;flex:0 0 auto!important}
+body.inquiryView .inquiryStep2 #migrationFeedback{font-size:10px!important;min-height:0!important;margin:0!important}
+body.inquiryView .inquiryStep2 .inquiryCountryPick{gap:5px!important;margin:1px 0!important}
+body.inquiryView .inquiryStep2 #inqNotice{grid-column:1/-1!important;margin:0!important;min-height:0!important;font-size:11px!important;line-height:1.2!important}
+}
 </style></head>
 <body>
 <header>
@@ -588,31 +627,31 @@ function inquiryRender(){
    body='<div class="inquiryFoundations">'+
     '<article><b>앵글로아메리카</b><span>미국·캐나다 중심. 영국의 식민 지배로 영어와 영국 문화의 영향을 크게 받았어.</span></article>'+
     '<article><b>라틴아메리카</b><span>멕시코·브라질 등. 에스파냐어·포르투갈어 등 라틴계 언어에서 유래한 이름이야.</span></article></div>'+
-    '<p class="migrationIntro">🌎 지구본을 돌려 출발지와 도착지의 점을 직접 눌러 화살표를 완성해 보자. 오른쪽 원그래프와 함께 비교할 수 있어.</p>'+
+    '<p class="migrationIntro">🌎 출발지 → 도착지 연결 · 📊 국가별 인구 구성 비교</p>'+
     '<div id="inqMigrationStage" class="inquiryStageGrid">'+
     '<section class="inquiryData inquiryChartPanel"><h3>출발지 → 도착지</h3><div class="migrationRegions">'+
     '<button data-migration-region="anglo" type="button">앵글로아메리카 <span>0/4</span></button>'+
     '<button data-migration-region="latin" type="button">라틴아메리카 <span>0/4</span></button></div>'+
-    '<p id="migrationRegionDescription"></p><div id="inqMigrationMap" class="migrationMap"></div>'+
-    '<p class="inquirySource">지구본을 손가락으로 돌릴 수 있어. 표시된 출발지 → 도착지 순서로 눌러 봐.</p></section>'+
+    '<div id="inqMigrationMap" class="migrationMap"></div>'+
+    '</section>'+
     '<section class="inquiryQuestion inquiryAnswerPanel"><h3>이동 이유 고르기 <small id="migrationProgress"></small></h3>'+
     '<div id="migrationOriginList" class="migrationOriginList"></div>'+
     '<p class="migrationQuestionCountry" id="migrationQuestionCountry"></p>'+
     '<label for="migrationReason">사람들이 이동한 주요 이유는?</label><select id="migrationReason">'+reasons+'</select>'+
     '<button type="button" class="btn secondary" id="migrationCheck">이동 이유 확인 · 경로 완성</button>'+
     '<p id="migrationFeedback" aria-live="polite"></p>'+
-    '<p class="migrationNote">원주민은 이전부터 아메리카에 살고 있었어. 대표 사례를 살펴보는 활동이야.</p>'+
+    ''+
     '<button type="button" class="btn mint" id="migrationGoGraph" disabled>8개 경로 확인 완료</button></section></div>'+
     '<div id="inqComparisonStage" class="inquiryStageGrid" hidden>'+
     '<section class="inquiryData inquiryChartPanel"><h3>교과서 원그래프 · 민족과 인종 구성</h3>'+
     '<div class="inquiryGraphWrap"><img class="inquiryOriginalGraph" src="assets/americas_population_97.webp" alt="아메리카 국가별 민족과 인종 구성 원그래프"></div>'+
     '<p class="inquirySource"><a href="assets/americas_population_97.webp" target="_blank" rel="noopener">원그래프 크게 보기</a></p></section>'+
     '<section class="inquiryQuestion inquiryAnswerPanel"><h3>두 나라의 인구 구성 비교</h3>'+
-    '<p>국가 두 곳을 선택해 원그래프의 비율을 비교하고 역사적 배경과 연결해 설명해 보자.</p>'+
+    ''+
     '<div class="inquiryCountryPick"><label>첫 번째 국가<select id="inqCountryA">'+options+'</select></label>'+
     '<label>두 번째 국가<select id="inqCountryB">'+options+'</select></label></div>'+
-    '<label for="inqEvidence">원그래프의 비율(%)과 차이가 나타난 이유</label>'+
-    '<textarea id="inqEvidence" rows="4" placeholder="두 국가의 수치를 비교하고, 그 차이가 나타난 이유를 설명해 보자."></textarea>'+
+    '<label for="inqEvidence">① 비율 관찰 → ② 국가 비교 → ③ 이동 경로로 이유 설명</label>'+
+    '<textarea id="inqEvidence" rows="2" placeholder="두 나라의 비율(%)을 비교하고, 이동 경로를 근거로 차이를 설명해 보자."></textarea>'+
     '<button type="button" class="btn mint" id="inquirySubmit">분석 저장 · 다음 단계 →</button></section></div>';
  }else if(step===3){
    title='서로 다른 문화가 만나면 무엇이 만들어질까?';
