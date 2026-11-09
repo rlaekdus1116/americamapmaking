@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta name="app-build" content="2026-11-09-redeploy-01">
+<meta name="app-build" content="2026-11-10-classroom-control-fix">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>아메리카 지도 만들기 · 20나라 + 랜드마크 8곳 + 자연환경 5곳</title>
@@ -468,7 +468,6 @@ const INQUIRY_POPULATION=[
 /* 교과서 97쪽: 여러 지역에서 미국으로 인구가 이동한 역사적 과정.
    이주 사유를 특정할 수 없는 히스패닉 이주는 '자료에 제시되지 않음'으로 판단. */
 const INQUIRY_GRAPH_COUNTRIES=['미국','멕시코','쿠바','자메이카','콜롬비아','페루','브라질','아르헨티나','우루과이'];
-const MIGRATION_REASONS=[];
 const MIGRATION_ROUTES=[{"id":"ae","region":"anglo","name":"영국·유럽","coords":[53,-2],"target":[50,-96],"destination":"캐나다","reason":"settlement"},{"id":"af","region":"anglo","name":"서아프리카","coords":[10,-5],"target":[33,-81],"destination":"미국","reason":"forced"},{"id":"aa","region":"anglo","name":"동아시아","coords":[36,119],"target":[39,-122],"destination":"미국","reason":"economic"},{"id":"al","region":"anglo","name":"멕시코(히스패닉)","coords":[19.43,-99.13],"target":[33,-99],"destination":"미국","reason":"unspecified"},{"id":"ls","region":"latin","name":"에스파냐","coords":[40,-4],"target":[21,-101],"destination":"멕시코","reason":"settlement"},{"id":"lp","region":"latin","name":"포르투갈","coords":[39,-9],"target":[-16,-48],"destination":"브라질","reason":"settlement"},{"id":"lf","region":"latin","name":"서아프리카","coords":[8,-9],"target":[-14,-42],"destination":"브라질","reason":"forced"},{"id":"la","region":"latin","name":"동아시아","coords":[35,137],"target":[-23,-47],"destination":"브라질","reason":"economic"}];
 let migrationExplanations={},migrationChoices={},migrationSelected='ae',migrationRegion='anglo',migrationMap=null,migrationGeoPromise=null,migrationLayers=[];
 
@@ -547,9 +546,9 @@ function migrationMapInit(){
  const el=$('inqMigrationMap');if(!el)return;
  if(globeFrame)cancelAnimationFrame(globeFrame);
  globeCanvas=document.createElement('canvas');globeCanvas.className='globeCanvas';
- el.replaceChildren(globeCanvas);globeCtx=globeCanvas.getContext('2d');globeTapStage=0;globeTapStart=null;
+ el.replaceChildren(globeCanvas);globeCtx=globeCanvas.getContext('2d');globeTapStage=2;globeTapStart=null;
  const status=document.createElement('div');status.className='globeStatus';status.id='globeStatus';el.appendChild(status);
- const hint=document.createElement('div');hint.className='globeHint';hint.textContent='지구본을 돌리고, 출발지와 도착지를 차례로 눌러 보세요';el.appendChild(hint);
+ const hint=document.createElement('div');hint.className='globeHint';hint.textContent='현재 이동 경로가 화살표로 표시돼요. 지구본을 돌려 자세히 살펴보세요.';el.appendChild(hint);
  globeCanvas.onpointerdown=e=>{globeDrag={x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY};globeCanvas.setPointerCapture(e.pointerId);globeLast=performance.now()};
  globeCanvas.onpointermove=e=>{if(!globeDrag)return;const dx=e.clientX-globeDrag.x,dy=e.clientY-globeDrag.y;globeAngle-=dx*.36;globeLat=Math.max(-65,Math.min(65,globeLat+dy*.24));globeDrag.x=e.clientX;globeDrag.y=e.clientY;globeLast=performance.now()};
  globeCanvas.onpointerup=e=>{if(!globeDrag)return;const moved=Math.hypot(e.clientX-globeDrag.startX,e.clientY-globeDrag.startY);globeDrag=null;if(moved<13)globeTap(e)};
@@ -570,7 +569,7 @@ function globeTap(e){
 function migrationMapDraw(){
  const r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected);
  const status=$('globeStatus');
- if(status&&r)status.textContent=globeTapStage===0?'① '+r.name+' 출발지 점 누르기':globeTapStage===1?'② '+r.destination+' 도착지 점 누르기':'✓ '+r.name+' → '+r.destination+' 연결 완료! 이유를 골라 줘.';
+ if(status&&r)status.textContent='→ '+r.name+' → '+r.destination+' · 화살표를 보고 질문에 답해 줘.';
 }
 function migrationChooseOrigin(id){
  const r=MIGRATION_ROUTES.find(x=>x.id===id);if(!r)return;
@@ -585,7 +584,7 @@ function migrationChooseOrigin(id){
  if($('migrationHispanicDefinition')){$('migrationHispanicDefinition').hidden=!hispanic;$('migrationHispanicDefinition').textContent=hispanic?'히스패닉: 에스파냐어를 모국어로 사용하면서 미국에 거주하는 라틴 아메리카 출신 사람.':'';}
  if($('migrationExplanation'))$('migrationExplanation').placeholder=hispanic?'미국의 민족과 인종 구성이 어떻게 달라졌을까요?':'이동 경로와 역사적 배경을 연결해 설명해 보세요.';
  if($('migrationFeedback'))$('migrationFeedback').textContent=migrationChoices[id]?'이전에 작성한 답변이 저장되어 있어.':'';
- globeTapStage=migrationChoices[id]?2:0;globeAngle=r.coords[1];globeLat=r.coords[0]*.3;globeLast=performance.now();migrationUpdate();migrationMapDraw();
+ globeTapStage=2;globeAngle=r.coords[1];globeLat=r.coords[0]*.3;globeLast=performance.now();migrationUpdate();migrationMapDraw();
 }
 function migrationShowChapter(region){
  const old=$('migrationChapterPopup');if(old)old.remove();
@@ -621,9 +620,8 @@ function migrationUpdate(){
 function migrationCheckReason(){
  const r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected),explanation=String($('migrationExplanation')?.value||'').trim();
  if(!r)return;
- if(globeTapStage!==2&&!migrationChoices[r.id])return inquiryNotice('지구본에서 출발지와 도착지를 차례로 눌러 화살표를 연결해 줘.',true);
- if(explanation.length<12)return inquiryNotice(r.id==='al'?'미국의 인구 구성에 미친 영향을 12자 이상 적어 줘.':'이동의 역사적 배경을 12자 이상 적어 줘.',true);
- const ok=true; // 서술형 답변은 교사가 검토한다.
+ if(explanation.length<12)return inquiryNotice('탐구 답변을 12자 이상 작성해 줘. 현재 '+explanation.length+'자야.',true);
+ // 서술형 답변은 교사가 검토한다.
  migrationExplanations[r.id]=explanation;
  migrationChoices[r.id]='written';
  $('migrationFeedback').textContent='서술형 답변을 기록했어.';
@@ -638,15 +636,6 @@ function migrationSwitchTab(tab){
  a.hidden=graph;b.hidden=!graph;
  document.body.classList.toggle('migrationGraphMode',graph);
  if(!graph)migrationMapDraw();
-}
-function migrationRenderReasons(){
- const host=$('migrationReasonLinks');if(!host)return;
- const chosen=$('migrationReason')?.value||'';
- host.innerHTML=MIGRATION_REASONS.map(r=>'<button type="button" class="migrationReasonChoice'+(chosen===r.id?' selected':'')+'" data-reason="'+r.id+'" aria-pressed="'+(chosen===r.id)+'"><span class="migrationReasonDot"></span>'+esc(r.label)+'</button>').join('');
- host.querySelectorAll('[data-reason]').forEach(b=>b.onclick=()=>{
-  const select=$('migrationReason');if(select)select.value=b.dataset.reason;
-  migrationRenderReasons();
- });
 }
 function migrationInit(){
  migrationChoices={...(me?.inquiry?.routeDraft||me?.inquiry?.demography?.migration||{})};migrationExplanations={...(me?.inquiry?.routeExplanations||{})};const saved=me?.inquiry?.routeDraft||me?.inquiry?.demography?.migration;
@@ -758,7 +747,6 @@ function inquiryRender(){
  if(step===2){
    title='앵글로·라틴아메리카의 인구는 어디에서 왔을까?';
    lead='두 지역의 인구 이동을 화살표로 연결하고 교과서 원그래프를 비교해 보자.';
-   const reasons='<option value="">이동 이유 선택</option>'+MIGRATION_REASONS.map(r=>'<option value="'+r.id+'">'+r.label+'</option>').join('');
    const countries=['미국','멕시코','쿠바','자메이카','콜롬비아','페루','브라질','아르헨티나','우루과이'];
    const options=countries.map(c=>'<option value="'+c+'">'+c+'</option>').join('');
    body='<div class="inquiryFoundations">'+
