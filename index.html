@@ -357,6 +357,11 @@ body.inquiryView .inquiryStep2 .migrationRouteProgress{font-size:14px;font-weigh
 .inquiryStep4 .mysteryQuestions label{font-weight:750!important;font-size:clamp(13px,1.4vw,17px)!important}
 .inquiryStep4 .mysteryQuestions input,.inquiryStep4 .mysteryQuestions textarea{width:100%!important;box-sizing:border-box!important;border:2px solid #c2d9e7!important;border-radius:11px!important;padding:8px 10px!important;font-size:14px!important}
 @media(orientation:landscape) and (min-width:850px){.inquiryStep4 .mysteryStats{gap:5px;margin:6px 0}.inquiryStep4 .mysteryStats>div{padding:5px}.inquiryStep4 .mysteryQuestions textarea{min-height:48px!important}}
+</style><style id="culturePictureAndCompletion">
+.inquiryStep3 .culturePicturePanel{border:2px solid #c1dbe9;border-radius:18px;background:linear-gradient(130deg,#e4f3ff,#fff1df);padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:5px}
+.inquiryStep3 .culturePictureEmoji{font-size:clamp(54px,7vw,95px);line-height:1.2;filter:drop-shadow(0 4px 3px #718fa344)}
+.inquiryStep3 #cultureCaseProgress{font-size:14px;font-weight:850;color:#326a8a}
+.inquiryStep3 #cultureSaveReason{margin:6px 0!important}
 </style></head>
 <body data-app-build="2026-11-09-redeploy-01">
 <header>
@@ -681,23 +686,28 @@ function inquiryUpdateEquation(){
 function inquiryEnableMixer(){
  const country=$('inqCultureCountry');if(!country)return;
  const chips=[...document.querySelectorAll('.inquiryRootChip')];
- country.onchange=()=>{chips.forEach(x=>x.setAttribute('aria-pressed','false'));inquiryUpdateEquation();if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent=(cultureSolved[Number(country.value)]?'완료한 사례예요.':'문화 요소 두 개를 찾아보세요.');};
+ country.onchange=()=>{const old=Number(country.dataset.previous||0);if($('inqCultureReason')&&cultureSolved[old]){const value=$('inqCultureReason').value.trim();if(value.length>=18)cultureReasons[old]=value;}country.dataset.previous=country.value;if($('inqCultureReason'))$('inqCultureReason').value=cultureReasons[Number(country.value)]||'';chips.forEach(x=>x.setAttribute('aria-pressed','false'));inquiryUpdateEquation();cultureUpdatePicture();if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent=(cultureSolved[Number(country.value)]?'완료한 사례예요.':'문화 요소 두 개를 찾아보세요.');};
  if($('cultureQuizCheck'))$('cultureQuizCheck').onclick=cultureQuizCheck;
+ if($('cultureSaveReason'))$('cultureSaveReason').onclick=cultureSaveReason;
+ cultureUpdatePicture();
  for(const chip of chips)chip.onclick=()=>{
   const on=chip.getAttribute('aria-pressed')==='true';
-  if(!on&&inquiryPickedRoots().length>=2)return inquiryNotice('문화 요소는 최대 3개까지 골라 줘.',true);
+  if(!on&&inquiryPickedRoots().length>=2)return inquiryNotice('문화 요소는 두 개만 골라 줘.',true);
   chip.setAttribute('aria-pressed',on?'false':'true');
   inquiryNotice('');inquiryUpdateEquation();
  };
  inquiryUpdateEquation();
 }
-let cultureSolved={},cultureLockUntil=0,cultureLockTimer=null;
+let cultureSolved={},cultureReasons={},cultureLockUntil=0,cultureLockTimer=null;
+const CULTURE_PICTURES=['⛪🌺','💃🎻','🍔🥨','🎭🥁'];
+function cultureUpdatePicture(){const n=Number($('inqCultureCountry')?.value)||0;if($('cultureCasePicture'))$('cultureCasePicture').textContent=CULTURE_PICTURES[n]||'🎨';if($('cultureCaseProgress'))$('cultureCaseProgress').textContent='완료 '+Object.keys(cultureSolved).filter(i=>cultureReasons[i]&&cultureReasons[i].length>=18).length+' / '+INQUIRY_CULTURES.length;}
+function cultureSaveReason(){const n=Number($('inqCultureCountry')?.value)||0,reason=String($('inqCultureReason')?.value||'').trim();if(!cultureSolved[n])return inquiryNotice('문화 요소 정답을 먼저 확인해 줘.',true);if(reason.length<18)return inquiryNotice('이 문화가 결합한 이유를 18자 이상 적어 줘.',true);cultureReasons[n]=reason;inquiryNotice('이 사례의 답변을 저장했어. 다음 사례도 탐구해 보자.');cultureUpdatePicture();}
 function cultureQuizCheck(){
  const index=Number($('inqCultureCountry')?.value)||0,chosen=inquiryPickedRoots().map(x=>x.id).sort(),expected=(CULTURE_ANSWERS[index]||[]).slice().sort();
  const notice=$('cultureQuizFeedback');if(!notice)return;
  if(Date.now()<cultureLockUntil)return;
  if(chosen.length!==2){notice.textContent='문화 요소 두 개를 골라 확인해 보세요.';return;}
- if(chosen.join('|')===expected.join('|')){cultureSolved[index]=chosen;notice.textContent='정답! 다음 사례도 탐구해 보세요. ('+Object.keys(cultureSolved).length+'/'+INQUIRY_CULTURES.length+')';}
+ if(chosen.join('|')===expected.join('|')){cultureSolved[index]=chosen;notice.textContent='정답! 아래에 결합한 이유를 작성하고 저장해 주세요.';cultureUpdatePicture();}
  else{cultureLockUntil=Date.now()+10000;notice.textContent='다시 생각해 보세요. 10초 후 재도전할 수 있어요.';document.querySelectorAll('.inquiryRootChip,#cultureQuizCheck').forEach(x=>x.disabled=true);
  clearTimeout(cultureLockTimer);cultureLockTimer=setTimeout(()=>{document.querySelectorAll('.inquiryRootChip,#cultureQuizCheck').forEach(x=>x.disabled=false);if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent='다시 선택해 보세요.';},10000);}
 }
@@ -776,14 +786,15 @@ function inquiryRender(){
     '<button type="button" class="btn mint" id="inquirySubmit">원그래프 관찰 저장 · 다음 단계 →</button></section></div>';
  }else if(step===3){
    title='서로 다른 문화가 만나면 무엇이 만들어질까?';
-   lead='국가를 선택하고, 다양한 문화 요소 중 어울리는 재료 2~3개를 직접 골라 조합식을 완성해 보자.';
+   lead='그림을 보고 어떤 문화 요소들이 결합했는지 찾아보자.';
    const countries=INQUIRY_CULTURES.map((x,i)=>'<option value="'+i+'">'+esc(x.name)+' · '+esc(x.country)+'</option>').join('');
    const roots=INQUIRY_ROOTS.map(x=>
     '<button type="button" class="inquiryRootChip" aria-pressed="false" data-root="'+esc(x.id)+'">'+esc(x.text)+'</button>').join('');
    body='<div class="inquiryData"><h3>탐구할 국가 고르기</h3>'+
     '<div class="inquiryCultureIntro"><label for="inqCultureCountry">어느 나라의 문화를 탐구할까?</label>'+
     '<select id="inqCultureCountry">'+countries+'</select></div>'+
-    '<div class="inquiryCultureResult">탐구 문화: <span id="inqCultureName"></span></div>'+
+    '<div class="inquiryCultureResult">탐구 문화: <span id="inqCultureName"></span></div>'+ 
+    '<div class="culturePicturePanel" aria-label="문화 사례를 나타내는 그림"><div id="cultureCasePicture" class="culturePictureEmoji">⛪🌺</div><span id="cultureCaseProgress">완료 0 / 4</span></div>'+
     '<p class="inquirySource">교과서 98~99쪽 사례에서 문화가 결합하는 과정을 찾아보자.</p></div>'+
     '<div class="inquiryQuestion"><h3>결합한 문화 요소 직접 고르기</h3>'+
     '<p>문화 요소 두 개를 골라 정답을 확인하세요. 오답이면 10초 동안 다시 선택할 수 없어요.</p>'+
@@ -792,8 +803,9 @@ function inquiryRender(){
     '<div id="inqMixFormula" class="inquiryMixFormula"></div><span id="inqMixCount" class="inquiryMixCount"></span></div>'+ 
     '<button type="button" class="btn secondary" id="cultureQuizCheck">선택한 문화 요소 정답 확인</button><p id="cultureQuizFeedback" aria-live="polite">문화 요소 두 개를 찾아보세요.</p>'+
     '<label for="inqCultureReason">이 요소들을 선택한 역사적 근거는?</label>'+
-    '<textarea id="inqCultureReason" rows="3" placeholder="교과서의 내용 또는 앞 단계에서 알게 된 역사적 사실을 근거로 적어 보자."></textarea>'+
-    '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">문화 조합 저장하고 최종 판단으로 →</button></div>';
+    '<textarea id="inqCultureReason" rows="3" placeholder="이 문화가 어떤 역사적 만남을 통해 만들어졌을지 설명해 보자."></textarea>'+ 
+    '<button class="btn secondary" type="button" id="cultureSaveReason">이 사례의 이유 저장하기</button>'+
+    '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">4개 사례 탐구 완료 · 역사 탐정으로 →</button></div>';
  }else if(step===4){
    title='역사 탐정 · 가상 국가의 비밀을 밝혀라!';
    lead='새로운 자료에서 단서를 찾고, 어떤 인구 이동이 있었을지 추론해 보자. 정답 하나만 있는 문제는 아니야.';
@@ -856,10 +868,11 @@ async function inquirySubmit(step){
    const index=Number($('inqCultureCountry')?.value);
    const culture=INQUIRY_CULTURES[index],roots=inquiryPickedRoots(),reason=v('inqCultureReason');
    if(!culture)return inquiryNotice('탐구할 국가를 선택해 줘.',true);
-   if(Object.keys(cultureSolved).length<INQUIRY_CULTURES.length)return inquiryNotice('교과서 문화 사례 4개를 모두 탐구하고 정답을 확인해 줘.',true);
+   if(cultureSolved[index]&&reason.length>=18)cultureReasons[index]=reason;
+   if(INQUIRY_CULTURES.some((c,i)=>!cultureSolved[i]||!cultureReasons[i]||cultureReasons[i].length<18))return inquiryNotice('4개 사례 모두 정답을 확인하고 결합 이유까지 작성해 줘.',true);
    if(roots.length<2)return inquiryNotice('현재 사례의 문화 요소 두 개를 골라 줘.',true);
    if(reason.length<18)return inquiryNotice('왜 그렇게 결합했다고 생각했는지 근거를 적어 줘.',true);
-   answer={completedCases:Object.keys(cultureSolved).map(i=>({name:INQUIRY_CULTURES[i].name,country:INQUIRY_CULTURES[i].country,elements:cultureSolved[i]})),country:culture.country,culture:culture.name,elements:roots.map(x=>x.text),
+   answer={completedCases:Object.keys(cultureSolved).map(i=>({name:INQUIRY_CULTURES[i].name,country:INQUIRY_CULTURES[i].country,elements:cultureSolved[i],reason:cultureReasons[i]})),country:culture.country,culture:culture.name,elements:roots.map(x=>x.text),
     formula:roots.map(x=>x.text).join(' + ')+' = '+culture.name+' ('+culture.country+')',
     reason,link:''};
  }else if(step===4){
