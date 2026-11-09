@@ -1956,9 +1956,176 @@ async function teacherDeleteStudent(){
  finally{if(btn)btn.disabled=false;}
 }
 
+
+/* Teacher console controls a sandboxed student-rendering iframe.
+   Navigation never writes to Firebase; selecting a live student only copies the
+   already-read player snapshot into the isolated frame. */
+let teacherMirrorScene=0,teacherMirrorResult=false,teacherMirrorMode='browse',teacherMirrorSelected='';
+function teacherMirrorSceneOptions(){
+ const start=[{id:41,label:'이름 입력 화면'}];
+ for(let i=0;i<PROBLEMS.length;i++){
+  const q=PROBLEMS[i];
+  const stage=i<COUNTRY_END?'나라':i<CITY_END?'랜드마크':'자연환경';
+  start.push({id:i,label:(i+1)+'번 · '+stage+' · '+q.answer});
+ }
+ start.push({id:33,label:'2단계 · 인구 구성 자료 분석'},
+  {id:34,label:'3단계 · 문화 혼종성 자료 분석'},
+  {id:35,label:'4단계 · 최초 판단 재검토'},
+  {id:36,label:'최종 제출 완료 화면'},
+  {id:37,label:'실시간 퀴즈 · 대기실'},
+  {id:38,label:'실시간 퀴즈 · 풀이 화면'},
+  {id:39,label:'실시간 퀴즈 · 정답 발표'},
+  {id:40,label:'실시간 퀴즈 · 순위 결과'},
+  {id:42,label:'오늘은 여기까지 · 일시 정지'});
+ return start.map(x=>'<option value="'+x.id+'">'+esc(x.label)+'</option>').join('');
+}
+function teacherMirrorRecord(){
+ if(teacherMirrorSelected&&lastAll[teacherMirrorSelected])return {
+   ...lastAll[teacherMirrorSelected],id:teacherMirrorSelected
+ };
+ return null;
+}
+function teacherMirrorSelectStudent(key){
+ if(!lastAll[key])return;
+ selectedKey=key;
+ teacherMirrorSelected=key;
+ teacherMirrorMode='snapshot';
+ teacherMirrorResult=false;
+ teacherMirrorRenderControls();
+ teacherMirrorSend();
+ // Preserve original teacher details and recorded student's controls.
+ renderTeacherViews(lastAll);
+}
+function teacherMirrorRenderControls(){
+ const sel=$('teacherMirrorStudent'),scene=$('teacherMirrorScene'),res=$('teacherMirrorResult');
+ if(!sel||!scene||!res)return;
+ const keep=teacherMirrorSelected&&lastAll[teacherMirrorSelected]?teacherMirrorSelected:'';
+ if(!keep)teacherMirrorSelected='';
+ sel.innerHTML='<option value="">교사용 가상 체험 학생</option>'+
+  ranked(lastAll).map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+' · '+p.done+'/'+PROBLEMS.length+'문항</option>').join('');
+ sel.value=keep;
+ scene.value=String(teacherMirrorScene);
+ res.checked=teacherMirrorResult;
+ res.disabled=teacherMirrorMode==='snapshot'||teacherMirrorScene>=33;
+ $('teacherMirrorCurrent').textContent=teacherMirrorMode==='snapshot'&&keep?
+   '선택한 학생의 저장된 현재 화면 · '+(lastAll[keep]?.name||'학생'):
+   '모든 단계를 자유롭게 이동하는 교사용 체험 화면';
+ const actual=$('teacherMirrorLive');
+ if(actual)actual.disabled=!keep;
+}
+function teacherMirrorSend(){
+ const frame=$('teacherMirrorFrame');
+ if(!frame?.contentWindow)return;
+ frame.contentWindow.postMessage({
+  type:'AMAP_TEACHER_PREVIEW_STATE',
+  scene:teacherMirrorScene,
+  result:teacherMirrorResult,
+  mode:teacherMirrorMode,
+  record:teacherMirrorRecord()
+ },location.origin);
+}
+function teacherMirrorSetScene(scene,result=false){
+ teacherMirrorMode='browse';
+ teacherMirrorScene=Math.max(0,Math.min(42,Number(scene)||0));
+ teacherMirrorResult=!!result&&teacherMirrorScene<PROBLEMS.length;
+ teacherMirrorRenderControls();teacherMirrorSend();
+}
+function teacherMirrorNext(){
+ if(teacherMirrorMode==='snapshot'){
+   const rec=teacherMirrorRecord();
+   if(rec){
+     const n=Number(rec.cur)||0;
+     teacherMirrorSetScene(rec.pending?Math.min(n,PROBLEMS.length-1):n,!!rec.pending);
+   }else teacherMirrorSetScene(0);
+   return;
+ }
+ const x=teacherMirrorScene;
+ if(x===41)return teacherMirrorSetScene(0);
+ if(x===42)return teacherMirrorSetScene(0);
+ if(teacherMirrorResult)return teacherMirrorSetScene(Math.min(40,x+1));
+ return teacherMirrorSetScene(Math.min(40,x+1));
+}
+function teacherMirrorPrev(){
+ if(teacherMirrorMode==='snapshot')return teacherMirrorNext();
+ const x=teacherMirrorScene;
+ teacherMirrorSetScene(x===41?0:Math.max(0,x-1));
+}
+function teacherMirrorAttach(){
+ const select=$('teacherMirrorStudent'),scene=$('teacherMirrorScene');
+ if(!select||!scene)return;
+ select.onchange=()=>{
+   teacherMirrorSelected=select.value;
+   if(teacherMirrorSelected){
+     teacherMirrorMode='snapshot';
+     selectedKey=teacherMirrorSelected;renderTeacherViews(lastAll);
+   }else teacherMirrorMode='browse';
+   teacherMirrorResult=false;teacherMirrorRenderControls();teacherMirrorSend();
+ };
+ scene.onchange=()=>teacherMirrorSetScene(Number(scene.value));
+ $('teacherMirrorPrev').onclick=teacherMirrorPrev;
+ $('teacherMirrorNext').onclick=teacherMirrorNext;
+ $('teacherMirrorResult').onchange=e=>{
+   teacherMirrorMode='browse';
+   teacherMirrorResult=e.target.checked;
+   teacherMirrorRenderControls();teacherMirrorSend();
+ };
+ $('teacherMirrorFirst').onclick=()=>teacherMirrorSetScene(0);
+ $('teacherMirrorPopulation').onclick=()=>teacherMirrorSetScene(33);
+ $('teacherMirrorCulture').onclick=()=>teacherMirrorSetScene(34);
+ $('teacherMirrorReflection').onclick=()=>teacherMirrorSetScene(35);
+ $('teacherMirrorFinal').onclick=()=>teacherMirrorSetScene(36);
+ $('teacherMirrorQuiz').onclick=()=>teacherMirrorSetScene(38);
+ $('teacherMirrorLive').onclick=()=>{
+   if(!teacherMirrorRecord())return;
+   teacherMirrorMode='snapshot';teacherMirrorResult=false;
+   teacherMirrorRenderControls();teacherMirrorSend();
+ };
+ window.addEventListener('message',e=>{
+   if(e.origin!==location.origin||e.source!==$('teacherMirrorFrame')?.contentWindow)return;
+   const data=e.data;
+   if(!data)return;
+   if(data.type==='AMAP_TEACHER_PREVIEW_READY')teacherMirrorSend();
+   if(data.type==='AMAP_TEACHER_PREVIEW_NAV'){
+     if(data.action==='next')teacherMirrorNext();
+     if(data.action==='result'){
+       teacherMirrorMode='browse';teacherMirrorResult=true;
+       teacherMirrorRenderControls();teacherMirrorSend();
+     }
+     if(data.action==='first')teacherMirrorSetScene(0);
+   }
+ });
+ teacherMirrorRenderControls();
+}
+function teacherMirrorHtml(){
+ const url=new URL(location.origin+location.pathname);
+ url.searchParams.set('mode','preview');
+ url.searchParams.set('room',ROOM);
+ return '<section class="card teacherMirror" id="teacherMirrorConsole">'+
+  '<div class="teacherMirrorHeader"><div><span class="smallPill">교사용 학생 시점 체험</span><h2>학생 화면 전체 미리보기</h2></div>'+
+  '<span class="teacherMirrorFlag">학생 기록 변경 없음 · 읽기 전용</span></div>'+
+  '<p class="teacherMirrorNotice">학생을 선택하면 그 학생이 저장한 현재 화면을 재현하고, 단계 선택과 건너뛰기로 모든 문제와 탐구 화면을 확인할 수 있어요. 학생이 제출 전 입력 중인 내용은 보이지 않아요.</p>'+
+  '<div class="teacherMirrorControls"><label class="teacherMirrorField">학생 선택<select id="teacherMirrorStudent"></select></label>'+
+  '<label class="teacherMirrorField">학생에게 보일 화면<select id="teacherMirrorScene">'+teacherMirrorSceneOptions()+'</select></label>'+
+  '<button type="button" class="btn secondary" id="teacherMirrorLive">선택 학생 현재 위치</button>'+
+  '<button type="button" class="btn secondary" id="teacherMirrorPrev">← 이전</button>'+
+  '<button type="button" class="btn mint" id="teacherMirrorNext">건너뛰기 · 다음 →</button></div>'+
+  '<div class="teacherMirrorQuick">'+
+  '<button type="button" class="btn secondary" id="teacherMirrorFirst">지도 첫 문제</button>'+
+  '<button type="button" class="btn secondary" id="teacherMirrorPopulation">인구 구성 분석</button>'+
+  '<button type="button" class="btn secondary" id="teacherMirrorCulture">문화 혼종성</button>'+
+  '<button type="button" class="btn secondary" id="teacherMirrorReflection">최종 판단</button>'+
+  '<button type="button" class="btn secondary" id="teacherMirrorFinal">제출 완료</button>'+
+  '<button type="button" class="btn secondary" id="teacherMirrorQuiz">실시간 퀴즈</button>'+
+  '<label class="teacherMirrorResult"><input type="checkbox" id="teacherMirrorResult"> 정답 확인 팝업도 보기</label></div>'+
+  '<p id="teacherMirrorCurrent" class="teacherMirrorNotice" aria-live="polite"></p>'+
+  '<div class="teacherMirrorDevice"><div class="teacherMirrorDeviceTitle"><span>학생 화면</span><span>미리보기 · 실제 저장 없음</span></div>'+
+  '<iframe id="teacherMirrorFrame" class="teacherMirrorFrame" title="학생 시점 전체 화면 미리보기" loading="eager" referrerpolicy="same-origin" src="'+esc(url.href)+'"></iframe>'+
+  '</div></section>';
+}
+
 function renderTeacher(){
   renderHdr();
-  app.innerHTML=`<section id="liveTeacherPanel" class="liveTeacherPanel teacherProjector"></section><main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
+  app.innerHTML=`${teacherMirrorHtml()}<section id="liveTeacherPanel" class="liveTeacherPanel teacherProjector"></section><main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
     <section class="card"><div class="smallPill">${iconArt("book")} 교사용 관리</div><h2>${esc(roomTitle(ROOM))} 탐험 현황</h2>
       <p class="muted">학생 이름을 누르면 문제별 결과를 확인할 수 있어요.</p>
       <div class="teacherShare">
@@ -1976,6 +2143,7 @@ function renderTeacher(){
       <div class="tableWrap"><table><thead><tr><th>순위</th><th>이름</th><th>점수</th><th>진도</th><th>현재 상태</th></tr></thead><tbody id="tbl"></tbody></table></div>
     </section><section class="card" id="detail"><h2>학생 상세</h2><p class="muted">학생을 선택해 주세요.</p></section>
   </main>`;
+  teacherMirrorAttach();
   $('csvBtn').onclick=exportCSV;
   $('liveTeacherPanel').onclick=e=>{
     const student=e.target.closest('[data-live-member]');
@@ -1986,7 +2154,7 @@ function renderTeacher(){
   const joinLink=classJoinLink();
   $('shareLink').value=joinLink;
   $('shareCopy').onclick=copyClassJoinLink;
-  $('tbl').onclick=e=>{const button=e.target.closest('[data-key]');if(button){selectedKey=button.dataset.key;teacherDraftProgress=null;renderTeacherViews(lastAll)}};
+  $('tbl').onclick=e=>{const button=e.target.closest('[data-key]');if(button){teacherDraftProgress=null;teacherMirrorSelectStudent(button.dataset.key)}};
   $('detail').onchange=e=>{if(e.target.id==='teacherProgress')teacherDraftProgress=Number(e.target.value);};
   $('detail').onclick=e=>{
     if(e.target.closest('#teacherProgressApply'))teacherProgressApply();
@@ -2092,7 +2260,7 @@ function teacherInquiryHtml(p){
 }
 
 function renderTeacherViews(all){
-  const list=ranked(all);$('studentTotal').textContent='참여 '+list.length+'명'+(firebaseState==='offline'?' · 이 브라우저 기록만':'');
+  const list=ranked(all);teacherMirrorRenderControls();$('studentTotal').textContent='참여 '+list.length+'명'+(firebaseState==='offline'?' · 이 브라우저 기록만':'');
   $('tbl').innerHTML=list.length?list.map((p,i)=>{
     const status=p.pending?'결과 확인 중':p.cur>=PROBLEMS.length?inquiryLabel(inquiryStep(p)):(p.cur+1)+'번 진행';
     return `<tr><td>${i+1}</td><td><button class="nameBtn" data-key="${esc(p.id)}">${esc(p.name)}</button></td><td>${p.score}점</td><td>${p.done}/${PROBLEMS.length}</td><td>${status}</td></tr>`;
