@@ -348,6 +348,15 @@ body.inquiryView .inquiryStep2 #inqComparisonStage .migrationBigQuestion{font-si
 </style><style id="migrationRemoveRedundantChoices">
 body.inquiryView .inquiryStep2 #migrationOriginList,body.inquiryView .inquiryStep2 #migrationReasonLinks,body.inquiryView .inquiryStep2 #migrationReason{display:none!important}
 body.inquiryView .inquiryStep2 .migrationRouteProgress{font-size:14px;font-weight:800;color:#447899;background:#e5f4ff;border-radius:10px;padding:7px 12px;display:inline-block;margin-bottom:6px}
+</style><style id="mysteryCaseScaffold2026">
+.inquiryStep4 .mysteryEvidence{background:linear-gradient(125deg,#e8f4ff,#fff8e9)!important;border:2px solid #b8d8ee!important;border-radius:18px!important}
+.inquiryStep4 .mysteryStats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
+.inquiryStep4 .mysteryStats>div{background:#fff;border:1px solid #c7dce8;border-radius:12px;padding:10px 6px;text-align:center;display:flex;flex-direction:column;gap:3px}
+.inquiryStep4 .mysteryStats b{font-size:clamp(11px,1.3vw,15px);color:#44637b}.inquiryStep4 .mysteryStats strong{font-size:clamp(19px,2.4vw,29px);color:#245a80}
+.inquiryStep4 .mysteryQuestions h3{font-size:clamp(16px,1.7vw,22px)!important;margin:9px 0 3px!important;color:#235e85!important}
+.inquiryStep4 .mysteryQuestions label{font-weight:750!important;font-size:clamp(13px,1.4vw,17px)!important}
+.inquiryStep4 .mysteryQuestions input,.inquiryStep4 .mysteryQuestions textarea{width:100%!important;box-sizing:border-box!important;border:2px solid #c2d9e7!important;border-radius:11px!important;padding:8px 10px!important;font-size:14px!important}
+@media(orientation:landscape) and (min-width:850px){.inquiryStep4 .mysteryStats{gap:5px;margin:6px 0}.inquiryStep4 .mysteryStats>div{padding:5px}.inquiryStep4 .mysteryQuestions textarea{min-height:48px!important}}
 </style></head>
 <body data-app-build="2026-11-09-redeploy-01">
 <header>
@@ -699,7 +708,7 @@ function inquiryStep(record=me){
  return Math.min(5,Math.max(2,n));
 }
 function inquiryLabel(step){
- return step===5?'최종 제출 완료':step===4?'4단계 · 생각 수정':step===3?'3단계 · 문화 혼종성':step===2?'2단계 · 인구 자료 분석':'1단계 · 지도 만들기';
+ return step===5?'최종 제출 완료':step===4?'4단계 · 역사 탐정':step===3?'3단계 · 문화 혼종성':step===2?'2단계 · 인구 자료 분석':'1단계 · 지도 만들기';
 }
 function inquiryNotice(message,bad=false){
  const el=$('inqNotice');if(el){el.textContent=message;el.style.color=bad?'#ad305b':'#267457';}
@@ -711,7 +720,7 @@ function inquiryBarRows(){
   '<td><b>'+x.percent+'%</b></td></tr>').join('');
 }
 function inquiryProgress(step){
- const labels=['지도 만들기','인구 분석','문화 혼합','최종 판단'];
+ const labels=['지도 만들기','인구 분석','문화 혼합','역사 탐정'];
  return '<div class="inquiryTrack" aria-label="탐구 진행 단계">'+labels.map((label,i)=>{
   const n=i+1;
   return '<span class="inquiryMilestone '+(step>n?'isDone':step===n?'isActive':'isLocked')+'">'+
@@ -786,24 +795,25 @@ function inquiryRender(){
     '<textarea id="inqCultureReason" rows="3" placeholder="교과서의 내용 또는 앞 단계에서 알게 된 역사적 사실을 근거로 적어 보자."></textarea>'+
     '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">문화 조합 저장하고 최종 판단으로 →</button></div>';
  }else if(step===4){
-   title='나의 생각은 어떻게 달라졌을까?';
-   lead='처음 썼던 답을 확인한 다음, 교과서 자료에 근거해 나의 최종 판단을 작성해 보자.';
-   body='<div class="inquiryData"><h3>내가 앞에서 제출한 답변</h3>'+
-    '<div class="inquiryPrevious"><b>인구 구성에 관한 최초 판단</b><p>'+esc(record.demography?.evidence||'')+'</p>'+
-    '<b>역사적 원인</b><p>'+esc(record.demography?.cause||'')+'</p>'+
-    '<b>처음 만든 문화 조합</b><p>'+esc(record.culture?.formula||'')+'</p><b>선택 이유</b><p>'+esc(record.culture?.reason||'')+'</p></div></div>'+
-    '<div class="inquiryData"><h3>스스로 확인할 점</h3>'+
-    '<p>① 국가별 집단과 비율(%)을 정확히 사용했는가?</p>'+
-    '<p>② 유럽의 식민 지배와 아프리카인의 강제 이주 등 역사적 이유를 연결했는가?</p>'+
-    '<p>③ 문화 혼종성 사례에서 만난 문화 요소를 둘 이상 설명했는가?</p>'+
-    '<p class="inquirySource">이 내용은 자동 채점 결과가 아니라 스스로 점검할 질문이야.</p></div>'+
-    '<div class="inquiryQuestion"><h3>최종 판단</h3>'+
-    '<label for="inqFinal">아메리카의 인구와 문화가 다양해진 까닭을 자료 근거와 문화 사례를 사용해 설명하자.</label>'+
-    '<textarea id="inqFinal" rows="5" placeholder="비율 자료 1개 이상, 역사적 원인 1개 이상, 문화 사례 1개 이상을 연결해 설명해 보자."></textarea></div>'+
-    '<div class="inquiryQuestion"><h3>생각의 변화 기록</h3>'+
-    '<label for="inqChange">처음 쓴 답변에서 무엇을 고치거나 보완했는지 써 보자.</label>'+
-    '<textarea id="inqChange" rows="3" placeholder="처음에는 …라고 생각했지만, … 자료를 보고 …를 추가/수정했다."></textarea></div>'+
-    '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">최종 판단 저장하고 제출하기 ✓</button>';
+   title='역사 탐정 · 가상 국가의 비밀을 밝혀라!';
+   lead='새로운 자료에서 단서를 찾고, 어떤 인구 이동이 있었을지 추론해 보자. 정답 하나만 있는 문제는 아니야.';
+   body='<div class="inquiryData mysteryEvidence"><h3>🔎 가상 국가 ‘아루나’의 단서</h3>'+
+    '<p class="inquirySource">아루나는 학습을 위해 만든 가상 국가이며, 아래 수치는 실제 통계가 아니야.</p>'+
+    '<div class="mysteryStats"><div><b>아프리카계</b><strong>45%</strong></div><div><b>유럽계</b><strong>30%</strong></div><div><b>원주민계</b><strong>15%</strong></div><div><b>기타</b><strong>10%</strong></div></div>'+
+    '<h3>🎭 문화 단서</h3><p>이 나라의 대표 축제에서는 아프리카계 북과 춤, 유럽에서 전해진 축제 의상, 원주민의 전통 장식이 함께 나타나.</p></div>'+
+    '<div class="inquiryQuestion mysteryQuestions"><h3>① 인구 구성에서 단서 찾기</h3>'+
+    '<label for="inqClue">가장 비율이 높은 인구 집단은 무엇이고, 몇 %인가요?</label>'+
+    '<input id="inqClue" type="text" placeholder="예: ○○계가 ○○%로 가장 많다.">'+
+    '<h3>② 과거의 인구 이동 추론하기</h3>'+
+    '<label for="inqMigrationHypothesis">이 나라에는 과거 어떤 사람들이, 어떤 이유로 이동해 왔을까요?</label>'+
+    '<textarea id="inqMigrationHypothesis" rows="2" placeholder="나는 ○○ 지역에서 온 사람들이 ○○ 때문에 이동했을 것이라고 추측한다."></textarea>'+
+    '<h3>③ 문화의 결합 설명하기</h3>'+
+    '<label for="inqCultureClue">축제에서 서로 결합한 문화 요소 두 가지 이상을 찾아보세요.</label>'+
+    '<textarea id="inqCultureClue" rows="2" placeholder="○○의 문화와 △△의 문화가 만나 축제가 만들어졌다."></textarea>'+
+    '<h3>④ 역사 탐정의 결론</h3>'+
+    '<label for="inqFinal">앞의 세 가지 답을 활용해, 이 나라의 인구와 문화가 다양해진 까닭을 설명해 보세요.</label>'+
+    '<textarea id="inqFinal" rows="3" placeholder="아루나는 ○○계가 ○○%로 가장 많다. 이는 과거 ○○와 관련이 있을 것으로 추측한다. 또한 축제에는 ○○와 △△ 문화가 함께 나타난다."></textarea>'+
+    '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">역사 탐정 보고서 제출하기 ✓</button></div>';
  }else{
    title='모든 탐구 단계를 완료했어요!';
    lead='지도 만들기와 인구·문화 자료 분석, 그리고 최종 판단까지 저장했어요.';
@@ -811,7 +821,7 @@ function inquiryRender(){
     '<p><strong>자료 분석</strong></p><p>'+esc(record.demography?.evidence||'')+'</p>'+
     '<p><strong>문화 혼종성 분석</strong></p><p>'+esc(record.culture?.formula||'')+'</p><p>'+esc(record.culture?.reason||'')+'</p>'+
     '<p><strong>최종 판단</strong></p><p>'+esc(record.reflection?.final||'')+'</p>'+
-    '<p><strong>바꾼 생각</strong></p><p>'+esc(record.reflection?.change||'')+'</p>'+
+    '<p><strong>인구 구성 단서</strong></p><p>'+esc(record.reflection?.clue||'')+'</p>'+ '<p><strong>인구 이동 추론</strong></p><p>'+esc(record.reflection?.hypothesis||'')+'</p>'+ '<p><strong>문화 단서</strong></p><p>'+esc(record.reflection?.cultureClue||'')+'</p>'+
     '<p class="inquirySource">학생 답변은 교사용 관리 화면에서 확인하고 CSV로 내려받을 수 있어요.</p></div>'+
     '<p class="inquirySource">기억력 퀴즈는 이 탐구와 별도의 선택 활동이야.</p>';
  }
@@ -853,9 +863,12 @@ async function inquirySubmit(step){
     formula:roots.map(x=>x.text).join(' + ')+' = '+culture.name+' ('+culture.country+')',
     reason,link:''};
  }else if(step===4){
-   const final=v('inqFinal'),change=v('inqChange');
-   if(final.length<25||change.length<13)return inquiryNotice('자료를 근거로 한 최종 판단과 처음 생각에서 보완한 점을 써 줘.',true);
-   answer={final,change};
+   const final=v('inqFinal'),clue=v('inqClue'),hypothesis=v('inqMigrationHypothesis'),cultureClue=v('inqCultureClue');
+   if(clue.length<8)return inquiryNotice('① 가장 비율이 높은 집단과 비율을 적어 줘.',true);
+   if(hypothesis.length<15)return inquiryNotice('② 어떤 사람들이 왜 이동했을지 문장으로 적어 줘.',true);
+   if(cultureClue.length<12)return inquiryNotice('③ 축제에서 결합한 문화 요소를 두 가지 이상 적어 줘.',true);
+   if(final.length<30)return inquiryNotice('④ 앞의 단서를 활용해 결론을 30자 이상 적어 줘.',true);
+   answer={final,clue,hypothesis,cultureClue,change:'가상 국가 자료를 바탕으로 새로운 추론을 작성함'};
  }else return;
  const button=$('inquirySubmit');if(button)button.disabled=true;
  inquirySaving=true;inquiryNotice('Firebase에 답변을 저장하는 중...');
