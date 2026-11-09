@@ -265,6 +265,142 @@ const INQUIRY_POPULATION=[
  {name:'자메이카',group:'아프리카계',percent:92},
  {name:'아르헨티나',group:'유럽계',percent:86}
 ];
+
+/* 교과서 97쪽: 여러 지역에서 미국으로 인구가 이동한 역사적 과정.
+   이주 사유를 특정할 수 없는 히스패닉 이주는 '자료에 제시되지 않음'으로 판단. */
+const INQUIRY_GRAPH_COUNTRIES=['미국','멕시코','쿠바','자메이카','콜롬비아','페루','브라질','아르헨티나','우루과이'];
+const MIGRATION_REASONS=[
+ {id:'settlement',label:'식민 지배와 정착'},
+ {id:'forced',label:'노예로 강제 이주'},
+ {id:'economic',label:'일자리 등 경제적 이유'},
+ {id:'not-stated',label:'이유가 교과서에 구체적으로 나오지 않음'}
+];
+const MIGRATION_ROUTES=[
+ {id:'europe',name:'영국·유럽',coords:[52,10],target:[41,-99],reason:'settlement',color:'#3577ad'},
+ {id:'africa',name:'아프리카',coords:[10,-9],target:[33,-84],reason:'forced',color:'#ab679a'},
+ {id:'latin',name:'라틴 아메리카',coords:[21,-101],target:[33,-104],reason:'not-stated',color:'#b77b34'},
+ {id:'asia',name:'아시아',coords:[35,112],target:[39,-120],reason:'economic',color:'#438477'}
+];
+let migrationChoices={},migrationSelected='europe',migrationMap=null,migrationGeoPromise=null,migrationLayers=[];
+function migrationRouteHtml(){
+ return MIGRATION_ROUTES.map(r=>'<button class="migrationOrigin'+(r.id===migrationSelected?' selected':'')+'" data-migration-origin="'+r.id+'" type="button">'+
+ '<span class="migrationRouteDot" style="background:'+r.color+'"></span><strong>'+esc(r.name)+'</strong>'+
+ '<span class="migrationDone">'+(migrationChoices[r.id]?'✓':'선택')+'</span></button>').join('');
+}
+function migrationMapInit(){
+ const el=$('inqMigrationMap');if(!el||!window.L)return;
+ if(migrationMap){try{migrationMap.remove();}catch(e){}migrationMap=null;}
+ migrationMap=L.map(el,{zoomControl:false,attributionControl:false,scrollWheelZoom:false,
+   doubleClickZoom:false,dragging:false,touchZoom:false,keyboard:false,
+   tap:false,boxZoom:false,preferCanvas:true}).setView([15,0],1);
+ const b=[[-58,-179],[79,179]];
+ migrationMap.fitBounds(b,{padding:[3,3]});
+ const m=migrationMap;
+ if(!migrationGeoPromise)migrationGeoPromise=fetch(COUNTRY_GEO).then(r=>{
+   if(!r.ok)throw Error('지리 자료 연결 실패');
+   return r.json();
+ });
+ migrationGeoPromise.then(data=>{
+   if(migrationMap!==m||!$('inqMigrationMap'))return;
+   L.geoJSON(data,{interactive:false,style:{color:'#b7c9d9',weight:.45,fillColor:'#e5eef7',fillOpacity:.98}}).addTo(m);
+   migrationMapDraw();
+ }).catch(()=>{
+   if(migrationMap!==m)return;
+   const note=$('migrationMapHelp');if(note)note.textContent='국경선 지도를 불러오지 못했지만, 출발지와 이동 화살표는 사용할 수 있어.';
+   migrationMapDraw();
+ });
+ migrationMapDraw();
+ setTimeout(()=>{if(migrationMap===m)m.invalidateSize();},50);
+}
+function migrationMapDraw(){
+ const m=migrationMap;if(!m)return;
+ for(const layer of migrationLayers){try{m.removeLayer(layer);}catch(e){}}
+ migrationLayers=[];
+ const add=layer=>{layer.addTo(m);migrationLayers.push(layer);return layer;};
+ // Draw the westward migration as arrows, with a two-part trans-Pacific route from Asia.
+ for(const r of MIGRATION_ROUTES){
+   const visible=r.id===migrationSelected||!!migrationChoices[r.id];
+   if(!visible)continue;
+   const ok=!!migrationChoices[r.id],color=ok?'#268a73':r.color;
+   const line=r.id==='asia'?
+    [[[35,112],[42,148],[43,176]],[[43,-179],[41,-151],[39,-120]]]:
+    [[r.coords,r.id==='latin'?[32,-103]:r.id==='africa'?[26,-49]:[42,-44],r.target]];
+   for(const path of line)add(L.polyline(path,{color,weight:ok?3.4:3,opacity:.95,dashArray:ok?'':'7 5',interactive:false}));
+   const before=r.id==='asia'?[41,-151]:r.id==='latin'?[32,-103]:r.id==='africa'?[26,-49]:[42,-44];
+   const [endLat,endLng]=r.target,dx=(endLng-before[1])*Math.cos(endLat*Math.PI/180),dy=endLat-before[0];
+   const angle=Math.atan2(dy,dx),spread=.12,len=5,baseLng=endLng-len*Math.cos(angle)/Math.max(.4,Math.cos(endLat*Math.PI/180)),baseLat=endLat-len*Math.sin(angle);
+   const a=[baseLat+2*Math.cos(angle),baseLng-2*Math.sin(angle)],b=[baseLat-2*Math.cos(angle),baseLng+2*Math.sin(angle)];
+   add(L.polygon([[endLat,endLng],a,b],{stroke:false,fillColor:color,fillOpacity:1,interactive:false}));
+ }
+ add(L.circleMarker([38,-97],{radius:9,weight:2,color:'#fff',fillColor:'#28619b',fillOpacity:1,interactive:false}))
+  .bindTooltip('미국 · 도착지',{permanent:true,direction:'bottom',className:'migrationMapLabel',offset:[0,7]});
+ for(const r of MIGRATION_ROUTES){
+   const selected=r.id===migrationSelected,ok=!!migrationChoices[r.id];
+   const mark=add(L.circleMarker(r.coords,{radius:selected?9:7,weight:selected?3:2,color:'#fff',
+     fillColor:ok?'#2c9677':r.color,fillOpacity:1}));
+   mark.bindTooltip(r.name,{permanent:true,direction:r.id==='latin'?'left':'top',className:'migrationMapLabel'});
+   mark.on('click',()=>migrationChooseOrigin(r.id));
+ }
+}
+function migrationChooseOrigin(id){
+ if(!MIGRATION_ROUTES.some(r=>r.id===id))return;
+ migrationSelected=id;
+ for(const b of document.querySelectorAll('[data-migration-origin]')){
+   b.classList.toggle('selected',b.dataset.migrationOrigin===id);
+ }
+ const route=MIGRATION_ROUTES.find(r=>r.id===id);
+ const name=$('migrationQuestionCountry');if(name)name.textContent=route.name+' → 미국';
+ const pick=$('migrationReason');if(pick)pick.value=migrationChoices[id]||'';
+ const fb=$('migrationFeedback');if(fb)fb.textContent=migrationChoices[id]?'이미 확인했어. 다른 지역도 살펴보자.':'';
+ migrationMapDraw();
+}
+function migrationCheckReason(){
+ const id=migrationSelected,route=MIGRATION_ROUTES.find(r=>r.id===id),choice=$('migrationReason')?.value;
+ if(!choice)return inquiryNotice('이 지역에서 미국으로 이동한 이유를 하나 골라 줘.',true);
+ const fb=$('migrationFeedback');if(!route)return;
+ if(choice!==route.reason){
+   if(fb){fb.textContent='교과서의 설명과 비교해서 다시 골라 보자.';fb.className='migrationFeedback incorrect';}
+   return;
+ }
+ migrationChoices[id]=choice;
+ if(fb){fb.textContent='이동 이유를 확인했어. 지도에 화살표가 남았어.';fb.className='migrationFeedback correct';}
+ if($('migrationOriginList'))$('migrationOriginList').innerHTML=migrationRouteHtml();
+ migrationBindOriginButtons();migrationMapDraw();
+ const status=$('migrationProgress');if(status)status.textContent=Object.keys(migrationChoices).length+'/4개 지역 확인';
+ const next=$('migrationGoGraph');if(next)next.disabled=Object.keys(migrationChoices).length<4;
+ inquiryNotice('');
+}
+function migrationBindOriginButtons(){
+ document.querySelectorAll('[data-migration-origin]').forEach(b=>b.onclick=()=>migrationChooseOrigin(b.dataset.migrationOrigin));
+}
+function migrationSwitchTab(tab){
+ const a=$('inqMigrationStage'),b=$('inqComparisonStage');
+ if(!a||!b)return;
+ a.hidden=tab!=='migration';b.hidden=tab!=='graph';
+ const t1=$('migrationTab'),t2=$('graphTab');
+ if(t1)t1.setAttribute('aria-selected',String(tab==='migration'));
+ if(t2)t2.setAttribute('aria-selected',String(tab==='graph'));
+ if(tab==='migration'){
+   setTimeout(()=>{migrationMap?.invalidateSize();migrationMapDraw();},40);
+ }
+}
+function migrationInit(){
+ migrationChoices={};
+ const saved=me?.inquiry?.demography?.migration;
+ if(saved&&typeof saved==='object'){
+   for(const r of MIGRATION_ROUTES){if(saved[r.id]===r.reason)migrationChoices[r.id]=saved[r.id];}
+ }
+ migrationSelected='europe';migrationBindOriginButtons();
+ const go=$('migrationGoGraph');
+ if(go){go.onclick=()=>migrationSwitchTab('graph');go.disabled=Object.keys(migrationChoices).length<4;}
+ if($('migrationTab'))$('migrationTab').onclick=()=>migrationSwitchTab('migration');
+ if($('graphTab'))$('graphTab').onclick=()=>migrationSwitchTab('graph');
+ if($('migrationCheck'))$('migrationCheck').onclick=migrationCheckReason;
+ const status=$('migrationProgress');if(status)status.textContent=Object.keys(migrationChoices).length+'/4개 지역 확인';
+ migrationChooseOrigin(migrationSelected);
+ migrationMapInit();migrationSwitchTab('migration');
+}
+
 const INQUIRY_CULTURES=[
  {name:'과달루페 성모상',country:'멕시코'},
  {name:'탱고',country:'아르헨티나'},
@@ -336,25 +472,47 @@ function inquiryProgress(step){
 }
 function inquiryRender(){
  if(!me)return;
+ document.body.classList.add('inquiryView');document.body.classList.remove('mapLearningView');
  if(me.cur<PROBLEMS.length||me.pending){renderStudent();return;}
  destroyMap();
  const step=inquiryStep(), record=me.inquiry||{};
  renderedSig=sig(me);renderHdr();
  let title='', lead='', body='';
  if(step===2){
-   title='나라별 인구 구성은 왜 서로 다를까?';
-   lead='교과서 원그래프에서 나라 두 곳을 비교하고, 그 차이가 나타난 역사적 까닭까지 한 번에 설명해 보자.';
-   const options=INQUIRY_POPULATION.map(x=>'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>').join('');
-   body='<div class="inquiryData"><h3>교과서 원자료 · 아메리카의 민족과 인종 분포</h3>'+
-    '<div class="inquiryGraphWrap"><img class="inquiryOriginalGraph" src="assets/americas_population_97.webp" alt="교과서 97쪽의 아메리카 민족과 인종 분포 원그래프 지도. 미국, 멕시코, 쿠바, 자메이카, 콜롬비아, 페루, 브라질, 아르헨티나, 우루과이가 표시됨"></div>'+
-    '<div class="inquiryGraphHelp"><span>휴대전화에서는 그림을 좌우로 움직여 확인해 봐.</span><a href="assets/americas_population_97.webp" target="_blank" rel="noopener">원그래프 크게 보기</a></div>'+
-    '<p class="inquirySource">원자료: 비상교육 『사회 ①』 97쪽 「아메리카의 민족과 인종 분포」 발췌</p></div>'+
-    '<div class="inquiryQuestion"><h3>자료를 분석하고 역사와 연결하기</h3>'+
-    '<p>비교할 국가 <b>2곳</b>을 고르자. 원그래프에서 각각의 집단과 비율(%)을 찾아 비교하고, <b>왜 이런 차이가 나타났는지</b> 식민 지배·강제 이주·이민 등의 역사와 연결하여 설명해 보자.</p>'+
-    '<div class="inquiryCountryPick"><label>첫 번째 국가<select id="inqCountryA">'+options+'</select></label><label>두 번째 국가<select id="inqCountryB">'+options+'</select></label></div>'+
-    '<label for="inqEvidence">자료에 근거한 나의 설명</label>'+
-    '<textarea id="inqEvidence" rows="5" placeholder="두 나라의 비율을 비교하고, 그 차이가 나타난 역사적 까닭까지 하나의 글로 설명해 보자."></textarea></div>'+
-    '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">답변 저장하고 문화 혼종성으로 →</button>';
+   title='미국의 인구는 어디에서 들어왔을까?';
+   lead='출발지를 고르고, 이동한 까닭을 확인한 뒤 원그래프를 분석하자.';
+   const options=INQUIRY_GRAPH_COUNTRIES.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
+   const reasons='<option value="">이주 이유 선택</option>'+MIGRATION_REASONS.map(x=>'<option value="'+x.id+'">'+esc(x.label)+'</option>').join('');
+   const foundations='<div class="inquiryFoundations"><article><b>앵글로 아메리카</b><span>‘앵글로’는 영국의 <b>앵글로색슨족</b>에서 온 말이야. 영국의 식민 지배, 유럽·아프리카·아시아 등의 인구 이동이 나타났어.</span></article>'+
+     '<article><b>라틴 아메리카</b><span>‘라틴’은 남부 유럽의 <b>라틴족</b>에서 유래해. 에스파냐와 포르투갈의 식민 지배를 받았고 원주민·유럽계·아프리카계·혼혈이 함께 살아.</span></article></div>';
+   const migrationView='<div id="inqMigrationStage" class="inquiryStageGrid">'+
+    '<section class="inquiryData inquiryChartPanel"><h3>자료 1 · 미국으로 이어지는 인구 이동</h3>'+
+    '<div id="inqMigrationMap" class="migrationMap" role="img" aria-label="유럽, 아프리카, 라틴 아메리카, 아시아에서 미국으로 이동하는 경로를 선택하는 세계지도"></div>'+
+    '<p id="migrationMapHelp" class="inquirySource">지역을 선택하면 미국까지의 이동 경로가 화살표로 나타나.</p></section>'+
+    '<section class="inquiryQuestion inquiryAnswerPanel"><div class="migrationHead"><h3>출발지와 이동 이유 고르기</h3><span id="migrationProgress">0/4개 지역 확인</span></div>'+
+    '<div class="migrationOriginList" id="migrationOriginList">'+migrationRouteHtml()+'</div>'+
+    '<p id="migrationQuestionCountry" class="migrationQuestionCountry">영국·유럽 → 미국</p>'+
+    '<label for="migrationReason">미국으로 이동한 까닭은 무엇일까?</label>'+
+    '<select id="migrationReason">'+reasons+'</select>'+
+    '<p class="migrationNote">교과서에 구체적으로 나오지 않은 이유는 추측하지 않아도 돼.</p>'+
+    '<button class="btn secondary" type="button" id="migrationCheck">이유 확인 · 화살표 연결</button>'+
+    '<p id="migrationFeedback" class="migrationFeedback" aria-live="polite"></p>'+
+    '<button class="btn mint" type="button" id="migrationGoGraph" disabled>4개 지역 확인 후 원그래프 분석 →</button></section></div>';
+   const chartView='<div id="inqComparisonStage" class="inquiryStageGrid" hidden>'+
+    '<section class="inquiryData inquiryChartPanel"><h3>자료 2 · 민족과 인종 구성 원그래프</h3>'+
+    '<div class="inquiryGraphWrap"><img class="inquiryOriginalGraph" src="assets/americas_population_97.webp" alt="비상교육 『사회 ①』 97쪽 아메리카의 민족과 인종 분포 원그래프 지도"></div>'+
+    '<p class="inquirySource"><a href="assets/americas_population_97.webp" target="_blank" rel="noopener">원그래프 크게 보기 ↗</a> · 교과서 97쪽</p></section>'+
+    '<section class="inquiryQuestion inquiryAnswerPanel"><h3>국가별 차이를 자료로 설명하기</h3>'+
+    '<p>서로 다른 국가 두 곳의 집단별 비율(%)을 비교하고, 앞에서 살펴본 인구 이동의 역사와 연결해 설명하자.</p>'+
+    '<div class="inquiryCountryPick"><label>국가 1<select id="inqCountryA">'+options+'</select></label>'+
+    '<label>국가 2<select id="inqCountryB">'+options+'</select></label></div>'+
+    '<label for="inqEvidence">자료에 근거한 내 생각</label>'+
+    '<textarea id="inqEvidence" rows="4" placeholder="두 나라의 비율을 비교하고, 식민 지배·강제 이주·이민 등 역사적 까닭과 연결해 써 보자."></textarea>'+
+    '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">인구 탐구 저장 · 문화 혼종성으로 →</button></section></div>';
+   body=foundations+'<div class="migrationTabs" role="tablist" aria-label="인구 탐구 자료">'+
+      '<button type="button" id="migrationTab" role="tab" aria-selected="true">① 미국 인구 유입 지도</button>'+
+      '<button type="button" id="graphTab" role="tab" aria-selected="false">② 원그래프 비교·분석</button></div>'+
+      migrationView+chartView;
  }else if(step===3){
    title='서로 다른 문화가 만나면 무엇이 만들어질까?';
    lead='국가를 선택하고, 다양한 문화 요소 중 어울리는 재료 2~3개를 직접 골라 조합식을 완성해 보자.';
@@ -372,8 +530,8 @@ function inquiryRender(){
     '<div class="inquiryEquationPanel" aria-live="polite">'+
     '<div id="inqMixFormula" class="inquiryMixFormula"></div><span id="inqMixCount" class="inquiryMixCount"></span></div>'+
     '<label for="inqCultureReason">이 요소들을 선택한 역사적 근거는?</label>'+
-    '<textarea id="inqCultureReason" rows="3" placeholder="교과서의 내용 또는 앞 단계에서 알게 된 역사적 사실을 근거로 적어 보자."></textarea></div>'+
-    '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">문화 조합 저장하고 최종 판단으로 →</button>';
+    '<textarea id="inqCultureReason" rows="3" placeholder="교과서의 내용 또는 앞 단계에서 알게 된 역사적 사실을 근거로 적어 보자."></textarea>'+
+    '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">문화 조합 저장하고 최종 판단으로 →</button></div>';
  }else if(step===4){
    title='나의 생각은 어떻게 달라졌을까?';
    lead='처음 썼던 답을 확인한 다음, 교과서 자료에 근거해 나의 최종 판단을 작성해 보자.';
@@ -404,12 +562,14 @@ function inquiryRender(){
     '<p class="inquirySource">학생 답변은 교사용 관리 화면에서 확인하고 CSV로 내려받을 수 있어요.</p></div>'+
     '<p class="inquirySource">기억력 퀴즈는 이 탐구와 별도의 선택 활동이야.</p>';
  }
- app.innerHTML='<section class="card inquiryRoot" id="inquiryRoot"><div class="smallPill">사회 · 아메리카 지역 탐구</div>'+
-  inquiryProgress(step)+'<h2>'+title+'</h2><p class="inquiryLead">'+lead+'</p>'+body+
+ app.innerHTML='<section class="card inquiryRoot inquiryStep'+step+'" id="inquiryRoot"><div class="inquiryTop">'+
+  inquiryProgress(step)+'<div class="inquiryHeading"><h2>'+title+'</h2><p class="inquiryLead">'+lead+'</p></div></div>'+
+  (step===2?body:'<div class="inquiryStageGrid">'+body+'</div>')+
   '<p id="inqNotice" class="inquiryNotice" aria-live="polite"></p></section>';
  if(step===2){
-   $('inqCountryA').value=INQUIRY_POPULATION[0].name;
-   $('inqCountryB').value=INQUIRY_POPULATION[2].name;
+   $('inqCountryA').value='미국';
+   $('inqCountryB').value='자메이카';
+   migrationInit();
  }
  if(step===3)inquiryEnableMixer();
  if($('inquirySubmit'))$('inquirySubmit').onclick=()=>inquirySubmit(step);
@@ -424,11 +584,12 @@ async function inquirySubmit(step){
  if(step===2){
    const a=v('inqCountryA'),b=v('inqCountryB'),evidence=v('inqEvidence');
    if(!a||!b||a===b)return inquiryNotice('서로 다른 두 나라를 골라 줘.',true);
-   const selected=INQUIRY_POPULATION.filter(x=>x.name===a||x.name===b);
-   if(evidence.length<35||!selected.every(x=>new RegExp('(^|[^0-9])'+x.percent+'([^0-9]|$)').test(evidence))){
-     return inquiryNotice('두 국가의 비율(%)과 차이가 나타난 역사적 원인을 함께 설명해 줘.',true);
+   if(Object.keys(migrationChoices).length!==MIGRATION_ROUTES.length)return inquiryNotice('미국으로의 이동 경로 4개를 모두 확인해 줘.',true);
+   const ratios=evidence.match(/\d+(?:\.\d+)?\s*%/g)||[];
+   if(evidence.length<35||ratios.length<2){
+     return inquiryNotice('두 나라의 비율(%)을 각각 하나 이상 쓰고 역사적 이유를 함께 설명해 줘.',true);
    }
-   answer={a,b,evidence,cause:''};
+   answer={a,b,evidence,cause:'',migration:{...migrationChoices}};
  }else if(step===3){
    const index=Number($('inqCultureCountry')?.value);
    const culture=INQUIRY_CULTURES[index],roots=inquiryPickedRoots(),reason=v('inqCultureReason');
@@ -1760,6 +1921,7 @@ function finish(){
 }
 function destroyMap(){clearInterval(countdownTimer);clearInterval(questionClock);closeResultDialog();photoNonce++;if(map){map.remove();map=null;geo=null;labelLayer=null;pick=null;target=null;}}
 function renderStudent(){
+  document.body.classList.add('mapLearningView');document.body.classList.remove('inquiryView');
   destroyMap();
   app.innerHTML=`<main><section class="card">
     <div class="smallPill">${iconArt("compass")} 나라 20 · 랜드마크 8 · 자연 5</div><div class="smallPill">${iconArt("clock")} 3회 도전</div>
@@ -2192,6 +2354,7 @@ function teacherMirrorHtml(){
 }
 
 function renderTeacher(){
+  document.body.classList.remove('inquiryView','mapLearningView');
   renderHdr();
   app.innerHTML=`${teacherMirrorHtml()}<details class="teacherOptionalQuiz"><summary>별도 활동 · 기억력 대결 운영 (열어서 사용)</summary><section id="liveTeacherPanel" class="liveTeacherPanel teacherProjector"></section></details><main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
     <section class="card"><div class="smallPill">${iconArt("book")} 교사용 관리</div><h2>${esc(roomTitle(ROOM))} 탐험 현황</h2>
