@@ -301,6 +301,29 @@ body.inquiryView .inquiryStep2 #inqNotice{grid-column:1/-1!important;margin:0!im
 .teacherAnswerTable table{width:100%;border-collapse:collapse;font-size:13px}
 .teacherAnswerTable th,.teacherAnswerTable td{padding:7px 10px;text-align:left;border-bottom:1px solid #e1e9ef}
 .teacherAnswerTable th{background:#f4f8fc}
+</style><style id="v3SequentialMigration2026">
+body.inquiryView .inquiryStep2 #inqMigrationStage[hidden],body.inquiryView .inquiryStep2 #inqComparisonStage[hidden]{display:none!important}
+body.inquiryView .inquiryStep2 #inqMigrationStage:not([hidden]),body.inquiryView .inquiryStep2 #inqComparisonStage:not([hidden]){display:grid!important;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)!important;gap:12px!important;min-height:0!important;flex:1 1 auto!important}
+body.inquiryView .inquiryStep2.inquiryRoot{display:flex!important;flex-direction:column!important;gap:8px!important}
+body.inquiryView .inquiryStep2 .inquiryTop{flex:0 0 auto!important}
+body.inquiryView .inquiryStep2 .inquiryFoundations{display:none!important}
+body.inquiryView .inquiryStep2 .migrationIntro{display:block!important;font-size:12px!important;margin:0!important}
+body.inquiryView .inquiryStep2 #inqMigrationStage .inquiryChartPanel,body.inquiryView .inquiryStep2 #inqMigrationStage .inquiryAnswerPanel,body.inquiryView .inquiryStep2 #inqComparisonStage .inquiryChartPanel,body.inquiryView .inquiryStep2 #inqComparisonStage .inquiryAnswerPanel{grid-column:auto!important;grid-row:auto!important;min-height:0!important;overflow:hidden!important}
+body.inquiryView .inquiryStep2 .migrationBigQuestion{font-size:clamp(18px,2.2vw,27px)!important;font-weight:900!important;line-height:1.3!important;text-align:center!important;padding:12px 10px!important;margin:4px 0 9px!important;color:#244d70!important;background:linear-gradient(115deg,#d9f1ff,#fff0d8)!important;border:2px solid #a8d5ee!important;border-radius:16px!important;box-shadow:0 4px 12px #8db6d233!important}
+body.inquiryView .inquiryStep2 .migrationReasonLinks{display:grid!important;grid-template-columns:1fr!important;gap:8px!important;margin:5px 0!important;min-height:0!important;overflow:auto!important}
+body.inquiryView .inquiryStep2 .migrationReasonChoice{display:flex!important;align-items:center!important;gap:10px!important;text-align:left!important;padding:10px 12px!important;border:2px solid #c7dbe8!important;border-radius:12px!important;background:#f8fcff!important;font-size:clamp(12px,1.4vw,16px)!important;font-weight:700!important;color:#315c77!important;cursor:pointer!important}
+body.inquiryView .inquiryStep2 .migrationReasonChoice.selected{border-color:#4c9fd2!important;background:#d8efff!important;box-shadow:0 0 0 2px #a4d4f7!important}
+body.inquiryView .inquiryStep2 .migrationReasonDot{height:18px;width:18px;flex:0 0 18px;border:2px solid #83abc5;border-radius:50%;background:#fff}
+body.inquiryView .inquiryStep2 .migrationReasonChoice.selected .migrationReasonDot{background:#4c9fd2;border:4px solid #fff;outline:2px solid #4c9fd2}
+body.inquiryView .inquiryStep2 .migrationQuestionCountry{font-size:clamp(15px,1.8vw,22px)!important;font-weight:800!important;background:#e8f5ee!important;padding:8px 12px!important;border-radius:12px!important}
+body.inquiryView .inquiryStep2 #migrationCheck{background:#b6e6d4!important;color:#244b43!important}
+body.inquiryView .inquiryStep2 .migrationBack{align-self:flex-start!important;margin-bottom:3px!important}
+@media (orientation:landscape) and (min-width:850px){
+ body.inquiryView .inquiryStep2 #inqMigrationStage:not([hidden]),body.inquiryView .inquiryStep2 #inqComparisonStage:not([hidden]){height:auto!important;overflow:hidden!important}
+ body.inquiryView .inquiryStep2 .migrationReasonLinks{gap:5px!important}
+ body.inquiryView .inquiryStep2 .migrationReasonChoice{padding:6px 10px!important}
+ body.inquiryView .inquiryStep2 .migrationBigQuestion{padding:7px 9px!important;margin:1px 0 4px!important;font-size:clamp(17px,2vw,22px)!important}
+}
 </style></head>
 <body>
 <header>
@@ -517,7 +540,7 @@ function migrationChooseOrigin(id){
  if($('migrationOriginList'))$('migrationOriginList').innerHTML=migrationRouteHtml();
  migrationBindOriginButtons();
  if($('migrationQuestionCountry'))$('migrationQuestionCountry').textContent=r.name+' → '+r.destination;
- if($('migrationReason'))$('migrationReason').value=migrationChoices[id]||'';
+ if($('migrationReason'))$('migrationReason').value=migrationChoices[id]||'';migrationRenderReasons();
  if($('migrationFeedback'))$('migrationFeedback').textContent=migrationChoices[id]?'확인 완료':'';
  globeTapStage=migrationChoices[id]?2:0;globeAngle=r.coords[1];globeLat=r.coords[0]*.3;globeLast=performance.now();migrationUpdate();migrationMapDraw();
 }
@@ -543,15 +566,26 @@ function migrationCheckReason(){
 function migrationBindOriginButtons(){document.querySelectorAll('[data-migration-origin]').forEach(b=>b.onclick=()=>migrationChooseOrigin(b.dataset.migrationOrigin));}
 function migrationSwitchTab(tab){
  const a=$('inqMigrationStage'),b=$('inqComparisonStage');if(!a||!b)return;
- a.hidden=false;b.hidden=false;
- // Both original textbook chart and illustrated map stay visible side-by-side.
- migrationMapDraw();
+ const graph=tab==='graph';
+ a.hidden=graph;b.hidden=!graph;
+ document.body.classList.toggle('migrationGraphMode',graph);
+ if(!graph)migrationMapDraw();
+}
+function migrationRenderReasons(){
+ const host=$('migrationReasonLinks');if(!host)return;
+ const chosen=$('migrationReason')?.value||'';
+ host.innerHTML=MIGRATION_REASONS.map(r=>'<button type="button" class="migrationReasonChoice'+(chosen===r.id?' selected':'')+'" data-reason="'+r.id+'" aria-pressed="'+(chosen===r.id)+'"><span class="migrationReasonDot"></span>'+esc(r.label)+'</button>').join('');
+ host.querySelectorAll('[data-reason]').forEach(b=>b.onclick=()=>{
+  const select=$('migrationReason');if(select)select.value=b.dataset.reason;
+  migrationRenderReasons();
+ });
 }
 function migrationInit(){
  migrationChoices={};const saved=me?.inquiry?.routeDraft||me?.inquiry?.demography?.migration;
  if(saved)for(const r of MIGRATION_ROUTES)if(saved[r.id]===r.reason)migrationChoices[r.id]=r.reason;
  migrationRegion='anglo';migrationSelected='ae';
  $('migrationGoGraph').onclick=()=>migrationSwitchTab('graph');
+ if($('migrationBack'))$('migrationBack').onclick=()=>migrationSwitchTab('migration');
  $('migrationCheck').onclick=migrationCheckReason;
  document.querySelectorAll('[data-migration-region]').forEach(b=>b.onclick=()=>migrationSetRegion(b.dataset.migrationRegion));
  migrationSetRegion('anglo');migrationUpdate();migrationMapInit();migrationSwitchTab('migration');
@@ -652,16 +686,16 @@ function inquiryRender(){
     '<section class="inquiryQuestion inquiryAnswerPanel"><h3>이동 이유 고르기 <small id="migrationProgress"></small></h3>'+
     '<div id="migrationOriginList" class="migrationOriginList"></div>'+
     '<p class="migrationQuestionCountry" id="migrationQuestionCountry"></p>'+
-    '<label for="migrationReason">사람들이 이동한 주요 이유는?</label><select id="migrationReason">'+reasons+'</select>'+
-    '<button type="button" class="btn secondary" id="migrationCheck">이동 이유 확인 · 경로 완성</button>'+
+    '<div class="migrationBigQuestion">이 사람들은 왜 이동했을까?</div><select id="migrationReason" hidden aria-label="이동 이유">'+reasons+'</select><div id="migrationReasonLinks" class="migrationReasonLinks" role="group" aria-label="이동 이유 연결하기"></div>'+
+    '<button type="button" class="btn secondary" id="migrationCheck">선택한 이유로 연결하기 →</button>'+
     '<p id="migrationFeedback" aria-live="polite"></p>'+
     ''+
-    '<button type="button" class="btn mint" id="migrationGoGraph" disabled>8개 경로 확인 완료</button></section></div>'+
+    '<button type="button" class="btn mint" id="migrationGoGraph" disabled>8개 경로 완료 후 원그래프 분석 →</button></section></div>'+
     '<div id="inqComparisonStage" class="inquiryStageGrid" hidden>'+
-    '<section class="inquiryData inquiryChartPanel"><h3>교과서 원그래프 · 민족과 인종 구성</h3>'+
+    '<section class="inquiryData inquiryChartPanel"><button type="button" class="btn secondary migrationBack" id="migrationBack">← 인구 이동 단계로</button><h3>교과서 원그래프 · 민족과 인종 구성</h3>'+
     '<div class="inquiryGraphWrap"><img class="inquiryOriginalGraph" src="assets/americas_population_97.webp" alt="아메리카 국가별 민족과 인종 구성 원그래프"></div>'+
     '<p class="inquirySource"><a href="assets/americas_population_97.webp" target="_blank" rel="noopener">원그래프 크게 보기</a></p></section>'+
-    '<section class="inquiryQuestion inquiryAnswerPanel"><h3>두 나라의 인구 구성 비교</h3>'+
+    '<section class="inquiryQuestion inquiryAnswerPanel"><div class="migrationBigQuestion">두 나라의 인구 구성은 왜 다를까?</div><h3>두 나라의 인구 구성 비교</h3>'+
     ''+
     '<div class="inquiryCountryPick"><label>첫 번째 국가<select id="inqCountryA">'+options+'</select></label>'+
     '<label>두 번째 국가<select id="inqCountryB">'+options+'</select></label></div>'+
