@@ -286,6 +286,21 @@ body.inquiryView .inquiryStep2 #migrationFeedback{font-size:10px!important;min-h
 body.inquiryView .inquiryStep2 .inquiryCountryPick{gap:5px!important;margin:1px 0!important}
 body.inquiryView .inquiryStep2 #inqNotice{grid-column:1/-1!important;margin:0!important;min-height:0!important;font-size:11px!important;line-height:1.2!important}
 }
+</style><style id="teacherPopulationAnswerStyles">
+.teacherAnswerGuide{margin:10px auto 14px;max-width:1400px;padding:0!important;border:1px solid #d9e5ee;border-radius:17px;overflow:hidden;background:#fffefa}
+.teacherAnswerGuide>summary{cursor:pointer;list-style:none;padding:15px 19px;background:#eaf3fc;font-size:17px;font-weight:800;color:#415d79}
+.teacherAnswerGuide>summary::-webkit-details-marker{display:none}
+.teacherAnswerGuide>summary:after{content:'▾';float:right}
+.teacherAnswerGuide[open]>summary:after{content:'▴'}
+.teacherAnswerInner{padding:14px 20px 19px;font-size:14px;line-height:1.65}
+.teacherAnswerInner h3{font-size:15px;margin:16px 0 5px;color:#4c7187}
+.teacherAnswerInner p{margin:5px 0 10px}
+.teacherAnswerNote{font-size:12px;color:#667f8c}
+.teacherAnswerModel{background:#f0f7f4;border-left:4px solid #9ccdb7;border-radius:9px;padding:12px}
+.teacherAnswerTable{overflow-x:auto}
+.teacherAnswerTable table{width:100%;border-collapse:collapse;font-size:13px}
+.teacherAnswerTable th,.teacherAnswerTable td{padding:7px 10px;text-align:left;border-bottom:1px solid #e1e9ef}
+.teacherAnswerTable th{background:#f4f8fc}
 </style></head>
 <body>
 <header>
@@ -2466,6 +2481,31 @@ function teacherMirrorAttach(){
  });
  teacherMirrorRenderControls();
 }
+function teacherPopulationAnswerGuide(){
+ const routes=[
+ ['영국·유럽 → 캐나다','식민 지배와 정착'],['서아프리카 → 미국','노예 무역에 따른 강제 이주'],
+ ['동아시아 → 미국','일자리 등 경제적 이유'],['라틴아메리카 → 미국','일자리 등 경제적 이유'],
+ ['에스파냐 → 멕시코','식민 지배와 정착'],['포르투갈 → 브라질','식민 지배와 정착'],
+ ['서아프리카 → 브라질','노예 무역에 따른 강제 이주'],['동아시아 → 브라질','일자리 등 경제적 이유']
+ ];
+ const row=routes.map(x=>'<tr><td>'+x[0]+'</td><td>'+x[1]+'</td></tr>').join('');
+ return '<details class="card teacherAnswerGuide" id="teacherPopulationGuide">'+
+ '<summary>📘 교사용 모범답안 · 인구 이동과 원그래프 분석 (펼쳐 보기)</summary>'+
+ '<div class="teacherAnswerInner"><p class="teacherAnswerNote">교사용 참고 자료 · 학생 화면에는 표시되지 않음. 이동 경로는 대표적인 역사적 사례임.</p>'+
+ '<h3>① 인구 이동 경로 8개</h3><div class="teacherAnswerTable"><table><thead><tr><th>이동 경로</th><th>주요 이유</th></tr></thead><tbody>'+row+'</tbody></table></div>'+
+ '<h3>② 원그래프에서 발견하기</h3>'+
+ '<p><b>예시:</b> 페루와 멕시코는 미국이나 아르헨티나와 비교했을 때 원주민 또는 원주민과 유럽계의 혼혈 인구 비중이 상대적으로 높다.</p>'+
+ '<h3>③ 미국과 멕시코 비교</h3>'+
+ '<p>미국은 유럽에서 이주한 사람들의 후손과 아프리카계, 아시아계 등 다양한 집단으로 구성되어 있다. 멕시코는 에스파냐의 식민 지배 과정에서 유럽계와 원주민이 혼합되어 혼혈 인구의 비중이 높아졌다. 이러한 역사적 과정의 차이로 인구 구성이 다르다.</p>'+
+ '<h3>④ 브라질과 아르헨티나 비교</h3>'+
+ '<p>브라질은 포르투갈의 식민 지배를 받았으며 아프리카에서 많은 사람이 노예로 강제 이주하여 아프리카계와 혼혈 인구의 비중이 높아졌다. 아르헨티나는 유럽 이민자의 영향이 상대적으로 커서 유럽계 인구의 비중이 높다.</p>'+
+ '<h3>⑤ 최종 서술형 모범답안</h3>'+
+ '<p class="teacherAnswerModel">아메리카에는 원래 원주민이 살고 있었다. 이후 유럽의 식민 지배로 유럽인이 이주하고, 아프리카인들이 노예로 강제 이주했으며, 아시아 등에서도 사람들이 이주했다. 나라마다 이러한 인구 이동의 역사와 규모가 달라 오늘날 민족과 인종 구성이 서로 다르게 나타난다.</p>'+
+ '<h3>⑥ 평가 기준</h3>'+
+ '<p>자료 해석: 원그래프에서 차이 발견 · 근거 활용: 실제 집단 및 비율(%) 제시 · 원인 분석: 식민 지배, 강제 이주, 경제적 이주 연결 · 비교·추론: 두 나라의 차이를 역사적 배경으로 설명</p>'+
+ '<p class="teacherAnswerNote">교과서의 정확한 비율(%)은 원본 자료에서 확인해 평가하세요. 수치를 임의로 제시하지 않았습니다. <a href="assets/americas_population_97.webp" target="_blank" rel="noopener">교과서 원그래프 크게 보기</a></p>'+
+ '</div></details>';
+}
 function teacherMirrorHtml(){
  const url=new URL(location.origin+location.pathname);
  url.searchParams.set('mode','preview');
@@ -2496,7 +2536,7 @@ function teacherMirrorHtml(){
 function renderTeacher(){
   document.body.classList.remove('inquiryView','mapLearningView');
   renderHdr();
-  app.innerHTML=`${teacherMirrorHtml()}<details class="teacherOptionalQuiz"><summary>별도 활동 · 기억력 대결 운영 (열어서 사용)</summary><section id="liveTeacherPanel" class="liveTeacherPanel teacherProjector"></section></details><main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
+  app.innerHTML=`${teacherPopulationAnswerGuide()}${teacherMirrorHtml()}<details class="teacherOptionalQuiz"><summary>별도 활동 · 기억력 대결 운영 (열어서 사용)</summary><section id="liveTeacherPanel" class="liveTeacherPanel teacherProjector"></section></details><main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
     <section class="card"><div class="smallPill">${iconArt("book")} 교사용 관리</div><h2>${esc(roomTitle(ROOM))} 탐험 현황</h2>
       <p class="muted">학생 이름을 누르면 문제별 결과를 확인할 수 있어요.</p>
       <div class="teacherShare">
