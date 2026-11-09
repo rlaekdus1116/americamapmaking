@@ -140,6 +140,29 @@ body.teacherPreviewBody .inquiryRoot{margin:12px auto 30px}
  .teacherMirrorDeviceTitle{font-size:11px}
 }
 </style>
+
+<style id="inquiryCleanLayout">
+.inquiryRoot{max-width:950px;background:rgba(255,255,255,.96);box-shadow:0 12px 25px rgba(50,65,90,.08);border-radius:20px}
+.inquiryRoot .inquiryData,.inquiryRoot .inquiryQuestion{background:#fff;border:1px solid #e0e6ed;border-radius:15px;box-shadow:none;padding:20px;margin:16px 0}
+.inquiryRoot .inquiryData h3,.inquiryRoot .inquiryQuestion h3{font-size:17px;color:#273a55;margin-bottom:8px}
+.inquiryGraphWrap{background:#fff;border:1px solid #dce5ec;border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.inquiryOriginalGraph{width:100%;min-width:610px;max-width:850px;height:auto;display:block;margin:0 auto}
+.inquiryGraphHelp{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;color:#627186;margin:9px 0}
+.inquiryGraphHelp a{color:#3e6696;text-decoration:underline;text-underline-offset:3px;font-weight:700}
+.inquiryCultureIntro{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.inquiryCultureIntro select{width:min(100%,300px);min-height:45px}
+.inquiryCultureResult{padding:10px 12px;background:#f2f5f9;border:1px solid #e2e8ef;border-radius:12px;color:#273950;font-weight:700}
+.inquiryRoots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}
+.inquiryRootChip{padding:13px 8px;border-radius:12px;border:1px solid #d0dae5;background:#fff;color:#3d5067;font-weight:650;font-size:13px;line-height:1.5;cursor:pointer}
+.inquiryRootChip[aria-pressed=true]{background:#dfeefa;border-color:#6594c1;color:#244f78;box-shadow:inset 0 0 0 1px #6594c1}
+.inquiryEquationPanel{border:1px solid #ccdced;background:#f5f9fd;border-radius:13px;padding:17px;margin:15px 0}
+.inquiryMixFormula{font-size:17px;line-height:1.8;font-weight:750;color:#294865;overflow-wrap:anywhere}
+.inquiryMixCount{display:block;margin-top:6px;font-size:12px;color:#627c91}
+.inquiryRoot .inquiryMilestone{background:#f5f7fa;border:1px solid #e0e7ee;border-radius:9px;color:#7b8c9f;box-shadow:none}
+.inquiryRoot .inquiryMilestone.isActive{background:#e4effa;border-color:#b5d0e6;color:#315b80}
+.inquiryRoot .inquiryMilestone.isDone{background:#e9f5ed;border-color:#c3ddca;color:#386d4a}
+@media(max-width:650px){.inquiryRoot .inquiryData,.inquiryRoot .inquiryQuestion{padding:13px;margin:12px 0}.inquiryRoots{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.inquiryRootChip{font-size:12px;padding:11px 6px}.inquiryMixFormula{font-size:14px}}
+</style>
 </head>
 <body>
 <header>
@@ -243,11 +266,48 @@ const INQUIRY_POPULATION=[
  {name:'아르헨티나',group:'유럽계',percent:86}
 ];
 const INQUIRY_CULTURES=[
- {name:'과달루페 성모상(멕시코)',desc:'멕시코가 유럽의 가톨릭을 받아들이는 과정에서 성모상의 피부색이 멕시코인의 피부색과 비슷하게 표현되었다.'},
- {name:'탱고(아르헨티나)',desc:'아프리카의 춤과 리듬이 바이올린·피아노·반도네온 등 유럽의 악기로 연주하는 음악과 결합하였다.'},
- {name:'햄버거(미국)',desc:'독일인들이 먹던 함부르크 스테이크가 미국에서 변형되고 바쁜 현대 생활에 맞는 간편 음식으로 대중화되었다.'},
- {name:'리우 카니발(브라질)',desc:'크리스트교의 사순절 전통, 원주민의 풍습, 아프리카의 전통 타악기 리듬과 춤이 결합하였다.'}
+ {name:'과달루페 성모상',country:'멕시코'},
+ {name:'탱고',country:'아르헨티나'},
+ {name:'햄버거',country:'미국'},
+ {name:'리우 카니발',country:'브라질'}
 ];
+const INQUIRY_ROOTS=[
+ {id:'eu-religion',text:'유럽의 종교 문화'},
+ {id:'native',text:'아메리카 원주민의 표현 문화'},
+ {id:'eu-music',text:'유럽 이민자들의 음악과 악기'},
+ {id:'africa-rhythm',text:'아프리카계 춤과 리듬'},
+ {id:'german-food',text:'독일의 음식 문화'},
+ {id:'us-life',text:'미국의 현대적 생활 방식'},
+ {id:'eu-festival',text:'유럽의 축제 전통'},
+ {id:'native-festival',text:'원주민의 전통 풍습'},
+ {id:'africa-drums',text:'아프리카계 타악기와 춤'}
+];
+function inquiryPickedRoots(){
+ return [...document.querySelectorAll('.inquiryRootChip[aria-pressed="true"]')].map(el=>
+  INQUIRY_ROOTS.find(x=>x.id===el.dataset.root)).filter(Boolean);
+}
+function inquiryUpdateEquation(){
+ const index=Number($('inqCultureCountry')?.value)||0;
+ const culture=INQUIRY_CULTURES[index]||INQUIRY_CULTURES[0];
+ const selected=inquiryPickedRoots();
+ if($('inqCultureName'))$('inqCultureName').textContent=culture.name+' · '+culture.country;
+ if($('inqMixFormula'))$('inqMixFormula').textContent=
+  (selected.length?selected.map(x=>x.text).join('  +  '):'문화 요소 선택  +  문화 요소 선택')+
+  '  =  '+culture.name+' ('+culture.country+')';
+ if($('inqMixCount'))$('inqMixCount').textContent=selected.length+'개 선택 (2~3개)';
+}
+function inquiryEnableMixer(){
+ const country=$('inqCultureCountry');if(!country)return;
+ const chips=[...document.querySelectorAll('.inquiryRootChip')];
+ country.onchange=()=>{chips.forEach(x=>x.setAttribute('aria-pressed','false'));inquiryUpdateEquation();};
+ for(const chip of chips)chip.onclick=()=>{
+  const on=chip.getAttribute('aria-pressed')==='true';
+  if(!on&&inquiryPickedRoots().length>=3)return inquiryNotice('문화 요소는 최대 3개까지 골라 줘.',true);
+  chip.setAttribute('aria-pressed',on?'false':'true');
+  inquiryNotice('');inquiryUpdateEquation();
+ };
+ inquiryUpdateEquation();
+}
 let inquirySaving=false;
 function inquiryStep(record=me){
  if(!record||record.pending||record.cur<PROBLEMS.length)return 1;
@@ -267,7 +327,7 @@ function inquiryBarRows(){
   '<td><b>'+x.percent+'%</b></td></tr>').join('');
 }
 function inquiryProgress(step){
- const labels=['지도 만들기','인구 분포','문화 혼종성','최종 판단'];
+ const labels=['지도 만들기','인구 분석','문화 혼합','최종 판단'];
  return '<div class="inquiryTrack" aria-label="탐구 진행 단계">'+labels.map((label,i)=>{
   const n=i+1;
   return '<span class="inquiryMilestone '+(step>n?'isDone':step===n?'isActive':'isLocked')+'">'+
@@ -282,43 +342,45 @@ function inquiryRender(){
  renderedSig=sig(me);renderHdr();
  let title='', lead='', body='';
  if(step===2){
-   title='자료를 읽고, 나라별 차이를 설명하자';
-   lead='교과서의 민족·인종 분포 원그래프에서 네 나라의 가장 큰 비중을 뽑아 비교한 자료야.';
+   title='나라별 인구 구성은 왜 서로 다를까?';
+   lead='교과서 원그래프에서 나라 두 곳을 비교하고, 그 차이가 나타난 역사적 까닭까지 한 번에 설명해 보자.';
    const options=INQUIRY_POPULATION.map(x=>'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>').join('');
-   body='<div class="inquiryData"><h3>자료 1 · 아메리카의 민족과 인종 분포</h3>'+
-    '<p>한 나라의 전체 인구 중, 아래 집단이 차지하는 비율을 나타낸 것이야. 나라마다 가장 큰 집단이 서로 다를 수 있어.</p>'+
-    '<div class="inquiryTableScroll"><table class="inquiryTable"><thead><tr><th>국가</th><th>가장 큰 집단</th><th>비율 그래프</th><th>비율</th></tr></thead><tbody>'+inquiryBarRows()+'</tbody></table></div>'+
-    '<p class="inquirySource">출처: 비상교육 『사회 ①』 97쪽 「아메리카의 민족과 인종 분포」 수록 자료에서 재구성 · 현재 실시간 통계가 아님</p></div>'+
-    '<div class="inquiryQuestion"><h3>질문 1 · 국가 두 곳을 비교하기</h3><p>서로 다른 두 나라를 고르고, <b>각 나라의 집단 이름과 비율(%)</b>을 근거로 차이를 설명해 보자.</p>'+
+   body='<div class="inquiryData"><h3>교과서 원자료 · 아메리카의 민족과 인종 분포</h3>'+
+    '<div class="inquiryGraphWrap"><img class="inquiryOriginalGraph" src="assets/americas_population_97.webp" alt="교과서 97쪽의 아메리카 민족과 인종 분포 원그래프 지도. 미국, 멕시코, 쿠바, 자메이카, 콜롬비아, 페루, 브라질, 아르헨티나, 우루과이가 표시됨"></div>'+
+    '<div class="inquiryGraphHelp"><span>휴대전화에서는 그림을 좌우로 움직여 확인해 봐.</span><a href="assets/americas_population_97.webp" target="_blank" rel="noopener">원그래프 크게 보기</a></div>'+
+    '<p class="inquirySource">원자료: 비상교육 『사회 ①』 97쪽 「아메리카의 민족과 인종 분포」 발췌</p></div>'+
+    '<div class="inquiryQuestion"><h3>자료를 분석하고 역사와 연결하기</h3>'+
+    '<p>비교할 국가 <b>2곳</b>을 고르자. 원그래프에서 각각의 집단과 비율(%)을 찾아 비교하고, <b>왜 이런 차이가 나타났는지</b> 식민 지배·강제 이주·이민 등의 역사와 연결하여 설명해 보자.</p>'+
     '<div class="inquiryCountryPick"><label>첫 번째 국가<select id="inqCountryA">'+options+'</select></label><label>두 번째 국가<select id="inqCountryB">'+options+'</select></label></div>'+
-    '<label for="inqEvidence">자료를 근거로 한 나의 최초 판단</label><textarea id="inqEvidence" rows="3" placeholder="예) 미국은 유럽계가 73%로 가장 크지만, 자메이카는 아프리카계가 92%로 가장 크다."></textarea></div>'+
-    '<div class="inquiryQuestion"><h3>질문 2 · 왜 이런 차이가 나타났을까?</h3>'+
-    '<p>교과서 97쪽의 설명을 떠올리며 <b>유럽의 식민 지배, 아프리카인의 강제 이주, 세계 각지의 이민</b> 중 관련된 역사적 이유를 사용해 써 보자.</p>'+
-    '<label for="inqCause">자료의 차이가 나타난 역사적 까닭</label><textarea id="inqCause" rows="3" placeholder="역사적 과정과 인구 구성의 관계를 설명해 보자."></textarea></div>'+
-    '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">자료 분석 저장하고 3단계로 →</button>';
+    '<label for="inqEvidence">자료에 근거한 나의 설명</label>'+
+    '<textarea id="inqEvidence" rows="5" placeholder="두 나라의 비율을 비교하고, 그 차이가 나타난 역사적 까닭까지 하나의 글로 설명해 보자."></textarea></div>'+
+    '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">답변 저장하고 문화 혼종성으로 →</button>';
  }else if(step===3){
-   title='여러 문화는 어떻게 만나 새로운 문화가 되었을까?';
-   lead='교과서 98~99쪽의 실제 문화 혼종성 사례에서 하나를 골라 설명해 보자.';
-   const items=INQUIRY_CULTURES.map((x,i)=>
-      '<label class="inquiryCultureCard"><input type="radio" name="inqCulture" value="'+i+'" '+(i===0?'checked':'')+'><span><strong>'+esc(x.name)+'</strong><small>'+esc(x.desc)+'</small></span></label>').join('');
-   body='<div class="inquiryData"><h3>자료 2 · 아메리카 문화 혼종성 사례</h3>'+
-    '<p>서로 다른 문화가 만나 결합하면서 새로운 문화가 만들어지는 현상을 <b>문화 혼종성</b>이라고 해.</p>'+
-    '<div class="inquiryCultureGrid">'+items+'</div>'+
-    '<p class="inquirySource">출처: 비상교육 『사회 ①』 98~99쪽 문화 혼종성 사례</p></div>'+
-    '<div class="inquiryQuestion"><h3>질문 3 · 문화의 뿌리 설명하기</h3>'+
-    '<label for="inqCultureReason">내가 선택한 사례는 어떤 문화 요소들이 결합하여 만들어졌을까?</label>'+
-    '<textarea id="inqCultureReason" rows="3" placeholder="결합한 문화 요소 두 가지 이상을 구체적으로 써 보자."></textarea></div>'+
-    '<div class="inquiryQuestion"><h3>질문 4 · 인구와 문화를 연결하기</h3>'+
-    '<label for="inqLink">앞 단계의 인구 분포와 역사 자료는 문화 혼종성이 나타난 이유를 어떻게 설명해 줄까?</label>'+
-    '<textarea id="inqLink" rows="3" placeholder="사람들의 이동과 문화적 만남의 관계를 설명해 보자."></textarea></div>'+
-    '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">문화 분석 저장하고 4단계로 →</button>';
+   title='서로 다른 문화가 만나면 무엇이 만들어질까?';
+   lead='국가를 선택하고, 다양한 문화 요소 중 어울리는 재료 2~3개를 직접 골라 조합식을 완성해 보자.';
+   const countries=INQUIRY_CULTURES.map((x,i)=>'<option value="'+i+'">'+esc(x.country)+'</option>').join('');
+   const roots=INQUIRY_ROOTS.map(x=>
+    '<button type="button" class="inquiryRootChip" aria-pressed="false" data-root="'+esc(x.id)+'">'+esc(x.text)+'</button>').join('');
+   body='<div class="inquiryData"><h3>탐구할 국가 고르기</h3>'+
+    '<div class="inquiryCultureIntro"><label for="inqCultureCountry">어느 나라의 문화를 탐구할까?</label>'+
+    '<select id="inqCultureCountry">'+countries+'</select></div>'+
+    '<div class="inquiryCultureResult">탐구 문화: <span id="inqCultureName"></span></div>'+
+    '<p class="inquirySource">교과서 98~99쪽 사례에서 문화가 결합하는 과정을 찾아보자.</p></div>'+
+    '<div class="inquiryQuestion"><h3>결합한 문화 요소 직접 고르기</h3>'+
+    '<p>아래 보기에서 2~3개를 선택해 문화 혼종성의 조합식을 만들자.</p>'+
+    '<div class="inquiryRoots" id="inqCultureRoots">'+roots+'</div>'+
+    '<div class="inquiryEquationPanel" aria-live="polite">'+
+    '<div id="inqMixFormula" class="inquiryMixFormula"></div><span id="inqMixCount" class="inquiryMixCount"></span></div>'+
+    '<label for="inqCultureReason">이 요소들을 선택한 역사적 근거는?</label>'+
+    '<textarea id="inqCultureReason" rows="3" placeholder="교과서의 내용 또는 앞 단계에서 알게 된 역사적 사실을 근거로 적어 보자."></textarea></div>'+
+    '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">문화 조합 저장하고 최종 판단으로 →</button>';
  }else if(step===4){
    title='나의 생각은 어떻게 달라졌을까?';
    lead='처음 썼던 답을 확인한 다음, 교과서 자료에 근거해 나의 최종 판단을 작성해 보자.';
    body='<div class="inquiryData"><h3>내가 앞에서 제출한 답변</h3>'+
     '<div class="inquiryPrevious"><b>인구 구성에 관한 최초 판단</b><p>'+esc(record.demography?.evidence||'')+'</p>'+
     '<b>역사적 원인</b><p>'+esc(record.demography?.cause||'')+'</p>'+
-    '<b>문화 혼종성에 관한 판단</b><p>'+esc(record.culture?.reason||'')+'</p></div></div>'+
+    '<b>처음 만든 문화 조합</b><p>'+esc(record.culture?.formula||'')+'</p><b>선택 이유</b><p>'+esc(record.culture?.reason||'')+'</p></div></div>'+
     '<div class="inquiryData"><h3>스스로 확인할 점</h3>'+
     '<p>① 국가별 집단과 비율(%)을 정확히 사용했는가?</p>'+
     '<p>② 유럽의 식민 지배와 아프리카인의 강제 이주 등 역사적 이유를 연결했는가?</p>'+
@@ -336,11 +398,11 @@ function inquiryRender(){
    lead='지도 만들기와 인구·문화 자료 분석, 그리고 최종 판단까지 저장했어요.';
    body='<div class="inquiryData"><h3>내 탐구 기록</h3>'+
     '<p><strong>자료 분석</strong></p><p>'+esc(record.demography?.evidence||'')+'</p>'+
-    '<p><strong>문화 혼종성 분석</strong></p><p>'+esc(record.culture?.reason||'')+'</p>'+
+    '<p><strong>문화 혼종성 분석</strong></p><p>'+esc(record.culture?.formula||'')+'</p><p>'+esc(record.culture?.reason||'')+'</p>'+
     '<p><strong>최종 판단</strong></p><p>'+esc(record.reflection?.final||'')+'</p>'+
     '<p><strong>바꾼 생각</strong></p><p>'+esc(record.reflection?.change||'')+'</p>'+
     '<p class="inquirySource">학생 답변은 교사용 관리 화면에서 확인하고 CSV로 내려받을 수 있어요.</p></div>'+
-    '<a class="btn mint inquiryQuizLink" href="'+esc(quizEntryLink())+'">실시간 학급 퀴즈로 이동 →</a>';
+    '<p class="inquirySource">기억력 퀴즈는 이 탐구와 별도의 선택 활동이야.</p>';
  }
  app.innerHTML='<section class="card inquiryRoot" id="inquiryRoot"><div class="smallPill">사회 · 아메리카 지역 탐구</div>'+
   inquiryProgress(step)+'<h2>'+title+'</h2><p class="inquiryLead">'+lead+'</p>'+body+
@@ -349,6 +411,7 @@ function inquiryRender(){
    $('inqCountryA').value=INQUIRY_POPULATION[0].name;
    $('inqCountryB').value=INQUIRY_POPULATION[2].name;
  }
+ if(step===3)inquiryEnableMixer();
  if($('inquirySubmit'))$('inquirySubmit').onclick=()=>inquirySubmit(step);
  showConn();
 }
@@ -359,20 +422,22 @@ async function inquirySubmit(step){
  let answer={};
  const v=id=>String($(id)?.value||'').trim();
  if(step===2){
-   const a=v('inqCountryA'),b=v('inqCountryB'),evidence=v('inqEvidence'),cause=v('inqCause');
-   if(!a||!b||a===b)return inquiryNotice('서로 다른 두 나라를 선택해 줘.',true);
+   const a=v('inqCountryA'),b=v('inqCountryB'),evidence=v('inqEvidence');
+   if(!a||!b||a===b)return inquiryNotice('서로 다른 두 나라를 골라 줘.',true);
    const selected=INQUIRY_POPULATION.filter(x=>x.name===a||x.name===b);
-   if(evidence.length<15||!selected.every(x=>new RegExp('(^|[^0-9])'+x.percent+'([^0-9]|$)').test(evidence))){
-     return inquiryNotice('두 국가의 집단 이름과 각각의 정확한 비율(%)을 문장에 넣어 설명해 줘.',true);
+   if(evidence.length<35||!selected.every(x=>new RegExp('(^|[^0-9])'+x.percent+'([^0-9]|$)').test(evidence))){
+     return inquiryNotice('두 국가의 비율(%)과 차이가 나타난 역사적 원인을 함께 설명해 줘.',true);
    }
-   if(cause.length<13)return inquiryNotice('두 나라 인구 구성에 영향을 준 역사적 이유를 문장으로 써 줘.',true);
-   answer={a,b,evidence,cause};
+   answer={a,b,evidence,cause:''};
  }else if(step===3){
-   const cultureId=Number(document.querySelector('input[name="inqCulture"]:checked')?.value);
-   const reason=v('inqCultureReason'),link=v('inqLink');
-   if(!INQUIRY_CULTURES[cultureId])return inquiryNotice('문화 사례를 하나 골라 줘.',true);
-   if(reason.length<15||link.length<15)return inquiryNotice('문화 요소의 결합과 인구·역사의 연결을 각각 문장으로 설명해 줘.',true);
-   answer={culture:INQUIRY_CULTURES[cultureId].name,reason,link};
+   const index=Number($('inqCultureCountry')?.value);
+   const culture=INQUIRY_CULTURES[index],roots=inquiryPickedRoots(),reason=v('inqCultureReason');
+   if(!culture)return inquiryNotice('탐구할 국가를 선택해 줘.',true);
+   if(roots.length<2)return inquiryNotice('결합한 문화 요소를 두 개 이상 골라 줘.',true);
+   if(reason.length<18)return inquiryNotice('왜 그렇게 결합했다고 생각했는지 근거를 적어 줘.',true);
+   answer={country:culture.country,culture:culture.name,elements:roots.map(x=>x.text),
+    formula:roots.map(x=>x.text).join(' + ')+' = '+culture.name+' ('+culture.country+')',
+    reason,link:''};
  }else if(step===4){
    const final=v('inqFinal'),change=v('inqChange');
    if(final.length<25||change.length<13)return inquiryNotice('자료를 근거로 한 최종 판단과 처음 생각에서 보완한 점을 써 줘.',true);
@@ -1595,7 +1660,7 @@ function liveRenderStudent(){
  root.style.display=eligible?'block':'none';
  if(!eligible)return;
  const q=liveQuiz,member=q?.members?.[me.id];
- const heading='<span class="smallPill">4단계 · 실시간 학급 대결</span><h2>검색 없이! 기억력 스피드 퀴즈</h2>'+quizBackButton();
+ const heading='<span class="smallPill">별도 선택 활동</span><h2>기억력 스피드 퀴즈</h2>'+quizBackButton();
  const backup='<div class="liveBackupNote"><p class="muted">실시간 진행에 문제가 있으면 혼자 풀 수 있는 예비 게임을 이용해요. 예비 점수는 별도 저장돼요.</p>'+soloFallbackButton()+'</div>';
  if(!q){root.innerHTML=heading+'<p>선생님이 대기실을 열면 친구들과 동시에 시작해요.</p>'+backup;return;}
  if(q.status==='lobby'){
@@ -1787,14 +1852,14 @@ function renderJoin(error=''){
 }
 function csvCell(v){return '"'+String(v??'').replace(/"/g,'""')+'"';}
 function exportCSV(){
-  const rows=[['이름','점수','완료문제','전체문제','총 풀이초','현재상태','마지막 활동','교사 진도 조정 횟수','교사가 건너뛴 문제 수',...PROBLEMS.map((_,i)=>(i+1)+'번 결과'),...PROBLEMS.map((_,i)=>(i+1)+'번 시도'),...PROBLEMS.map((_,i)=>(i+1)+'번 제출 시각'),'탐구 단계','분석 대상 국가','인구 구성 최초 판단','인구 구성의 역사적 이유','문화 혼종성 사례','문화 요소 분석','인구-문화 연결','최종 판단','수정한 이유','최종 제출 시각']];
+  const rows=[['이름','점수','완료문제','전체문제','총 풀이초','현재상태','마지막 활동','교사 진도 조정 횟수','교사가 건너뛴 문제 수',...PROBLEMS.map((_,i)=>(i+1)+'번 결과'),...PROBLEMS.map((_,i)=>(i+1)+'번 시도'),...PROBLEMS.map((_,i)=>(i+1)+'번 제출 시각'),'탐구 단계','분석 대상 국가','인구 구성 최초 판단','인구 구성의 역사적 이유','문화 혼종성 사례','문화 요소 분석','문화 요소 조합식','최종 판단','수정한 이유','최종 제출 시각']];
   for(const p of ranked(lastAll)){
     const row=[p.name,p.score,p.done,PROBLEMS.length,p.timeSpent||0,p.pending?'결과 확인 중':(p.cur>=PROBLEMS.length?'완료':(p.cur+1)+'번 진행'),p.t?new Date(p.t).toLocaleString('ko-KR'):'',p.teacherAdjustments?.length||0,p.teacherSkipped?.length||0];
     for(const [i,q] of PROBLEMS.entries()){const l=p.log.find(x=>x.id===(q.uid||q.wiki));const ordinal=Array.isArray(p.questionOrder)?p.questionOrder.indexOf(i):i;row.push(l?(l.result==='correct'?`정답 ${l.score}점`:'3회 오답 0점'):(p.teacherSkipped||[]).includes(ordinal)?'교사 진도 복구(0점)':'미완료')}
     for(const q of PROBLEMS){const l=p.log.find(x=>x.id===(q.uid||q.wiki));row.push(l?l.attempts:'')}
     for(const q of PROBLEMS){const l=p.log.find(x=>x.id===(q.uid||q.wiki));row.push(l?new Date(l.at).toLocaleString('ko-KR'):'')}
     const inquiry=p.inquiry||{};
-    row.push(inquiryLabel(inquiryStep(p)),[inquiry.demography?.a,inquiry.demography?.b].filter(Boolean).join('/'),inquiry.demography?.evidence||'',inquiry.demography?.cause||'',inquiry.culture?.culture||'',inquiry.culture?.reason||'',inquiry.culture?.link||'',inquiry.reflection?.final||'',inquiry.reflection?.change||'',inquiry.reflection?.submittedAt?new Date(inquiry.reflection.submittedAt).toLocaleString('ko-KR'):'');
+    row.push(inquiryLabel(inquiryStep(p)),[inquiry.demography?.a,inquiry.demography?.b].filter(Boolean).join('/'),inquiry.demography?.evidence||'',inquiry.demography?.cause||'',inquiry.culture?.culture||'',inquiry.culture?.reason||'',inquiry.culture?.formula||inquiry.culture?.link||'',inquiry.reflection?.final||'',inquiry.reflection?.change||'',inquiry.reflection?.submittedAt?new Date(inquiry.reflection.submittedAt).toLocaleString('ko-KR'):'');
     rows.push(row);
   }
   const csv='\uFEFF'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
@@ -2072,11 +2137,11 @@ function teacherMirrorAttach(){
  };
  $('teacherMirrorFirst').onclick=()=>teacherMirrorSetScene(0);
  $('teacherMirrorSkipAll').onclick=()=>teacherMirrorSetScene(33);
- $('teacherMirrorPopulation').onclick=()=>teacherMirrorSetScene(33);
+ if($('teacherMirrorPopulation'))$('teacherMirrorPopulation').onclick=()=>teacherMirrorSetScene(33);
  $('teacherMirrorCulture').onclick=()=>teacherMirrorSetScene(34);
  $('teacherMirrorReflection').onclick=()=>teacherMirrorSetScene(35);
  $('teacherMirrorFinal').onclick=()=>teacherMirrorSetScene(36);
- $('teacherMirrorQuiz').onclick=()=>teacherMirrorSetScene(38);
+ if($('teacherMirrorQuiz'))$('teacherMirrorQuiz').onclick=()=>teacherMirrorSetScene(38);
  $('teacherMirrorLive').onclick=()=>{
    if(!teacherMirrorRecord())return;
    teacherMirrorMode='snapshot';teacherMirrorResult=false;
@@ -2113,11 +2178,11 @@ function teacherMirrorHtml(){
   '<button type="button" class="btn mint" id="teacherMirrorNext">건너뛰기 · 다음 →</button></div>'+
   '<div class="teacherMirrorQuick">'+
   '<button type="button" class="btn secondary" id="teacherMirrorFirst">지도 첫 문제</button>'+
-  '<button type="button" class="btn mint" id="teacherMirrorSkipAll">지도 33문항 전부 건너뛰기</button>'+ '<button type="button" class="btn secondary" id="teacherMirrorPopulation">인구 구성 분석</button>'+
+  '<button type="button" class="btn mint" id="teacherMirrorSkipAll">지도 33문항 전부 건너뛰기</button>'+ ''+
   '<button type="button" class="btn secondary" id="teacherMirrorCulture">문화 혼종성</button>'+
   '<button type="button" class="btn secondary" id="teacherMirrorReflection">최종 판단</button>'+
   '<button type="button" class="btn secondary" id="teacherMirrorFinal">제출 완료</button>'+
-  '<button type="button" class="btn secondary" id="teacherMirrorQuiz">실시간 퀴즈</button>'+
+  ''+
   '<label class="teacherMirrorResult"><input type="checkbox" id="teacherMirrorResult"> 정답 확인 팝업도 보기</label></div>'+
   '<p id="teacherMirrorCurrent" class="teacherMirrorNotice" aria-live="polite"></p>'+
   '<div class="teacherMirrorDevice"><div class="teacherMirrorDeviceTitle"><span>학생 화면</span><span>미리보기 · 실제 저장 없음</span></div>'+
@@ -2252,11 +2317,10 @@ function teacherInquiryHtml(p){
  const i=p.inquiry||{},step=inquiryStep(p);
  const show=(label,v)=>'<strong>'+esc(label)+'</strong><p>'+esc(v||'미제출')+'</p>';
  return '<section class="teacherInquiryRecord"><h3>교과서 탐구 활동</h3><p>현재 단계: <b>'+esc(inquiryLabel(step))+'</b></p>'+
-  show('인구 자료 최초 판단',i.demography?.evidence)+
-  show('인구 차이의 역사적 이유',i.demography?.cause)+
+  show('인구 자료 분석과 역사적 까닭',i.demography?.evidence)+
   show('문화 혼종성 사례',i.culture?.culture)+
-  show('문화 요소 분석',i.culture?.reason)+
-  show('인구·문화 연결',i.culture?.link)+
+  show('문화 요소 조합식',i.culture?.formula)+
+  show('조합을 선택한 까닭',i.culture?.reason)+
   show('최종 판단',i.reflection?.final)+
   show('수정·보완한 이유',i.reflection?.change)+'</section>';
 }
