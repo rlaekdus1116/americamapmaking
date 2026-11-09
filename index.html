@@ -382,7 +382,7 @@ function globeDraw(now){
  const scale=Math.min(window.devicePixelRatio||1,2);
  if(canvas.width!==Math.round(w*scale)||canvas.height!==Math.round(h*scale)){canvas.width=Math.round(w*scale);canvas.height=Math.round(h*scale)}
  ctx.setTransform(scale,0,0,scale,0,0);ctx.clearRect(0,0,w,h);
- if(!globeDrag&&now-globeLast>1800)globeAngle=(globeAngle+.035)%360;
+ if(!globeDrag&&now-globeLast>2800&&globeTapStage===2)globeAngle=(globeAngle+.025)%360;
  const cx=w*.5,cy=h*.5,R=Math.min(h*.465,w*.34);
  ctx.save();ctx.shadowColor='#b9c8dd';ctx.shadowBlur=19;ctx.shadowOffsetY=7;
  const sea=ctx.createRadialGradient(cx-R*.4,cy-R*.45,R*.1,cx,cy,R);
@@ -449,7 +449,7 @@ function globeTap(e){
  if(p.z<0){globeAngle=pt[1];globeLat=pt[0]*.3;globeLast=performance.now();migrationMapDraw();return}
  if(Math.hypot(x-p.x,y-p.y)>38){$('globeStatus').textContent='표시된 '+(globeTapStage===0?'출발지':'도착지')+' 점을 눌러 줘.';return}
  if(globeTapStage===0){globeTapStage=1;globeAngle=r.target[1];globeLat=r.target[0]*.3;globeLast=performance.now()}
- else if(globeTapStage===1){globeTapStage=2;globeAngle=(r.coords[1]+r.target[1])/2;globeLast=performance.now()}
+ else if(globeTapStage===1){globeTapStage=2;globeAngle=r.target[1];globeLast=performance.now()}
  migrationMapDraw();
 }
 function migrationMapDraw(){
@@ -465,7 +465,7 @@ function migrationChooseOrigin(id){
  if($('migrationQuestionCountry'))$('migrationQuestionCountry').textContent=r.name+' → '+r.destination;
  if($('migrationReason'))$('migrationReason').value=migrationChoices[id]||'';
  if($('migrationFeedback'))$('migrationFeedback').textContent=migrationChoices[id]?'확인 완료':'';
- globeTapStage=0;globeAngle=r.coords[1];globeLat=r.coords[0]*.3;globeLast=performance.now();migrationUpdate();migrationMapDraw();
+ globeTapStage=migrationChoices[id]?2:0;globeAngle=r.coords[1];globeLat=r.coords[0]*.3;globeLast=performance.now();migrationUpdate();migrationMapDraw();
 }
 function migrationSetRegion(region){
  if(!['anglo','latin'].includes(region))return;
@@ -588,7 +588,7 @@ function inquiryRender(){
    body='<div class="inquiryFoundations">'+
     '<article><b>앵글로아메리카</b><span>미국·캐나다 중심. 영국의 식민 지배로 영어와 영국 문화의 영향을 크게 받았어.</span></article>'+
     '<article><b>라틴아메리카</b><span>멕시코·브라질 등. 에스파냐어·포르투갈어 등 라틴계 언어에서 유래한 이름이야.</span></article></div>'+
-    '<p class="migrationIntro">🧭 지도에서 이동을 연결하고, 오른쪽 원그래프를 보며 두 나라를 비교해 보자.</p>'+
+    '<p class="migrationIntro">🌎 지구본을 돌려 출발지와 도착지의 점을 직접 눌러 화살표를 완성해 보자. 오른쪽 원그래프와 함께 비교할 수 있어.</p>'+
     '<div id="inqMigrationStage" class="inquiryStageGrid">'+
     '<section class="inquiryData inquiryChartPanel"><h3>출발지 → 도착지</h3><div class="migrationRegions">'+
     '<button data-migration-region="anglo" type="button">앵글로아메리카 <span>0/4</span></button>'+
