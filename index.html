@@ -658,7 +658,7 @@ function migrationInit(){
  if($('migrationBack'))$('migrationBack').onclick=()=>migrationSwitchTab('migration');
  $('migrationCheck').onclick=migrationCheckReason;
  document.querySelectorAll('[data-migration-region]').forEach(b=>b.onclick=()=>migrationSetRegion(b.dataset.migrationRegion));
- migrationSetRegion('anglo');migrationUpdate();migrationMapInit();migrationSwitchTab('migration');migrationShowChapter('anglo');
+ migrationSetRegion('anglo');migrationRenderReasons();migrationUpdate();migrationMapInit();migrationSwitchTab('migration');migrationShowChapter('anglo');
 }
 const INQUIRY_CULTURES=[
  {name:'과달루페 성모상',country:'멕시코'},
@@ -776,6 +776,9 @@ function inquiryRender(){
     '<div id="migrationRouteProgress" class="migrationRouteProgress" aria-live="polite"></div>'+
     '<p class="migrationQuestionCountry" id="migrationQuestionCountry"></p>'+
     '<div class="migrationBigQuestion">이 사람들은 왜 이동했을까?</div>'+
+    '<label class="migrationWriteLabel" for="migrationReason">이동 이유를 선택해 보자.</label>'+
+    '<select id="migrationReason" aria-label="이동 이유 선택"><option value="">이동 이유 선택</option>'+reasons+'</select>'+
+    '<div id="migrationReasonLinks" class="migrationReasonLinks" role="group" aria-label="이동 이유 선택"></div>'+
     '<label class="migrationWriteLabel" for="migrationExplanation">이동 이유를 내 생각으로 설명해 보자.</label>'+ 
     '<p class="migrationWriteExample">예시 문장: “나는 ○○에서 ○○로 이동한 이유가 ______ 때문이라고 생각한다.”</p>'+ 
     '<textarea id="migrationExplanation" rows="2" placeholder="이동 경로와 역사적 배경을 연결해 내 생각을 써 보세요."></textarea>'+ 
