@@ -163,7 +163,7 @@ body.teacherPreviewBody .inquiryRoot{margin:12px auto 30px}
 .inquiryRoot .inquiryMilestone.isDone{background:#e9f5ed;border-color:#c3ddca;color:#386d4a}
 @media(max-width:650px){.inquiryRoot .inquiryData,.inquiryRoot .inquiryQuestion{padding:13px;margin:12px 0}.inquiryRoots{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.inquiryRootChip{font-size:12px;padding:11px 6px}.inquiryMixFormula{font-size:14px}}
 </style>
-</head>
+<style id="teacherOptionalQuizCSS">.teacherOptionalQuiz{max-width:1320px;margin:14px auto;padding:0 14px}.teacherOptionalQuiz>summary{cursor:pointer;padding:13px 18px;background:#f0f4fa;color:#415c7c;border-radius:15px;font-size:13px;font-weight:700;list-style-position:inside}.teacherOptionalQuiz[open]>summary{margin-bottom:12px}.teacherOptionalQuiz .liveTeacherPanel{margin:0}</style></head>
 <body>
 <header>
   <div class="headIn">
@@ -1655,6 +1655,7 @@ function liveRenderAll(){
  if(TEACHER)liveRenderTeacher();else liveRenderStudent();
 }
 function liveRenderStudent(){
+ if(!QUIZ_ONLY&&!PREVIEW_ONLY)return;
  const root=$('liveStudentPanel');if(!root||!me)return;
  const eligible=me.cur>=PROBLEMS.length&&!me.pending;
  root.style.display=eligible?'block':'none';
@@ -1813,7 +1814,7 @@ function renderStudent(){
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('photoLightbox'))$('photoLightbox').hidden=true;}});
 
   fetch(COUNTRY_GEO).then(r=>{if(!r.ok)throw Error('country border');return r.json()}).then(g=>{if(!map)return;geo=L.geoJSON(g,{style:styleFor,onEachFeature:onCountryFeature}).addTo(map);refreshPieces();if(me?.pending)drawResultMap(questionAt(me.pending.idx));}).catch(()=>{if($('msg'))hintStatus('지도 경계를 불러오지 못했어요. 인터넷을 확인해 주세요.','ng');});
-  if(!PREVIEW_ONLY){watchPlayers(renderRank);watchMe();liveSubscribe();}
+  if(!PREVIEW_ONLY){watchPlayers(renderRank);watchMe();}
   renderHdr();renderProblem();showConn();
 }
 async function loadStudent(name){
@@ -2038,10 +2039,10 @@ function teacherMirrorSceneOptions(){
   {id:34,label:'3단계 · 문화 혼종성 자료 분석'},
   {id:35,label:'4단계 · 최초 판단 재검토'},
   {id:36,label:'최종 제출 완료 화면'},
-  {id:37,label:'실시간 퀴즈 · 대기실'},
-  {id:38,label:'실시간 퀴즈 · 풀이 화면'},
-  {id:39,label:'실시간 퀴즈 · 정답 발표'},
-  {id:40,label:'실시간 퀴즈 · 순위 결과'},
+  {id:37,label:'별도 활동 · 퀴즈 대기실'},
+  {id:38,label:'별도 활동 · 퀴즈 풀이 화면'},
+  {id:39,label:'별도 활동 · 퀴즈 정답 발표'},
+  {id:40,label:'별도 활동 · 퀴즈 결과'},
   {id:42,label:'오늘은 여기까지 · 일시 정지'});
  return start.map(x=>'<option value="'+x.id+'">'+esc(x.label)+'</option>').join('');
 }
@@ -2192,7 +2193,7 @@ function teacherMirrorHtml(){
 
 function renderTeacher(){
   renderHdr();
-  app.innerHTML=`${teacherMirrorHtml()}<section id="liveTeacherPanel" class="liveTeacherPanel teacherProjector"></section><main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
+  app.innerHTML=`${teacherMirrorHtml()}<details class="teacherOptionalQuiz"><summary>별도 활동 · 기억력 대결 운영 (열어서 사용)</summary><section id="liveTeacherPanel" class="liveTeacherPanel teacherProjector"></section></details><main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
     <section class="card"><div class="smallPill">${iconArt("book")} 교사용 관리</div><h2>${esc(roomTitle(ROOM))} 탐험 현황</h2>
       <p class="muted">학생 이름을 누르면 문제별 결과를 확인할 수 있어요.</p>
       <div class="teacherShare">
