@@ -328,6 +328,16 @@ body.inquiryView .inquiryStep2 .migrationBack{align-self:flex-start!important;ma
 body.inquiryView .inquiryStep2 .migrationWriteLabel{display:block;font-size:clamp(14px,1.6vw,19px)!important;font-weight:850!important;color:#254e70!important;margin:8px 0 4px!important}
 body.inquiryView .inquiryStep2 .migrationWriteExample{font-size:clamp(11px,1.15vw,14px)!important;font-weight:650!important;color:#536f83!important;background:#fff3db!important;border-left:4px solid #e6b968!important;border-radius:8px!important;padding:7px 10px!important;margin:4px 0 6px!important}
 body.inquiryView .inquiryStep2 #migrationExplanation{width:100%!important;min-height:52px!important;max-height:85px!important;border:2px solid #a9cee5!important;border-radius:12px!important;padding:9px 11px!important;font-size:14px!important;resize:none!important}
+</style><style id="migrationChapterPopupStyle">
+.migrationChapterOverlay{position:fixed;inset:0;z-index:99999;background:rgba(19,39,62,.72);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:18px}
+.migrationChapterCard{width:min(94vw,640px);border:2px solid #b5d5eb;background:linear-gradient(135deg,#e7f5ff 0%,#fff9e9 100%);box-shadow:0 24px 80px #102c4677;border-radius:30px;padding:clamp(24px,5vw,52px);text-align:center;color:#25465f}
+.migrationChapterEyebrow{font-size:clamp(14px,2vw,20px);font-weight:800;letter-spacing:.08em;color:#6285a2}
+.migrationChapterNumber{font-size:clamp(38px,7vw,80px);font-weight:900;color:#90bde0;line-height:1.2;margin:10px 0}
+.migrationChapterCard h2{font-size:clamp(27px,5vw,46px);font-weight:900;line-height:1.25;color:#244d72;margin:8px 0 18px}
+.migrationChapterCard p{font-size:clamp(15px,2vw,21px);font-weight:650;margin:0 0 28px}
+.migrationChapterCard button{min-height:52px;font-size:clamp(16px,2vw,21px);padding:12px 32px;border-radius:16px}
+body.inquiryView .inquiryStep2 #migrationNextRegion{width:100%;font-size:16px;font-weight:850;min-height:43px;background:#b5e9d5;color:#254e46}
+body.inquiryView .inquiryStep2 #migrationGoGraph[hidden]{display:none!important}
 </style></head>
 <body>
 <header>
@@ -548,6 +558,23 @@ function migrationChooseOrigin(id){
  if($('migrationFeedback'))$('migrationFeedback').textContent=migrationChoices[id]?'확인 완료':'';
  globeTapStage=migrationChoices[id]?2:0;globeAngle=r.coords[1];globeLat=r.coords[0]*.3;globeLast=performance.now();migrationUpdate();migrationMapDraw();
 }
+function migrationShowChapter(region){
+ const old=$('migrationChapterPopup');if(old)old.remove();
+ const latin=region==='latin',title=latin?'라틴아메리카 인구':'앵글로아메리카 인구';
+ const modal=document.createElement('div');modal.id='migrationChapterPopup';modal.className='migrationChapterOverlay';
+ modal.innerHTML='<div class="migrationChapterCard" role="dialog" aria-modal="true" aria-labelledby="migrationChapterTitle"><div class="migrationChapterEyebrow">인구 이동 탐구</div><div class="migrationChapterNumber">'+(latin?'02':'01')+'</div><h2 id="migrationChapterTitle">'+title+'</h2><p>'+(latin?'멕시코·브라질로 향한 사람들의 이동을 살펴보자.':'미국·캐나다로 향한 사람들의 이동을 살펴보자.')+'</p><button type="button" class="btn mint" id="migrationChapterStart">탐구 시작하기 →</button></div>';
+ document.body.appendChild(modal);
+ $('migrationChapterStart').onclick=()=>{modal.remove();migrationSetRegion(region);};
+}
+function migrationNextRegion(){
+ if(migrationRegion==='anglo'){
+  if(migrationCount('anglo')<4)return inquiryNotice('앵글로아메리카의 이동 경로 4개를 먼저 완료해 줘.',true);
+  migrationShowChapter('latin');
+ }else{
+  if(migrationCount('latin')<4)return inquiryNotice('라틴아메리카의 이동 경로 4개를 먼저 완료해 줘.',true);
+  migrationSwitchTab('graph');
+ }
+}
 function migrationSetRegion(region){
  if(!['anglo','latin'].includes(region))return;
  migrationChooseOrigin(MIGRATION_ROUTES.find(r=>r.region===region).id);
@@ -555,7 +582,8 @@ function migrationSetRegion(region){
 }
 function migrationUpdate(){
  if($('migrationProgress'))$('migrationProgress').textContent='앵글로 '+migrationCount('anglo')+'/4 · 라틴 '+migrationCount('latin')+'/4';
- if($('migrationGoGraph'))$('migrationGoGraph').disabled=Object.keys(migrationChoices).length!==8;
+ if($('migrationGoGraph')){$('migrationGoGraph').disabled=Object.keys(migrationChoices).length!==8;$('migrationGoGraph').hidden=Object.keys(migrationChoices).length!==8;}
+ if($('migrationNextRegion')){$('migrationNextRegion').textContent=migrationRegion==='anglo'?'라틴아메리카 인구로 →':'원그래프 분석으로 →';$('migrationNextRegion').disabled=migrationCount(migrationRegion)<4;}
  document.querySelectorAll('[data-migration-region]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.migrationRegion===migrationRegion));b.querySelector('span').textContent=migrationCount(b.dataset.migrationRegion)+'/4'});
 }
 function migrationCheckReason(){
@@ -591,10 +619,11 @@ function migrationInit(){
  if(saved)for(const r of MIGRATION_ROUTES)if(saved[r.id]===r.reason)migrationChoices[r.id]=r.reason;
  migrationRegion='anglo';migrationSelected='ae';
  $('migrationGoGraph').onclick=()=>migrationSwitchTab('graph');
+ $('migrationNextRegion').onclick=migrationNextRegion;
  if($('migrationBack'))$('migrationBack').onclick=()=>migrationSwitchTab('migration');
  $('migrationCheck').onclick=migrationCheckReason;
  document.querySelectorAll('[data-migration-region]').forEach(b=>b.onclick=()=>migrationSetRegion(b.dataset.migrationRegion));
- migrationSetRegion('anglo');migrationUpdate();migrationMapInit();migrationSwitchTab('migration');
+ migrationSetRegion('anglo');migrationUpdate();migrationMapInit();migrationSwitchTab('migration');migrationShowChapter('anglo');
 }
 const INQUIRY_CULTURES=[
  {name:'과달루페 성모상',country:'멕시코'},
@@ -699,7 +728,8 @@ function inquiryRender(){
     '<button type="button" class="btn secondary" id="migrationCheck">짝짓기와 이유 저장하기 →</button>'+
     '<p id="migrationFeedback" aria-live="polite"></p>'+
     ''+
-    '<button type="button" class="btn mint" id="migrationGoGraph" disabled>8개 경로 완료 후 원그래프 분석 →</button></section></div>'+
+    '<button type="button" class="btn mint" id="migrationNextRegion">다음으로 →</button>'+ 
+    '<button type="button" class="btn mint" id="migrationGoGraph" disabled>원그래프 분석으로 →</button></section></div>'+
     '<div id="inqComparisonStage" class="inquiryStageGrid" hidden>'+
     '<section class="inquiryData inquiryChartPanel"><button type="button" class="btn secondary migrationBack" id="migrationBack">← 인구 이동 단계로</button><h3>교과서 원그래프 · 민족과 인종 구성</h3>'+
     '<div class="inquiryGraphWrap"><img class="inquiryOriginalGraph" src="assets/americas_population_97.webp" alt="아메리카 국가별 민족과 인종 구성 원그래프"></div>'+
