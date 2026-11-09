@@ -213,7 +213,7 @@ const DATABASE_URL = 'https://americamapmaking-default-rtdb.firebaseio.com';
 const COUNTRY_GEO = 'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json';
 const params = new URLSearchParams(location.search);
 const ROOM = params.get('room') || 'demo';
-const TEACHER = params.get('mode') === 'teacher' || params.get('t') === '1';
+const TEACHER = params.get('mode') === 'teacher' || params.get('t') === '1' || params.get('teacher') === '1';
 const QUIZ_ONLY = params.get('mode') === 'quiz';
 const PREVIEW_ONLY = params.get('mode') === 'preview';
 const roomKey = encodeURIComponent(ROOM).replace(/\./g,'%2E');
@@ -2330,7 +2330,7 @@ function teacherMirrorHtml(){
   '<button type="button" class="btn mint" id="teacherMirrorNext">건너뛰기 · 다음 →</button></div>'+
   '<div class="teacherMirrorQuick">'+
   '<button type="button" class="btn secondary" id="teacherMirrorFirst">지도 첫 문제</button>'+
-  '<button type="button" class="btn mint" id="teacherMirrorSkipAll">지도 33문항 전부 건너뛰기</button>'+ ''+
+  '<button type="button" class="btn mint" id="teacherMirrorSkipAll">1단계 전부 건너뛰기 → 인구 탐구</button>'+ ''+
   '<button type="button" class="btn secondary" id="teacherMirrorCulture">문화 혼종성</button>'+
   '<button type="button" class="btn secondary" id="teacherMirrorReflection">최종 판단</button>'+
   '<button type="button" class="btn secondary" id="teacherMirrorFinal">제출 완료</button>'+
