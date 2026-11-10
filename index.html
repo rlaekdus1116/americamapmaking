@@ -468,7 +468,24 @@ function validQuestionOrder(o){
  return Array.isArray(o)&&o.length===PROBLEMS.length&&new Set(o).size===PROBLEMS.length&&o.every((n,i)=>Number.isInteger(n)&&(i<COUNTRY_END?n>=0&&n<COUNTRY_END:i<CITY_END?n>=COUNTRY_END&&n<CITY_END:n===i));
 }
 function ensureQuestionOrder(p){if(!validQuestionOrder(p.questionOrder))p.questionOrder=createQuestionOrder(p.id||p.name||'');return p;}
-function questionAt(n,record=me){const teacherIndex=record&&n===Number(record.cur)&&Number.isInteger(record.teacherQuestionIndex)?record.teacherQuestionIndex:null;return PROBLEMS[teacherIndex!==null?teacherIndex:(record&&validQuestionOrder(record.questionOrder)?record.questionOrder[n]:n)];}
+function teacherAlignQuestionOrder(record,scene){
+ if(!record||!Number.isInteger(scene)||scene<0||scene>=PROBLEMS.length)return;
+ const order=validQuestionOrder(record.questionOrder)?record.questionOrder.slice():createQuestionOrder(record.id||record.name||'');
+ const previous=order.indexOf(scene);
+ if(previous>=0&&previous!==scene){const displaced=order[scene];order[scene]=scene;order[previous]=displaced;}
+ record.questionOrder=order;
+}
+function questionAt(n,record=me){
+ if(!Number.isInteger(n)||n<0||n>=PROBLEMS.length)return null;
+ if(record?.pending&&Number(record.pending.idx)===n){
+   const pendingId=record.pending.questionUid||(Number(record.lastSubmission?.position)===n?record.lastSubmission?.id:null);
+   if(pendingId){const matched=PROBLEMS.find(x=>(x.uid||x.wiki)===pendingId);if(matched)return matched;}
+   const fixed=record.pending.questionIndex;
+   if(Number.isInteger(fixed)&&PROBLEMS[fixed])return PROBLEMS[fixed];
+ }
+ const teacherIndex=record&&n===Number(record.cur)&&Number.isInteger(record.teacherQuestionIndex)?record.teacherQuestionIndex:null;
+ return PROBLEMS[teacherIndex!==null?teacherIndex:(record&&validQuestionOrder(record.questionOrder)?record.questionOrder[n]:n)]||null;
+}
 
 
 /* 교과서 기반 단계형 탐구: 지도 완성 후 인구 자료 -> 문화 혼종성 -> 수정 판단.
@@ -1259,6 +1276,7 @@ function applyClassroomCommand(command){
   const old=x.cur;
   const to=scene<PROBLEMS.length?scene:PROBLEMS.length;
   x.cur=to;x.done=to;x.pending=null;x.tries=0;x.coolUntil=0;x.paused=false;x.pausedElapsed=0;x.startedAt=now;x.t=now;
+  teacherAlignQuestionOrder(x,scene);
   x.teacherQuestionIndex=scene<PROBLEMS.length?scene:null;
   x.individualScene=null;
   x.classControlRevision=revision;
@@ -1418,11 +1436,7 @@ function loadProblemPhoto(p){
 }
 function clearMapMarks(){if(map&&pick){map.removeLayer(pick);pick=null;}if(map&&target){map.removeLayer(target);target=null;}}
 function showTarget(p){if(!map)return;if(target)map.removeLayer(target);target=L.circleMarker([p.lat,p.lng],{radius:10,color:'#30a17b',weight:3,fillColor:'#76e0c0',fillOpacity:1}).addTo(map).bindPopup('정답: '+p.caption);map.setView([p.lat,p.lng],Math.max(map.getZoom(),7));}
-function isPendingPieceReady(record=me){
- if(!record?.pending)return true;
- const p=questionAt(record.pending.idx,record);
- return !p||pendingCountryPiecePlaced(p,record);
-}
+function isPendingPieceReady(record=me){return true; /* Correct response now grants the map piece automatically. */}
 function updateCooldownUI(){
   clearInterval(countdownTimer);
   const tick=()=>{
@@ -1470,8 +1484,8 @@ function maybeStagePopup(){
 function renderProblem(){
   if(!map||!me)return;renderedSig=sig(me);
   if(me.cur<PROBLEMS.length){const main=app.querySelector('main');if(main)main.style.display='';if($('liveStudentPanel'))$('liveStudentPanel').style.display='none';}
-  // Only the student's explicit 'Next' action may close an open result dialog.
-  // Firebase transactions can emit intermediate snapshots (including no pending result).
+  // A student tap or the short result countdown may close a result dialog.
+  // Firebase can emit intermediate snapshots during transactions.
   const visibleResult=$('resultDialog');
   if(visibleResult&&!visibleResult.hidden){
     refreshPieces();updateClock();if(me.pending){const p=questionAt(me.pending.idx,me);if(p?.stage==='country')updatePieceUI(p);}updateCooldownUI();return;
@@ -1634,6 +1648,10 @@ function setupPiecePlacement(p){
  if(!area||!mapEl)return;
  area.hidden=p.stage!=='country';
  mapEl.ondragover=null;mapEl.ondrop=null;
+ if(p.stage==='country'&&pendingCountryPiecePlaced(p)){
+  area.hidden=false;area.innerHTML='<p class="resultPieceFeedback ok">✓ '+esc(p.answer)+' 나라 퍼즐 조각을 지도에 자동으로 추가했어요.</p>';
+  return;
+ }
  resultPieceSelected=false;resultPieceSaving=false;resultTargetLayer=null;resultTargetGeometry=null;
  resultPieceMistakes=0;
  if(p.stage!=='country'){area.innerHTML='';return;}
@@ -1676,9 +1694,25 @@ function setupPiecePlacement(p){
  updatePieceUI(p);
 }
 
+let resultAutoNextTimer=null,resultAutoCountdownTimer=null;
+function stopResultAutoAdvance(){
+ if(resultAutoNextTimer){clearTimeout(resultAutoNextTimer);resultAutoNextTimer=null;}
+ if(resultAutoCountdownTimer){clearInterval(resultAutoCountdownTimer);resultAutoCountdownTimer=null;}
+}
+function scheduleResultAutoAdvance(){
+ stopResultAutoAdvance();
+ if(PREVIEW_ONLY||!me?.pending||!serverVerified||firebaseState!=='online')return;
+ const expected=String(me.pending.questionUid||me.lastSubmission?.id||'')+'|'+me.pending.idx;
+ const deadline=Date.now()+4300;
+ const update=()=>{const el=$('resultCountdown');if(el&&!$('resultDialog')?.hidden)el.textContent=Math.max(0,Math.ceil((deadline-Date.now())/1000))+'초 뒤 자동으로 다음 문제로 넘어가요. 바로 이동하려면 아래 버튼을 눌러요.';};
+ update();resultAutoCountdownTimer=setInterval(update,400);
+ resultAutoNextTimer=setTimeout(()=>{
+  if(me?.pending&&String(me.pending.questionUid||me.lastSubmission?.id||'')+'|'+me.pending.idx===expected&&$('resultDialog')&&!$('resultDialog').hidden)nextProblem();
+ },4300);
+}
 function openResultDialog(p,result){
  const modal=$('resultDialog');if(!modal)return;
- const token=String(result.idx)+'-'+result.mode;
+ const token=String(result.idx)+'-'+result.mode+'-'+(result.questionUid||me?.lastSubmission?.id||'');
  if(!modal.hidden&&modal.dataset.pendingToken===token){updateCooldownUI();return;}
  modal.dataset.pendingToken=token;
  const co=COUNTRIES.find(x=>x.en===p.country);
@@ -1690,32 +1724,20 @@ function openResultDialog(p,result){
  $('resultReward').textContent='';$('resultReward').hidden=true;$('resultReward').style.display='none';
  const next=$('nextBtn');
  next.textContent=me.cur>=PROBLEMS.length?'최종 결과 보기':'다음 문제';
- // Only a deliberate mouse click or touch on Next may move to the next question.
- // A held Enter key must NEVER trigger Next after submitting the answer.
- let pointerArmed=false;
+ // A simple tap moves immediately; the timer also advances for students who do not tap.
  next.type='button';
- next.onpointerdown=e=>{pointerArmed=e.isPrimary&&e.button===0;};
- next.onpointercancel=()=>{pointerArmed=false;};
- next.onkeydown=e=>{
-   if(e.key==='Enter'||e.key===' '){
-     e.preventDefault();e.stopPropagation();
-   }
- };
- next.onclick=e=>{
-   e.preventDefault();
-   const fromPointer=pointerArmed && e.detail>0;
-   pointerArmed=false;
-   if(!fromPointer||modal.hidden||next.disabled)return;
-   nextProblem();
- };
+ next.onpointerdown=null;next.onpointercancel=null;next.onkeydown=null;
+ next.onclick=e=>{e.preventDefault();if(!modal.hidden&&!next.disabled)nextProblem();};
  modal.hidden=false;
  setupPiecePlacement(p);
  setTimeout(()=>drawResultMap(p),0);
  updateCooldownUI();
+ scheduleResultAutoAdvance();
  // Do not focus the Next button: an Enter keyup can activate it immediately.
 }
 let resultMiniMap=null;
 function closeResultDialog(){
+ stopResultAutoAdvance();
  resultMiniMapToken++;
  if(resultMiniMap){resultMiniMap.remove();resultMiniMap=null;}
  resultTargetLayer=null;resultTargetGeometry=null;resultPieceSelected=false;resultPieceSaving=false;
@@ -1771,8 +1793,9 @@ async function drawResultMap(p){
   }
  }).addTo(resultMiniMap);
  if(p.stage==='country'){
-  // Do not center, highlight, label or outline the correct country until the child has placed it.
-  resultMiniMap.fitBounds([[-57,-168],[73,-32]],{animate:false});
+  // The puzzle piece is credited on answering; show the correct country in context.
+  if(placed&&selected?.getBounds&&selected.getBounds().isValid())resultMiniMap.fitBounds(selected.getBounds().pad(.6),{maxZoom:5,animate:false});
+  else resultMiniMap.fitBounds([[-57,-168],[73,-32]],{animate:false});
   const shape=$('resultPieceShape');
   if(shape&&correctFeature)shape.innerHTML=countryPuzzleSilhouette(correctFeature.geometry);
   if(!correctFeature){
@@ -1833,7 +1856,8 @@ async function guessTyped(){
        const points=(attempt===1?100:attempt===2?60:25)+speed;
        x.score+=points;x.done++;x.cur++;x.teacherQuestionIndex=null;x.timeSpent+=seconds;
        x.log.push({id:questionUID,q:actual.answer,result:'correct',attempts:attempt,score:points,seconds,at:now});
-       x.pending={mode:'correct',idx,points,seconds,...(actual.stage==='country'?{piecePlaced:false}:{})};x.tries=0;x.coolUntil=0;
+       if(actual.stage==='country'&&actual.country&&!x.unlocked.includes(actual.country))x.unlocked.push(actual.country);
+       x.pending={mode:'correct',idx,questionUid:questionUID,questionIndex:PROBLEMS.indexOf(actual),points,seconds,...(actual.stage==='country'?{piecePlaced:true}:{})};x.tries=0;x.coolUntil=0;
      }else{
        x.tries++;x.coolUntil=now+COOLDOWN_MS;
        x.wrongAttempts=[...x.wrongAttempts,{id:questionUID,position:idx,given,at:now,attempt:x.tries}].slice(-40);
@@ -1842,7 +1866,8 @@ async function guessTyped(){
          const seconds=Math.max(0,Math.round((Number(x.pausedElapsed)||0)+(x.paused?0:(now-(x.startedAt||now))/1000)));
          x.timeSpent+=seconds;
          x.log.push({id:questionUID,q:actual.answer,result:'missed',attempts:3,score:0,seconds,at:now});
-         x.pending={mode:'giveup',idx,points:0,seconds,...(actual.stage==='country'?{piecePlaced:false}:{})};x.tries=0;
+         if(actual.stage==='country'&&actual.country&&!x.unlocked.includes(actual.country))x.unlocked.push(actual.country);
+         x.pending={mode:'giveup',idx,questionUid:questionUID,questionIndex:PROBLEMS.indexOf(actual),points:0,seconds,...(actual.stage==='country'?{piecePlaced:true}:{})};x.tries=0;x.coolUntil=0;
        }
      }
      x.t=now;return x;
@@ -1866,12 +1891,10 @@ async function nextProblem(){
   if(PREVIEW_ONLY){previewOnlyNotify('next');return;}
   if(!serverVerified||firebaseState!=='online'){showConn();return;}
   if(!playerRef||!me||!me.pending||me.paused||me.coolUntil>serverNow())return;
-  if(!isPendingPieceReady()){resultPieceStatus('지도 조각을 먼저 표시된 나라에 붙여 주세요.','ng');return;}
   if($('nextBtn'))$('nextBtn').disabled=true;
   try{
     const tx=await playerRef.transaction(current=>{
       if(!current||!current.pending||Number(current.coolUntil)>serverNow())return;
-      if(!isPendingPieceReady(norm(current,me.id)))return;
       current.pending=null;current.tries=0;current.coolUntil=0;current.pausedElapsed=0;current.paused=false;current.startedAt=serverNow();current.t=serverNow();return current;
     });
     if(tx.committed&&tx.snapshot.exists()){me=norm(tx.snapshot.val(),me.id);closeResultDialog();renderProblem();}
@@ -2315,8 +2338,7 @@ function renderStudent(){
   $('photoLightboxClose').onclick=()=>{$('photoLightbox').hidden=true;};
   $('photoLightbox').onclick=e=>{if(e.target===$('photoLightbox'))$('photoLightbox').hidden=true;};
   $('stageDialogClose').onclick=()=>{$('stageDialog').hidden=true;};
-  // Trap accidental Enter/Space presses inside the answer-result popup.
-  // Mouse/touch Next remains usable through pointer events.
+  // Prevent held Enter from the text input from dismissing the answer explanation too early.
   $('resultDialog').addEventListener('keydown',e=>{
     if(e.key==='Enter'||e.key===' '){
       e.preventDefault();
@@ -2492,6 +2514,7 @@ function teacherApplySceneToRecord(x,scene,now){
  const previous=x.cur,to=scene<PROBLEMS.length?scene:PROBLEMS.length;
  x.cur=to;x.done=to;x.pending=null;x.tries=0;x.coolUntil=0;
  x.paused=false;x.pausedElapsed=0;x.startedAt=now;x.t=now;
+ teacherAlignQuestionOrder(x,scene);
  x.teacherQuestionIndex=scene<PROBLEMS.length?scene:null;
  x.individualScene=scene;x.individualControlAt=now;
  x.teacherRevision=(Number(x.teacherRevision)||0)+1;
