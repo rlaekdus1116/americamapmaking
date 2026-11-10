@@ -475,16 +475,19 @@ function teacherAlignQuestionOrder(record,scene){
  if(previous>=0&&previous!==scene){const displaced=order[scene];order[scene]=scene;order[previous]=displaced;}
  record.questionOrder=order;
 }
+const QUESTION_BY_UID=new Map(PROBLEMS.map(p=>[p.uid||p.wiki,p]));
+function questionByUid(uid){return uid?QUESTION_BY_UID.get(String(uid))||null:null;}
+/* One canonical lookup for the student, grading, result dialog, and teacher preview. */
 function questionAt(n,record=me){
  if(!Number.isInteger(n)||n<0||n>=PROBLEMS.length)return null;
  if(record?.pending&&Number(record.pending.idx)===n){
-   const pendingId=record.pending.questionUid||(Number(record.lastSubmission?.position)===n?record.lastSubmission?.id:null);
-   if(pendingId){const matched=PROBLEMS.find(x=>(x.uid||x.wiki)===pendingId);if(matched)return matched;}
-   const fixed=record.pending.questionIndex;
-   if(Number.isInteger(fixed)&&PROBLEMS[fixed])return PROBLEMS[fixed];
+   const pendingUid=record.pending.questionUid||(Number(record.lastSubmission?.position)===n?record.lastSubmission?.id:null);
+   if(pendingUid)return questionByUid(pendingUid); // Never silently show a different correct answer.
+   if(Number.isInteger(record.pending.questionIndex))return PROBLEMS[record.pending.questionIndex]||null;
  }
- const teacherIndex=record&&n===Number(record.cur)&&Number.isInteger(record.teacherQuestionIndex)?record.teacherQuestionIndex:null;
- return PROBLEMS[teacherIndex!==null?teacherIndex:(record&&validQuestionOrder(record.questionOrder)?record.questionOrder[n]:n)]||null;
+ if(record&&n===Number(record.cur)&&record.activeQuestionUid)return questionByUid(record.activeQuestionUid);
+ const forced=record&&n===Number(record.cur)&&Number.isInteger(record.teacherQuestionIndex)?record.teacherQuestionIndex:null;
+ return PROBLEMS[forced!==null?forced:(record&&validQuestionOrder(record.questionOrder)?record.questionOrder[n]:n)]||null;
 }
 
 
@@ -1023,6 +1026,11 @@ function previewOnlyApply(x){
    return;
  }
  if(scene<=32){
+   // Browse by absolute catalog ID even when the selected student uses shuffled questions.
+   teacherAlignQuestionOrder(me,scene);
+   const catalogQuestion=PROBLEMS[scene];
+   me.activeQuestionUid=catalogQuestion.uid||catalogQuestion.wiki;
+   me.teacherQuestionIndex=scene;
    const count=Math.min(scene+(x.result?1:0),COUNTRY_END),unlocked=[];
    for(let i=0;i<count;i++){
      const q=PROBLEMS[me.questionOrder[i]];
@@ -1033,8 +1041,10 @@ function previewOnlyApply(x){
    me.done=me.cur;
    me.score=raw?student.score:scene*100;
    if(x.result){
-     const q=questionAt(scene,me);
-     me.pending={idx:scene,mode:'correct',points:100,seconds:6,piecePlaced:true};
+     const q=catalogQuestion;
+     me.pending={idx:scene,mode:'correct',questionUid:q.uid||q.wiki,questionIndex:scene,points:100,seconds:6,piecePlaced:true};
+     me.teacherQuestionIndex=null;me.activeQuestionUid=null;
+     me.activeQuestionUid=questionAt(me.cur,me)?.uid||null;
      if(q?.stage==='country'&&q.country&&!me.unlocked.includes(q.country))me.unlocked.push(q.country);
    }
    liveQuiz=null;renderStudent();return;
@@ -1059,7 +1069,7 @@ function previewOnlyApply(x){
 }
 
 function fresh(name){return {id:nameKey(name),name:normName(name),score:0,done:0,cur:0,tries:0,coolUntil:0,log:[],unlocked:[],pending:null,t:serverNow(),createdAt:serverNow(),startedAt:serverNow(),timeSpent:0,paused:false,pausedElapsed:0,schemaVersion:11,questionOrder:createQuestionOrder(nameKey(name))};}
-function norm(p,key){p=p||{};return {id:key||p.id||'',name:p.name||'',score:Number(p.score)||0,done:Number(p.done)||0,cur:Number(p.cur)||0,tries:Number(p.tries)||0,coolUntil:Number(p.coolUntil)||0,log:Array.isArray(p.log)?p.log:[],unlocked:Array.isArray(p.unlocked)?p.unlocked:[],pending:p.pending||null,t:Number(p.t)||0,createdAt:Number(p.createdAt)||0,startedAt:Number(p.startedAt)||0,timeSpent:Number(p.timeSpent)||0,paused:!!p.paused,pausedElapsed:Number(p.pausedElapsed)||0,schemaVersion:Number(p.schemaVersion)||8,teacherRevision:Number(p.teacherRevision)||0,teacherAdjustments:Array.isArray(p.teacherAdjustments)?p.teacherAdjustments:[],teacherSkipped:Array.isArray(p.teacherSkipped)?p.teacherSkipped:[],wrongAttempts:Array.isArray(p.wrongAttempts)?p.wrongAttempts:[],lastSubmission:p.lastSubmission||null,questionOrder:Array.isArray(p.questionOrder)?p.questionOrder:null,teacherQuestionIndex:Number.isInteger(p.teacherQuestionIndex)?p.teacherQuestionIndex:null,classControlRevision:Number(p.classControlRevision)||0,individualControlAt:Number(p.individualControlAt)||0,individualScene:Number.isInteger(p.individualScene)?p.individualScene:null,inquiry:p.inquiry&&typeof p.inquiry==='object'?p.inquiry:null};}
+function norm(p,key){p=p||{};return {id:key||p.id||'',name:p.name||'',score:Number(p.score)||0,done:Number(p.done)||0,cur:Number(p.cur)||0,tries:Number(p.tries)||0,coolUntil:Number(p.coolUntil)||0,log:Array.isArray(p.log)?p.log:[],unlocked:Array.isArray(p.unlocked)?p.unlocked:[],pending:p.pending||null,t:Number(p.t)||0,createdAt:Number(p.createdAt)||0,startedAt:Number(p.startedAt)||0,timeSpent:Number(p.timeSpent)||0,paused:!!p.paused,pausedElapsed:Number(p.pausedElapsed)||0,schemaVersion:Number(p.schemaVersion)||8,teacherRevision:Number(p.teacherRevision)||0,teacherAdjustments:Array.isArray(p.teacherAdjustments)?p.teacherAdjustments:[],teacherSkipped:Array.isArray(p.teacherSkipped)?p.teacherSkipped:[],wrongAttempts:Array.isArray(p.wrongAttempts)?p.wrongAttempts:[],lastSubmission:p.lastSubmission||null,questionOrder:Array.isArray(p.questionOrder)?p.questionOrder:null,activeQuestionUid:typeof p.activeQuestionUid==='string'?p.activeQuestionUid:null,teacherQuestionIndex:Number.isInteger(p.teacherQuestionIndex)?p.teacherQuestionIndex:null,classControlRevision:Number(p.classControlRevision)||0,individualControlAt:Number(p.individualControlAt)||0,individualScene:Number.isInteger(p.individualScene)?p.individualScene:null,inquiry:p.inquiry&&typeof p.inquiry==='object'?p.inquiry:null};}
 function sig(p){return [p.classControlRevision||0,p.cur,p.tries,p.coolUntil,p.done,p.score,p.pending?String(p.pending.idx)+p.pending.mode:'',p.paused?'pause':'play',p.teacherRevision||0,p.lastSubmission?.at||0,p.inquiry?.step||0,p.inquiry?.updatedAt||0,p.pending?.piecePlaced?'piece-placed':'piece-open'].join('|');}
 function ranked(all){return Object.keys(all||{}).map(k=>norm(migrateGameFormat(all[k]),k)).sort((a,b)=>(b.score-a.score)||(b.done-a.done)||(totalTime(a)-totalTime(b))||((a.t||0)-(b.t||0)));}
 function hintStatus(text,cls=''){const el=$('msg');if(el){el.textContent=text;el.className='msg '+cls;}}
@@ -1278,6 +1288,7 @@ function applyClassroomCommand(command){
   x.cur=to;x.done=to;x.pending=null;x.tries=0;x.coolUntil=0;x.paused=false;x.pausedElapsed=0;x.startedAt=now;x.t=now;
   teacherAlignQuestionOrder(x,scene);
   x.teacherQuestionIndex=scene<PROBLEMS.length?scene:null;
+  x.activeQuestionUid=scene<PROBLEMS.length?(PROBLEMS[scene]?.uid||null):null;
   x.individualScene=null;
   x.classControlRevision=revision;
   x.teacherRevision=(Number(x.teacherRevision)||0)+1;
@@ -1495,7 +1506,9 @@ function renderProblem(){
   $('waitBox').style.display='none';
   if(me.cur>=PROBLEMS.length){finish();return;}
   $('photoWrap').style.display='block';$('photoCredit').style.display='block';
-  const p=questionAt(me.cur);loadProblemPhoto(p);
+  const p=questionAt(me.cur);
+  if(!p){hintStatus('현재 문항 정보를 확인할 수 없어요. 선생님에게 알려 주세요.','ng');if($('answerBtn'))$('answerBtn').disabled=true;return;}
+  loadProblemPhoto(p);
   $('qtext').textContent=(me.cur+1)+'번. '+p.q;
   answerUI();armClock();maybeStagePopup();
   hintStatus(me.tries?'설명을 다시 읽고 답을 적어보세요.':'정답을 입력하고 확인해 보세요 🌷');
@@ -1854,7 +1867,8 @@ async function guessTyped(){
        const seconds=Math.max(0,Math.round((Number(x.pausedElapsed)||0)+(x.paused?0:(now-(x.startedAt||now))/1000)));
        const speed=Math.max(0,30-Math.floor(seconds/2));
        const points=(attempt===1?100:attempt===2?60:25)+speed;
-       x.score+=points;x.done++;x.cur++;x.teacherQuestionIndex=null;x.timeSpent+=seconds;
+       x.score+=points;x.done++;x.cur++;x.teacherQuestionIndex=null;x.activeQuestionUid=null;
+       x.activeQuestionUid=questionAt(x.cur,x)?.uid||null;x.timeSpent+=seconds;
        x.log.push({id:questionUID,q:actual.answer,result:'correct',attempts:attempt,score:points,seconds,at:now});
        if(actual.stage==='country'&&actual.country&&!x.unlocked.includes(actual.country))x.unlocked.push(actual.country);
        x.pending={mode:'correct',idx,questionUid:questionUID,questionIndex:PROBLEMS.indexOf(actual),points,seconds,...(actual.stage==='country'?{piecePlaced:true}:{})};x.tries=0;x.coolUntil=0;
@@ -1862,7 +1876,8 @@ async function guessTyped(){
        x.tries++;x.coolUntil=now+COOLDOWN_MS;
        x.wrongAttempts=[...x.wrongAttempts,{id:questionUID,position:idx,given,at:now,attempt:x.tries}].slice(-40);
        if(x.tries>=MAX_TRIES){
-         x.done++;x.cur++;x.teacherQuestionIndex=null;
+         x.done++;x.cur++;x.teacherQuestionIndex=null;x.activeQuestionUid=null;
+         x.activeQuestionUid=questionAt(x.cur,x)?.uid||null;
          const seconds=Math.max(0,Math.round((Number(x.pausedElapsed)||0)+(x.paused?0:(now-(x.startedAt||now))/1000)));
          x.timeSpent+=seconds;
          x.log.push({id:questionUID,q:actual.answer,result:'missed',attempts:3,score:0,seconds,at:now});
@@ -2369,6 +2384,9 @@ async function loadStudent(name){
       const now=serverNow();
       const migrated=migrateGameFormat(current);
       if(migrated.paused){migrated.paused=false;migrated.startedAt=now;migrated.t=now;}
+      if(Number(migrated.cur)<PROBLEMS.length&&!migrated.pending&&!questionByUid(migrated.activeQuestionUid)){
+       migrated.activeQuestionUid=questionAt(Number(migrated.cur),migrated)?.uid||null;
+      }
       return migrated;
     });
     if(!tx.committed||!tx.snapshot.exists())throw Error('서버에서 진도 저장을 확인하지 못했어요.');
@@ -2516,6 +2534,7 @@ function teacherApplySceneToRecord(x,scene,now){
  x.paused=false;x.pausedElapsed=0;x.startedAt=now;x.t=now;
  teacherAlignQuestionOrder(x,scene);
  x.teacherQuestionIndex=scene<PROBLEMS.length?scene:null;
+ x.activeQuestionUid=scene<PROBLEMS.length?(PROBLEMS[scene]?.uid||null):null;
  x.individualScene=scene;x.individualControlAt=now;
  x.teacherRevision=(Number(x.teacherRevision)||0)+1;
  if(scene>=PROBLEMS.length){
