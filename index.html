@@ -1042,7 +1042,7 @@ function previewOnlyApply(x){
 }
 
 function fresh(name){return {id:nameKey(name),name:normName(name),score:0,done:0,cur:0,tries:0,coolUntil:0,log:[],unlocked:[],pending:null,t:serverNow(),createdAt:serverNow(),startedAt:serverNow(),timeSpent:0,paused:false,pausedElapsed:0,schemaVersion:11,questionOrder:createQuestionOrder(nameKey(name))};}
-function norm(p,key){p=p||{};return {id:key||p.id||'',name:p.name||'',score:Number(p.score)||0,done:Number(p.done)||0,cur:Number(p.cur)||0,tries:Number(p.tries)||0,coolUntil:Number(p.coolUntil)||0,log:Array.isArray(p.log)?p.log:[],unlocked:Array.isArray(p.unlocked)?p.unlocked:[],pending:p.pending||null,t:Number(p.t)||0,createdAt:Number(p.createdAt)||0,startedAt:Number(p.startedAt)||0,timeSpent:Number(p.timeSpent)||0,paused:!!p.paused,pausedElapsed:Number(p.pausedElapsed)||0,schemaVersion:Number(p.schemaVersion)||8,teacherRevision:Number(p.teacherRevision)||0,teacherAdjustments:Array.isArray(p.teacherAdjustments)?p.teacherAdjustments:[],teacherSkipped:Array.isArray(p.teacherSkipped)?p.teacherSkipped:[],wrongAttempts:Array.isArray(p.wrongAttempts)?p.wrongAttempts:[],lastSubmission:p.lastSubmission||null,questionOrder:Array.isArray(p.questionOrder)?p.questionOrder:null,teacherQuestionIndex:Number.isInteger(p.teacherQuestionIndex)?p.teacherQuestionIndex:null,classControlRevision:Number(p.classControlRevision)||0,inquiry:p.inquiry&&typeof p.inquiry==='object'?p.inquiry:null};}
+function norm(p,key){p=p||{};return {id:key||p.id||'',name:p.name||'',score:Number(p.score)||0,done:Number(p.done)||0,cur:Number(p.cur)||0,tries:Number(p.tries)||0,coolUntil:Number(p.coolUntil)||0,log:Array.isArray(p.log)?p.log:[],unlocked:Array.isArray(p.unlocked)?p.unlocked:[],pending:p.pending||null,t:Number(p.t)||0,createdAt:Number(p.createdAt)||0,startedAt:Number(p.startedAt)||0,timeSpent:Number(p.timeSpent)||0,paused:!!p.paused,pausedElapsed:Number(p.pausedElapsed)||0,schemaVersion:Number(p.schemaVersion)||8,teacherRevision:Number(p.teacherRevision)||0,teacherAdjustments:Array.isArray(p.teacherAdjustments)?p.teacherAdjustments:[],teacherSkipped:Array.isArray(p.teacherSkipped)?p.teacherSkipped:[],wrongAttempts:Array.isArray(p.wrongAttempts)?p.wrongAttempts:[],lastSubmission:p.lastSubmission||null,questionOrder:Array.isArray(p.questionOrder)?p.questionOrder:null,teacherQuestionIndex:Number.isInteger(p.teacherQuestionIndex)?p.teacherQuestionIndex:null,classControlRevision:Number(p.classControlRevision)||0,individualControlAt:Number(p.individualControlAt)||0,individualScene:Number.isInteger(p.individualScene)?p.individualScene:null,inquiry:p.inquiry&&typeof p.inquiry==='object'?p.inquiry:null};}
 function sig(p){return [p.classControlRevision||0,p.cur,p.tries,p.coolUntil,p.done,p.score,p.pending?String(p.pending.idx)+p.pending.mode:'',p.paused?'pause':'play',p.teacherRevision||0,p.lastSubmission?.at||0,p.inquiry?.step||0,p.inquiry?.updatedAt||0,p.pending?.piecePlaced?'piece-placed':'piece-open'].join('|');}
 function ranked(all){return Object.keys(all||{}).map(k=>norm(migrateGameFormat(all[k]),k)).sort((a,b)=>(b.score-a.score)||(b.done-a.done)||(totalTime(a)-totalTime(b))||((a.t||0)-(b.t||0)));}
 function hintStatus(text,cls=''){const el=$('msg');if(el){el.textContent=text;el.className='msg '+cls;}}
@@ -1255,10 +1255,12 @@ function applyClassroomCommand(command){
   const scene=Number(command.scene),now=serverNow();
   if(scene<0||scene>49||(scene>36&&scene<43))return;
   const x=norm(migrateGameFormat(raw),me?.id);
+  if(Number(x.individualControlAt)>Number(command.at)||Number(x.individualControlAt)===Number(command.at)&&Number(x.individualControlAt)>0){x.classControlRevision=revision;return x;}
   const old=x.cur;
   const to=scene<PROBLEMS.length?scene:PROBLEMS.length;
   x.cur=to;x.done=to;x.pending=null;x.tries=0;x.coolUntil=0;x.paused=false;x.pausedElapsed=0;x.startedAt=now;x.t=now;
   x.teacherQuestionIndex=scene<PROBLEMS.length?scene:null;
+  x.individualScene=null;
   x.classControlRevision=revision;
   x.teacherRevision=(Number(x.teacherRevision)||0)+1;
   x.teacherAdjustments=[...(x.teacherAdjustments||[]),{from:old,to,scene,at:now,group:true}].slice(-30);
@@ -1299,7 +1301,7 @@ function watchMe(){
     if(teacherMoved){
       if($('resultDialog')&&!$('resultDialog').hidden)closeResultDialog();
       if(me.cur>=PROBLEMS.length&&!me.pending)inquiryRender();else renderStudent();
-      if(map)hintStatus('선생님이 모두의 학습 화면을 이동했어요.','ok');
+      if(map)hintStatus('선생님이 학습 화면을 이동했어요.','ok');
     }else if(changed&&map){
       if(me.cur>=PROBLEMS.length&&!me.pending)inquiryRender();else renderProblem();
     }else if(changed&&$('inquiryRoot')){
@@ -1829,14 +1831,14 @@ async function guessTyped(){
        const seconds=Math.max(0,Math.round((Number(x.pausedElapsed)||0)+(x.paused?0:(now-(x.startedAt||now))/1000)));
        const speed=Math.max(0,30-Math.floor(seconds/2));
        const points=(attempt===1?100:attempt===2?60:25)+speed;
-       x.score+=points;x.done++;x.cur++;x.timeSpent+=seconds;
+       x.score+=points;x.done++;x.cur++;x.teacherQuestionIndex=null;x.timeSpent+=seconds;
        x.log.push({id:questionUID,q:actual.answer,result:'correct',attempts:attempt,score:points,seconds,at:now});
        x.pending={mode:'correct',idx,points,seconds,...(actual.stage==='country'?{piecePlaced:false}:{})};x.tries=0;x.coolUntil=0;
      }else{
        x.tries++;x.coolUntil=now+COOLDOWN_MS;
        x.wrongAttempts=[...x.wrongAttempts,{id:questionUID,position:idx,given,at:now,attempt:x.tries}].slice(-40);
        if(x.tries>=MAX_TRIES){
-         x.done++;x.cur++;
+         x.done++;x.cur++;x.teacherQuestionIndex=null;
          const seconds=Math.max(0,Math.round((Number(x.pausedElapsed)||0)+(x.paused?0:(now-(x.startedAt||now))/1000)));
          x.timeSpent+=seconds;
          x.log.push({id:questionUID,q:actual.answer,result:'missed',attempts:3,score:0,seconds,at:now});
@@ -2456,70 +2458,76 @@ function teacherMessage(s,bad){
  const el=$('teacherActionStatus');
  if(el){el.textContent=s;el.style.color=bad?'#aa3158':'#267457';}
 }
+function studentSceneOf(p){
+ if(Number.isInteger(p?.individualScene))return p.individualScene;
+ if(Number.isInteger(p?.teacherQuestionIndex)&&Number(p.cur)<PROBLEMS.length)return p.teacherQuestionIndex;
+ if(Number(p?.cur)<PROBLEMS.length)return Number(p.cur)||0;
+ const step=inquiryStep(p);
+ if(step===2)return p.inquiry?.teacherSubscene==='latin'?44:p.inquiry?.teacherSubscene==='graph'?45:43;
+ if(step===3)return Number.isInteger(p.inquiry?.cultureDraft?.active)?46+p.inquiry.cultureDraft.active:34;
+ return step===4?35:36;
+}
 function teacherRenderControls(p){
  const el=$('teacherControls');if(!el)return;
- const desired=teacherDraftKey===p.id&&teacherDraftProgress!==null?teacherDraftProgress:p.cur;
- teacherDraftKey=p.id;
- const opts=PROBLEMS.map((q,i)=>{
-   const stage=i<COUNTRY_END?'나라':i<CITY_END?'도시':'자연';
-   return '<option value="'+i+'"'+(Number(desired)===i?' selected':'')+'>'+i+'문제 완료 → '+(i+1)+'번 ('+stage+')</option>';
- }).join('')+'<option value="'+PROBLEMS.length+'"'+(Number(desired)===PROBLEMS.length?' selected':'')+'>모든 문제 완료</option>';
- el.innerHTML='<h3>학생 기록 관리</h3>'+
- '<p class="muted">서버에 저장된 학생 한 명의 진행 위치를 복구합니다. 건너뛴 문제는 정답이나 점수로 처리되지 않아요.</p>'+
- '<label for="teacherProgress">복구할 다음 문제</label>'+
- '<select id="teacherProgress">'+opts+'</select>'+
- '<button type="button" class="btn mint" id="teacherProgressApply">진도 복구 적용</button>'+
- '<p class="muted">뒤로 이동하면 그 이후 제출 기록·점수를 정리합니다. 변경 전 JSON 백업이 다운로드돼요.</p>'+
- '<div class="teacherActionRow">'+
- '<button type="button" class="btn secondary" id="teacherBackup">기록 백업</button>'+
- '<button type="button" class="btn secondary teacherDanger" id="teacherDelete">이 학생 기록 삭제</button></div>'+'<div class="teacherMovePanel"><label for="teacherMoveRoom">학생 기록을 다른 반으로 이동</label>'+'<select id="teacherMoveRoom"><option value="">이동할 반 선택</option>'+classRoomOptions('',true)+'</select>'+'<button type="button" class="btn secondary" id="teacherMoveButton">선택한 반으로 옮기기</button>'+'<p class="muted">도착 반에 같은 이름이 있으면 덮어쓰지 않고 중단해요. 이동 전 기록을 백업합니다.</p></div>'+
- '<p id="teacherActionStatus" aria-live="polite"></p>'+
- '<p class="muted">교사 조정 '+(p.teacherAdjustments?.length||0)+'회 · 점수 없이 건너뛴 문항 '+(p.teacherSkipped?.length||0)+'개</p>';
+ if(teacherDraftKey!==p.id){teacherDraftKey=p.id;teacherDraftProgress=null;}
+ const desired=teacherDraftProgress!==null?teacherDraftProgress:studentSceneOf(p);
+ const opts=teacherMirrorSceneOptions().replace(/<option value="(37|38|39|40|41|42)"[^>]*>[^<]*<\/option>/g,'');
+ const sceneLabel=teacherMirrorSceneOptions().match(new RegExp('<option value="'+desired+'">([^<]+)</option>'))?.[1]||'현재 화면';
+ el.innerHTML='<h3>🎯 '+esc(p.name)+' 학생 · 개별 화면 강제 이동</h3>'+
+ '<p class="muted">이 학생 한 명만 선택한 화면으로 즉시 이동합니다. 기존 점수·완료 기록·서술형 답변은 지우지 않습니다.</p>'+
+ '<label for="teacherProgress" style="font-weight:800">이 학생에게 보여줄 화면</label>'+
+ '<select id="teacherProgress" style="width:100%;min-height:48px;font-size:16px">'+opts+'</select>'+
+ '<button type="button" class="btn mint" id="teacherProgressApply" style="width:100%;min-height:56px;font-size:18px;font-weight:900;margin:8px 0 3px">선택한 학생 화면 강제 이동 →</button>'+
+ '<p id="teacherActionStatus" aria-live="polite" style="font-weight:800">현재 화면: '+esc(sceneLabel)+' · 교사 조정 '+(p.teacherAdjustments?.length||0)+'회</p>'+
+ '<div class="teacherActionRow"><button type="button" class="btn secondary" id="teacherBackup">기록 백업</button>'+
+ '<button type="button" class="btn secondary teacherDanger" id="teacherDelete">이 학생 기록 삭제</button></div>'+
+ '<div class="teacherMovePanel"><label for="teacherMoveRoom">학생 기록을 다른 반으로 이동</label>'+
+ '<select id="teacherMoveRoom"><option value="">이동할 반 선택</option>'+classRoomOptions('',true)+'</select>'+
+ '<button type="button" class="btn secondary" id="teacherMoveButton">선택한 반으로 옮기기</button>'+
+ '<p class="muted">도착 반에 같은 이름이 있으면 덮어쓰지 않고 중단해요.</p></div>';
+ $('teacherProgress').value=String(desired);
+}
+/* Teacher can move one student directly without resetting academic work. */
+function teacherApplySceneToRecord(x,scene,now){
+ const previous=x.cur,to=scene<PROBLEMS.length?scene:PROBLEMS.length;
+ x.cur=to;x.done=to;x.pending=null;x.tries=0;x.coolUntil=0;
+ x.paused=false;x.pausedElapsed=0;x.startedAt=now;x.t=now;
+ x.teacherQuestionIndex=scene<PROBLEMS.length?scene:null;
+ x.individualScene=scene;x.individualControlAt=now;
+ x.teacherRevision=(Number(x.teacherRevision)||0)+1;
+ if(scene>=PROBLEMS.length){
+  const step=scene>=46?3:scene>=43?2:Math.max(2,Math.min(5,scene-PROBLEMS.length+2));
+  x.inquiry={...(x.inquiry||{}),step,teacherSubscene:scene===44?'latin':scene===45?'graph':'anglo',updatedAt:now};
+  if(scene>=46&&scene<=49)x.inquiry.cultureDraft={...(x.inquiry.cultureDraft||{}),active:scene-46};
+ }
+ x.teacherAdjustments=[...(x.teacherAdjustments||[]),{from:previous,to,scene,at:now,individual:true}].slice(-30);
+ return x;
 }
 async function teacherProgressApply(){
- if(!TEACHER||firebaseState!=='online'||!db)return teacherMessage('서버 연결 상태에서만 수정할 수 있어요.',true);
- const key=selectedKey||Object.keys(lastAll)[0],student=lastAll[key]?migrateGameFormat(lastAll[key]):null;
- if(!student)return teacherMessage('학생을 먼저 선택해 주세요.',true);
- const to=Number($('teacherProgress')?.value);
- if(!Number.isInteger(to)||to<0||to>PROBLEMS.length)return teacherMessage('진도 선택이 잘못됐어요.',true);
- const from=Number(student.cur)||0;
- if(to===from)return teacherMessage('이미 해당 진도예요.',false);
- const alert=to<from?'뒤로 이동하면 이후 풀이 기록과 해당 점수를 정리합니다.':'앞으로 이동하면 건너뛴 문제는 점수 없이 처리됩니다.';
- if(!confirm(student.name+' 학생의 진도를 '+from+'문제 완료 → '+to+'문제 완료로 조정할까요?\n'+alert+'\n변경 전 기록 백업 파일을 저장합니다.'))return;
- teacherSaveBackup(key);
+ if(!TEACHER||!db||!serverVerified||firebaseState!=='online')return teacherMessage('Firebase 연결을 확인한 뒤 개별 이동할 수 있어요.',true);
+ const key=selectedKey,student=lastAll[key];
+ if(!key||!student)return teacherMessage('목록에서 학생 이름을 먼저 선택해 줘.',true);
+ const scene=Number($('teacherProgress')?.value);
+ if(!Number.isInteger(scene)||scene<0||scene>49||(scene>36&&scene<43))return teacherMessage('선택한 화면 번호가 올바르지 않아.',true);
  const btn=$('teacherProgressApply');if(btn)btn.disabled=true;
+ teacherMessage(student.name+' 학생에게 화면 이동 명령 전송 중...',false);
  try{
+  const controlSnapshot=await db.ref(CLASS_CONTROL_PATH).once('value');
+  const currentGroup=controlSnapshot.val()||{};
   const ref=db.ref(PLAYERS_PATH+'/'+key);
   const result=await ref.transaction(raw=>{
    if(!raw)return;
-   const x=norm(migrateGameFormat(raw),key),old=Number(x.cur)||0,now=serverNow();
-   if(to<old){
-     x.log=x.log.filter(l=>{const position=teacherStudentPosition(l.id,x);return position<0||position<to;});
-     x.score=x.log.reduce((sum,l)=>sum+(Number(l.score)||0),0);
-     x.timeSpent=x.log.reduce((sum,l)=>sum+(Number(l.seconds)||0),0);
-     x.teacherSkipped=x.teacherSkipped.filter(i=>Number(i)<to);
-   }else{
-     const recorded=new Set(x.log.map(l=>teacherStudentPosition(l.id,x)));
-     const skipped=new Set(x.teacherSkipped);
-     for(let i=old;i<to;i++)if(!recorded.has(i))skipped.add(i);
-     x.teacherSkipped=[...skipped].sort((a,b)=>a-b);
-   }
-   x.cur=to;x.done=to;x.pending=null;x.tries=0;x.coolUntil=0;
-   x.paused=false;x.pausedElapsed=0;x.startedAt=now;x.t=now;
-   x.unlocked=[];
-   for(let i=0;i<Math.min(to,COUNTRY_END);i++){
-     const original=Array.isArray(x.questionOrder)?x.questionOrder[i]:i;
-     const country=PROBLEMS[original]?.country;
-     if(country&&!x.unlocked.includes(country))x.unlocked.push(country);
-   }
-   x.teacherRevision=(Number(x.teacherRevision)||0)+1;
-   x.teacherAdjustments=[...x.teacherAdjustments,{from:old,to,at:now}].slice(-30);
+   const x=norm(migrateGameFormat(raw),key);
+   teacherApplySceneToRecord(x,scene,serverNow());
+   x.classControlRevision=Math.max(Number(x.classControlRevision)||0,Number(currentGroup.revision)||0);
    return x;
   });
-  if(!result.committed||!result.snapshot.exists())throw Error('변경된 기록을 서버에서 확인하지 못했어요.');
+  if(!result.committed||!result.snapshot.exists())throw Error('학생 기록에 강제 이동이 저장되지 않았어요.');
+  const record=result.snapshot.val();
+  if(Number(record.individualScene)!==scene)throw Error('저장한 화면과 확인된 화면이 달라요.');
   teacherDraftProgress=null;
-  teacherMessage(student.name+' 학생 진도를 복구했어요. 건너뛴 문제에 점수는 주지 않았어요.',false);
- }catch(e){teacherMessage('진도 복구 실패: '+e.message,true);}
+  teacherMessage(student.name+' 학생만 강제 이동 완료 · 기록 서버 저장 확인',false);
+ }catch(e){teacherMessage('개별 이동 실패: '+e.message,true);}
  finally{if(btn)btn.disabled=false;}
 }
 async function teacherDeleteStudent(){
@@ -2942,7 +2950,7 @@ function renderTeacherViews(all){
   $('detail').innerHTML=`<h2>${esc(p.name)}</h2><div class="smallPill">${iconArt('star')} ${p.score}점</div><div class="smallPill">${iconArt('map')} ${p.done}/${PROBLEMS.length} 완료</div>
     <p><b>현재 상태</b> ${p.pending?'결과 확인 중':(cur?esc(cur.caption):'모두 완료')}</p>
     <p class="muted">마지막 활동: ${p.t?new Date(p.t).toLocaleString('ko-KR'):'없음'}</p>
-    ${teacherPreviewHtml(p)}${teacherInquiryHtml(p)}<h3>📒 문제별 제출 기록</h3><div>${p.log.length?p.log.map((l,i)=>`<div class="rankItem">${i+1}. ${esc(l.q)} · ${l.result==='correct'?`✅ 정답 ${l.score}점`:'⭕ 3회 오답 0점'} · ${l.attempts}회 · ${new Date(l.at).toLocaleTimeString('ko-KR')}</div>`).join(''):'<p class="muted">아직 푼 문제가 없어요.</p>'}</div><section id="teacherControls" class="teacherControls"></section>`;
+    <section id="teacherControls" class="teacherControls"></section>${teacherPreviewHtml(p)}${teacherInquiryHtml(p)}<h3>📒 문제별 제출 기록</h3><div>${p.log.length?p.log.map((l,i)=>`<div class="rankItem">${i+1}. ${esc(l.q)} · ${l.result==='correct'?`✅ 정답 ${l.score}점`:'⭕ 3회 오답 0점'} · ${l.attempts}회 · ${new Date(l.at).toLocaleTimeString('ko-KR')}</div>`).join(''):'<p class="muted">아직 푼 문제가 없어요.</p>'}</div>`;
   teacherRenderControls(p);
   teacherPreviewInit(p);
 }
