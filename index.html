@@ -346,7 +346,7 @@ body.inquiryView .inquiryStep2 #inqComparisonStage .inquiryOriginalGraph{max-hei
 body.inquiryView .inquiryStep2 #inqComparisonStage #inqEvidence{min-height:110px!important;font-size:clamp(14px,1.5vw,18px)!important;line-height:1.5!important}
 body.inquiryView .inquiryStep2 #inqComparisonStage .migrationBigQuestion{font-size:clamp(19px,2.5vw,28px)!important}
 </style><style id="migrationRemoveRedundantChoices">
-body.inquiryView .inquiryStep2 #migrationOriginList,body.inquiryView .inquiryStep2 #migrationReasonLinks,body.inquiryView .inquiryStep2 #migrationReason{display:none!important}
+body.inquiryView .inquiryStep2 #migrationOriginList,body.inquiryView .inquiryStep2 #migrationReason{display:none!important}
 body.inquiryView .inquiryStep2 .migrationRouteProgress{font-size:14px;font-weight:800;color:#447899;background:#e5f4ff;border-radius:10px;padding:7px 12px;display:inline-block;margin-bottom:6px}
 </style><style id="mysteryCaseScaffold2026">
 .inquiryStep4 .mysteryEvidence{background:linear-gradient(125deg,#e8f4ff,#fff8e9)!important;border:2px solid #b8d8ee!important;border-radius:18px!important}
@@ -491,7 +491,7 @@ function questionAt(n,record=me){
 }
 
 
-/* 교과서 기반 단계형 탐구: 지도 완성 후 인구 자료 -> 문화 혼종성 -> 수정 판단.
+/* 교과서 기반 단계형 탐구: 지도 완성 후 인구 자료 -> 문화 혼종성 -> 역사 탐정 보고서.
    학생의 최초 답변과 수정 답변은 Firebase의 기존 선수 기록에 함께 저장된다.
    인구 비율은 비상교육 『사회 ①』 97쪽 수록 자료의 대표 사례로, 실시간 통계가 아니다. */
 const INQUIRY_POPULATION=[
@@ -502,10 +502,16 @@ const INQUIRY_POPULATION=[
 ];
 
 /* 교과서 97쪽: 여러 지역에서 미국으로 인구가 이동한 역사적 과정.
-   이주 사유를 특정할 수 없는 히스패닉 이주는 '자료에 제시되지 않음'으로 판단. */
+   멕시코(히스패닉) 경로는 미국 인구 구성에 미친 영향을 묻는다. */
 const INQUIRY_GRAPH_COUNTRIES=['미국','멕시코','쿠바','자메이카','콜롬비아','페루','브라질','아르헨티나','우루과이'];
-const MIGRATION_ROUTES=[{"id":"ae","region":"anglo","name":"영국·유럽","coords":[53,-2],"target":[50,-96],"destination":"캐나다","reason":"settlement"},{"id":"af","region":"anglo","name":"서아프리카","coords":[10,-5],"target":[33,-81],"destination":"미국","reason":"forced"},{"id":"aa","region":"anglo","name":"동아시아","coords":[36,119],"target":[39,-122],"destination":"미국","reason":"economic"},{"id":"al","region":"anglo","name":"멕시코(히스패닉)","coords":[19.43,-99.13],"target":[33,-99],"destination":"미국","reason":"unspecified"},{"id":"ls","region":"latin","name":"에스파냐","coords":[40,-4],"target":[21,-101],"destination":"멕시코","reason":"settlement"},{"id":"lp","region":"latin","name":"포르투갈","coords":[39,-9],"target":[-16,-48],"destination":"브라질","reason":"settlement"},{"id":"lf","region":"latin","name":"서아프리카","coords":[8,-9],"target":[-14,-42],"destination":"브라질","reason":"forced"},{"id":"la","region":"latin","name":"동아시아","coords":[35,137],"target":[-23,-47],"destination":"브라질","reason":"economic"}];
-let migrationExplanations={},migrationChoices={},migrationSelected='ae',migrationRegion='anglo',migrationMap=null,migrationGeoPromise=null,migrationLayers=[];
+const MIGRATION_ROUTES=[{"id":"ae","region":"anglo","name":"영국·유럽","coords":[53,-2],"target":[50,-96],"destination":"캐나다","reason":"settlement"},{"id":"af","region":"anglo","name":"서아프리카","coords":[10,-5],"target":[33,-81],"destination":"미국","reason":"forced"},{"id":"aa","region":"anglo","name":"동아시아","coords":[36,119],"target":[39,-122],"destination":"미국","reason":"economic"},{"id":"al","region":"anglo","name":"멕시코(히스패닉)","coords":[19.43,-99.13],"target":[33,-99],"destination":"미국","reason":"hispanic"},{"id":"ls","region":"latin","name":"에스파냐","coords":[40,-4],"target":[21,-101],"destination":"멕시코","reason":"settlement"},{"id":"lp","region":"latin","name":"포르투갈","coords":[39,-9],"target":[-16,-48],"destination":"브라질","reason":"settlement"},{"id":"lf","region":"latin","name":"서아프리카","coords":[8,-9],"target":[-14,-42],"destination":"브라질","reason":"forced"},{"id":"la","region":"latin","name":"동아시아","coords":[35,137],"target":[-23,-47],"destination":"브라질","reason":"economic"}];
+const MIGRATION_REASON_CHOICES=[
+ {id:'settlement',text:'유럽 국가의 식민 지배와 정착'},
+ {id:'forced',text:'노예 무역에 따른 아프리카인의 강제 이주'},
+ {id:'economic',text:'일자리와 경제적 기회를 찾는 이주'},
+ {id:'hispanic',text:'라틴아메리카 출신 이주민이 늘면서 미국 내 히스패닉 인구가 증가'}
+];
+let migrationChoices={},migrationReasonSelected='',migrationSelected='ae',migrationRegion='anglo',migrationMap=null,migrationGeoPromise=null,migrationLayers=[],migrationSaving=false;
 
 function migrationRoutes(){return MIGRATION_ROUTES.filter(r=>r.region===migrationRegion);}
 function migrationCount(region){return MIGRATION_ROUTES.filter(r=>r.region===region&&migrationChoices[r.id]).length;}
@@ -612,15 +618,32 @@ function migrationChooseOrigin(id){
  migrationRegion=r.region;migrationSelected=id;
  if($('migrationRouteProgress'))$('migrationRouteProgress').textContent='이동 경로 '+(migrationRoutes().findIndex(x=>x.id===id)+1)+' / 4';
  if($('migrationQuestionCountry'))$('migrationQuestionCountry').textContent=r.name+' → '+r.destination;
- if($('migrationExplanation'))$('migrationExplanation').value=migrationExplanations[id]||'';
+ migrationReasonSelected=MIGRATION_REASON_CHOICES.some(x=>x.id===migrationChoices[id])?migrationChoices[id]:'';
  const hispanic=r.id==='al';
  const question=hispanic?'이러한 인구 이동은 미국의 인구 구성에 어떤 영향을 주었을까?':r.reason==='forced'?'이 사람들은 어떤 역사적 배경에서 강제로 이동했을까?':r.reason==='settlement'?'이 사람들은 어떤 식민 지배와 정착의 역사 속에서 이동했을까?':'이 사람들은 어떤 배경에서 이동했을까?';
  if($('migrationBigQuestion'))$('migrationBigQuestion').textContent=question;
- if($('migrationWriteLabel'))$('migrationWriteLabel').textContent=hispanic?'미국의 인구 구성에 미친 영향을 설명해 보자.':'이동의 역사적 배경을 설명해 보자.';
  if($('migrationHispanicDefinition')){$('migrationHispanicDefinition').hidden=!hispanic;$('migrationHispanicDefinition').textContent=hispanic?'히스패닉: 에스파냐어를 모국어로 사용하면서 미국에 거주하는 라틴 아메리카 출신 사람.':'';}
- if($('migrationExplanation'))$('migrationExplanation').placeholder=hispanic?'미국의 민족과 인종 구성이 어떻게 달라졌을까요?':'이동 경로와 역사적 배경을 연결해 설명해 보세요.';
- if($('migrationFeedback'))$('migrationFeedback').textContent=migrationChoices[id]?'이전에 작성한 답변이 저장되어 있어.':'';
+ migrationRenderReasons();
+ if($('migrationFeedback'))$('migrationFeedback').textContent=migrationChoices[id]?'이 경로의 답을 저장했어.':'';
  globeTapStage=2;globeAngle=r.coords[1];globeLat=r.coords[0]*.3;globeLast=performance.now();migrationUpdate();migrationMapDraw();
+}
+function migrationRenderReasons(){
+ const el=$('migrationReasonLinks'),r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected);if(!el||!r)return;
+ const options=r.reason==='hispanic'?
+  [
+   {id:'hispanic',text:'라틴아메리카 출신 이주민이 늘면서 미국 내 히스패닉 인구가 증가했다.'},
+   {id:'settlement',text:'미국의 인구가 유럽계만으로 바뀌었다.'},
+   {id:'forced',text:'미국으로 이주한 모든 아프리카계 인구가 감소했다.'},
+   {id:'economic',text:'이 이동은 캐나다의 인구 구성에만 영향을 주었다.'}
+  ]:MIGRATION_REASON_CHOICES.filter(x=>x.id!=='hispanic');
+ el.innerHTML=options.map(x=>'<button type="button" class="migrationReasonChoice'+(migrationReasonSelected===x.id?' selected':'')+'" data-migration-reason="'+esc(x.id)+'" aria-pressed="'+(migrationReasonSelected===x.id)+'"><span class="migrationReasonDot" aria-hidden="true"></span><span>'+esc(x.text)+'</span></button>').join('');
+ el.querySelectorAll('[data-migration-reason]').forEach(button=>button.onclick=()=>{
+  migrationReasonSelected=button.dataset.migrationReason||'';
+  el.querySelectorAll('[data-migration-reason]').forEach(item=>{const on=item.dataset.migrationReason===migrationReasonSelected;item.classList.toggle('selected',on);item.setAttribute('aria-pressed',String(on));});
+  if($('migrationFeedback'))$('migrationFeedback').textContent='선택한 답: '+(options.find(x=>x.id===migrationReasonSelected)?.text||'');
+  if($('migrationCheck'))$('migrationCheck').disabled=false;
+ });
+ if($('migrationCheck'))$('migrationCheck').disabled=!migrationReasonSelected;
 }
 function migrationShowChapter(region){
  const old=$('migrationChapterPopup');if(old)old.remove();
@@ -633,10 +656,10 @@ function migrationShowChapter(region){
 function migrationNextRegion(){
  if(migrationCount(migrationRegion)<4)return inquiryNotice('이 지역의 인구 이동 경로 4개를 모두 완료해 줘.',true);
  if(migrationRegion==='anglo'){
-  
+
   migrationShowChapter('latin');
  }else{
-  
+
   migrationSwitchTab('graph');
  }
 }
@@ -653,17 +676,22 @@ function migrationUpdate(){
  if($('migrationNextRegion')){$('migrationNextRegion').textContent=migrationRegion==='anglo'?'라틴아메리카 인구로 →':'원그래프 분석으로 →';$('migrationNextRegion').disabled=migrationCount(migrationRegion)<4;}
  document.querySelectorAll('[data-migration-region]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.migrationRegion===migrationRegion));b.querySelector('span').textContent=migrationCount(b.dataset.migrationRegion)+'/4'});
 }
-function migrationCheckReason(){
- const r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected),explanation=String($('migrationExplanation')?.value||'').trim();
- if(!r)return;
- if(explanation.length<12)return inquiryNotice('탐구 답변을 12자 이상 작성해 줘. 현재 '+explanation.length+'자야.',true);
- // 서술형 답변은 교사가 검토한다.
- migrationExplanations[r.id]=explanation;
- migrationChoices[r.id]='written';
- $('migrationFeedback').textContent='서술형 답변을 기록했어.';
+async function migrationCheckReason(){
+ const r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected),choice=migrationReasonSelected;
+ if(!r||migrationSaving)return;
+ if(!PREVIEW_ONLY&&(!playerRef||!serverVerified||firebaseState!=='online'))return inquiryNotice('서버에 연결한 뒤 답을 저장할 수 있어. 연결 상태를 확인해 줘.',true);
+ if(!choice)return inquiryNotice('이 경로에 맞는 이동 이유를 하나 선택해 줘.',true);
+ if(choice!==r.reason){$('migrationFeedback').textContent='다시 생각해 봐. 출발지와 도착지, 역사 단서를 함께 살펴봐.';return;}
+ const previous={...migrationChoices};migrationChoices[r.id]=choice;
+ migrationSaving=true;if($('migrationCheck'))$('migrationCheck').disabled=true;
+ if(!PREVIEW_ONLY&&playerRef&&serverVerified&&firebaseState==='online'){
+  try{await playerRef.child('inquiry').update({routeDraft:{...migrationChoices}});}
+  catch(e){migrationChoices=previous;$('migrationFeedback').textContent='저장에 실패했어. 연결을 확인한 뒤 다시 눌러 줘.';if($('migrationCheck'))$('migrationCheck').disabled=false;migrationSaving=false;return;}
+ }
+ migrationSaving=false;
+ $('migrationFeedback').textContent='정답! 이 경로의 답을 저장했어.';
  migrationUpdate();migrationMapDraw();inquiryNotice('');
  const next=migrationRoutes().find(x=>!migrationChoices[x.id]);if(next)migrationChooseOrigin(next.id);
- if(!PREVIEW_ONLY&&playerRef&&serverVerified&&firebaseState==='online')playerRef.child('inquiry').update({routeDraft:{...migrationChoices},routeExplanations:{...migrationExplanations}}).catch(()=>{});
 }
 function migrationBindOriginButtons(){}
 function migrationSwitchTab(tab){
@@ -674,8 +702,8 @@ function migrationSwitchTab(tab){
  if(!graph)migrationMapDraw();
 }
 function migrationInit(){
- migrationChoices={...(me?.inquiry?.routeDraft||me?.inquiry?.demography?.migration||{})};migrationExplanations={...(me?.inquiry?.routeExplanations||{})};const saved=me?.inquiry?.routeDraft||me?.inquiry?.demography?.migration;
- if(saved)for(const r of MIGRATION_ROUTES)if(!migrationExplanations[r.id]||String(migrationExplanations[r.id]).length<12)delete migrationChoices[r.id];
+ migrationChoices={...(me?.inquiry?.routeDraft||{})};
+ for(const r of MIGRATION_ROUTES)if(migrationChoices[r.id]!==r.reason)delete migrationChoices[r.id];
  migrationRegion='anglo';migrationSelected='ae';
  $('migrationGoGraph').onclick=()=>migrationSwitchTab('graph');
  $('migrationNextRegion').onclick=migrationNextRegion;
@@ -814,12 +842,12 @@ function inquiryRender(){
     '<p class="migrationQuestionCountry" id="migrationQuestionCountry"></p>'+
     '<div class="migrationBigQuestion" id="migrationBigQuestion">이 사람들은 왜 이동했을까?</div>'+
     '<p id="migrationHispanicDefinition" class="migrationWriteExample" hidden></p>'+
-    '<label class="migrationWriteLabel" id="migrationWriteLabel" for="migrationExplanation">이동 배경을 설명해 보자.</label>'+ 
-    '<textarea id="migrationExplanation" rows="2" placeholder="이동 경로와 역사적 배경을 연결해 내 생각을 써 보세요."></textarea>'+ 
-    '<button type="button" class="btn secondary" id="migrationCheck">탐구 답변 저장하기 →</button>'+
+ '<p class="migrationWriteLabel" id="migrationWriteLabel">이동 이유를 하나 골라 줘.</p>'+
+ '<div class="migrationReasonLinks" id="migrationReasonLinks" role="group" aria-label="이동 이유 선택"></div>'+
+ '<button type="button" class="btn secondary" id="migrationCheck" disabled>선택한 이유 확인하기 →</button>'+
     '<p id="migrationFeedback" aria-live="polite"></p>'+
     ''+
-    '<button type="button" class="btn mint" id="migrationNextRegion">다음으로 →</button>'+ 
+    '<button type="button" class="btn mint" id="migrationNextRegion">다음으로 →</button>'+
     '<button type="button" class="btn mint" id="migrationGoGraph" disabled>원그래프 분석으로 →</button></section></div>'+
     '<div id="inqComparisonStage" class="inquiryStageGrid" hidden>'+
     '<section class="inquiryData inquiryChartPanel"><button type="button" class="btn secondary migrationBack" id="migrationBack">← 인구 이동 단계로</button><h3>교과서 원그래프 · 민족과 인종 구성</h3>'+
@@ -841,19 +869,19 @@ function inquiryRender(){
    body='<div class="inquiryData"><h3>탐구할 국가 고르기</h3>'+
     '<div class="inquiryCultureIntro"><label for="inqCultureCountry">순서대로 탐구하기 (과달루페 → 탱고 → 햄버거 → 카니발)</label>'+
     '<select id="inqCultureCountry">'+countries+'</select></div>'+
-    '<div class="inquiryCultureResult">탐구 문화: <span id="inqCultureName"></span></div>'+ 
+    '<div class="inquiryCultureResult">탐구 문화: <span id="inqCultureName"></span></div>'+
     '<div class="culturePicturePanel" aria-label="문화 사례를 나타내는 그림"><div id="cultureCasePicture" class="culturePictureEmoji">⛪🌺</div><span id="cultureCaseProgress">완료 0 / 4</span></div>'+
     '<p class="inquirySource">교과서 98~99쪽 사례에서 문화가 결합하는 과정을 찾아보자.</p></div>'+
     '<div class="inquiryQuestion"><h3>결합한 문화 요소 직접 고르기</h3>'+
     '<p>① 문화 요소 <b>2개 선택</b> → ② 큰 <b>정답 확인</b> 버튼 누르기 → ③ 이유 작성·저장</p>'+
     '<div class="inquiryRoots" id="inqCultureRoots">'+roots+'</div>'+
     '<div class="inquiryEquationPanel" aria-live="polite">'+
-    '<div id="inqMixFormula" class="inquiryMixFormula"></div><span id="inqMixCount" class="inquiryMixCount"></span></div>'+ 
-    '<span id="cultureCheckInstruction" aria-live="polite">선택한 문화 요소: 0 / 2</span>'+ 
-    '<button type="button" class="btn secondary" id="cultureQuizCheck" data-ready="false" data-state="select" disabled>② 문화 요소 2개를 선택해 주세요 (0/2)</button>'+ 
+    '<div id="inqMixFormula" class="inquiryMixFormula"></div><span id="inqMixCount" class="inquiryMixCount"></span></div>'+
+    '<span id="cultureCheckInstruction" aria-live="polite">선택한 문화 요소: 0 / 2</span>'+
+    '<button type="button" class="btn secondary" id="cultureQuizCheck" data-ready="false" data-state="select" disabled>② 문화 요소 2개를 선택해 주세요 (0/2)</button>'+
     '<p id="cultureQuizFeedback" aria-live="polite">① 위에서 문화 요소 두 개를 선택해 주세요.</p>'+
     '<label for="inqCultureReason">이 요소들을 선택한 역사적 근거는?</label>'+
-    '<textarea id="inqCultureReason" rows="3" placeholder="이 문화가 어떤 역사적 만남을 통해 만들어졌을지 설명해 보자."></textarea>'+ 
+    '<textarea id="inqCultureReason" rows="3" placeholder="이 문화가 어떤 역사적 만남을 통해 만들어졌을지 설명해 보자."></textarea>'+
     '<button class="btn secondary" type="button" id="cultureSaveReason">이 사례의 이유 저장하기</button>'+
     '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">4개 사례 탐구 완료 · 역사 탐정으로 →</button></div>';
  }else if(step===4){
@@ -909,12 +937,12 @@ async function inquirySubmit(step){
  if(step===2){
    const a=v('inqCountryA'),b=v('inqCountryB'),evidence=v('inqEvidence');
    if(!a||!b||a===b)return inquiryNotice('서로 다른 두 나라를 골라 줘.',true);
-   
+
    if(evidence.length<25){
      return inquiryNotice('원그래프에서 관찰한 두 나라의 인구 구성 차이를 25자 이상 적어 줘.',true);
    }
    if(migrationCount('anglo')<4||migrationCount('latin')<4)return inquiryNotice('앵글로와 라틴아메리카 인구 이동 경로를 모두 완료해 줘.',true);
-   answer={a,b,evidence,cause:'',migration:{...migrationChoices},migrationExplanations:{...migrationExplanations}};
+ answer={a,b,evidence,cause:'',migration:{...migrationChoices}};
  }else if(step===3){
    const index=Number($('inqCultureCountry')?.value);
    const culture=INQUIRY_CULTURES[index],roots=inquiryPickedRoots(),reason=v('inqCultureReason');
@@ -1282,14 +1310,18 @@ function applyClassroomCommand(command){
   const scene=Number(command.scene),now=serverNow();
   if(scene<0||scene>49||(scene>36&&scene<43))return;
   const x=norm(migrateGameFormat(raw),me?.id);
-  if(Number(x.individualControlAt)>Number(command.at)||Number(x.individualControlAt)===Number(command.at)&&Number(x.individualControlAt)>0){x.classControlRevision=revision;return x;}
+  // A later whole-class move must not erase a teacher's per-student assignment.
+  if(Number.isInteger(x.individualScene)){
+   x.classControlRevision=revision;
+   x.lastClassControlSkippedAt=now;
+   return x;
+  }
   const old=x.cur;
   const to=scene<PROBLEMS.length?scene:PROBLEMS.length;
   x.cur=to;x.done=to;x.pending=null;x.tries=0;x.coolUntil=0;x.paused=false;x.pausedElapsed=0;x.startedAt=now;x.t=now;
   teacherAlignQuestionOrder(x,scene);
   x.teacherQuestionIndex=scene<PROBLEMS.length?scene:null;
   x.activeQuestionUid=scene<PROBLEMS.length?(PROBLEMS[scene]?.uid||null):null;
-  x.individualScene=null;
   x.classControlRevision=revision;
   x.teacherRevision=(Number(x.teacherRevision)||0)+1;
   x.teacherAdjustments=[...(x.teacherAdjustments||[]),{from:old,to,scene,at:now,group:true}].slice(-30);
@@ -2604,7 +2636,7 @@ function teacherMirrorSceneOptions(){
  }
  start.push({id:33,label:'2단계 · 인구 구성 자료 분석'},
   {id:34,label:'3단계 · 문화 혼종성 자료 분석'},
-  {id:35,label:'4단계 · 최초 판단 재검토'},
+  {id:35,label:'4단계 · 역사 탐정 보고서'},
   {id:36,label:'최종 제출 완료 화면'},
   {id:43,label:'인구 탐구 · 앵글로아메리카'},
   {id:44,label:'인구 탐구 · 라틴아메리카'},
@@ -2741,7 +2773,7 @@ function teacherMirrorAttach(){
 function teacherPopulationAnswerGuide(){
  const routes=[
  ['영국·유럽 → 캐나다','식민 지배와 정착'],['서아프리카 → 미국','노예 무역에 따른 강제 이주'],
- ['동아시아 → 미국','일자리 등 경제적 이유'],['라틴아메리카 → 미국','일자리 등 경제적 이유'],
+ ['동아시아 → 미국','일자리 등 경제적 이유'],['라틴아메리카 → 미국','미국 내 히스패닉 인구 증가'],
  ['에스파냐 → 멕시코','식민 지배와 정착'],['포르투갈 → 브라질','식민 지배와 정착'],
  ['서아프리카 → 브라질','노예 무역에 따른 강제 이주'],['동아시아 → 브라질','일자리 등 경제적 이유']
  ];
@@ -2766,7 +2798,7 @@ function teacherPopulationAnswerGuide(){
 function teacherClassControlHtml(){
  return '<section class="card" id="teacherClassControl" style="margin-bottom:14px;border:2px solid #9dcbbe">'+
   '<h2>📺 전체 학생 화면 · 실시간 진도 통제</h2>'+
-  '<p class="muted">미리보기와 별개로 실제 학생 화면을 같은 위치로 이동해요. 답변·점수는 지우지 않고 보존해요. 아직 접속하지 않은 학생도 같은 반에 들어오면 현재 지시를 받아요.</p>'+
+  '<p class="muted">미리보기와 별개로 실제 학생 화면을 이동해요. 답변·점수는 보존하고, 개별 화면을 지정한 학생은 전체 이동 후에도 그 화면을 유지해요.</p>'+
   '<div class="teacherMirrorControls"><label class="teacherMirrorField">모두에게 보여줄 화면<select id="teacherClassScene">'+teacherMirrorSceneOptions().replace(/<option value="(37|38|39|40|41|42)"[^>]*>[^<]*<\/option>/g,'')+'</select></label>'+
   '<button type="button" class="btn mint" id="teacherClassApply">이 화면으로 전체 이동 →</button>'+
   '<button type="button" class="btn secondary" id="teacherClassPrevious">← 한 화면 이전</button>'+
@@ -2787,7 +2819,8 @@ function teacherClassControlRender(){
  select.value=String(command.scene);
  const total=Object.keys(lastAll||{}).length;
  const matched=Object.values(lastAll||{}).filter(p=>Number(p?.classControlRevision)>=Number(command.revision)).length;
- status.textContent='현재 지시: '+(select.selectedOptions[0]?.textContent||'')+' · 적용 확인 '+matched+'/'+total+'명 (접속 및 동기화 상황에 따라 차이)';
+ const individuallySet=Object.values(lastAll||{}).filter(p=>Number.isInteger(p?.individualScene)).length;
+ status.textContent='현재 지시: '+(select.selectedOptions[0]?.textContent||'')+' · 확인 '+matched+'/'+total+'명 · 개별 화면 유지 '+individuallySet+'명';
 }
 async function teacherClassApply(scene){
  if(!TEACHER||!db||!serverVerified||firebaseState!=='online')return alert('Firebase 서버가 연결되어야 전체 진도를 이동할 수 있어요.');
