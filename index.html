@@ -1703,12 +1703,12 @@ function scheduleResultAutoAdvance(){
  stopResultAutoAdvance();
  if(PREVIEW_ONLY||!me?.pending||!serverVerified||firebaseState!=='online')return;
  const expected=String(me.pending.questionUid||me.lastSubmission?.id||'')+'|'+me.pending.idx;
- const deadline=Date.now()+4300;
+ const deadline=Date.now()+Math.max(4300,Number(me.coolUntil||0)-serverNow()+500);
  const update=()=>{const el=$('resultCountdown');if(el&&!$('resultDialog')?.hidden)el.textContent=Math.max(0,Math.ceil((deadline-Date.now())/1000))+'초 뒤 자동으로 다음 문제로 넘어가요. 바로 이동하려면 아래 버튼을 눌러요.';};
  update();resultAutoCountdownTimer=setInterval(update,400);
  resultAutoNextTimer=setTimeout(()=>{
   if(me?.pending&&String(me.pending.questionUid||me.lastSubmission?.id||'')+'|'+me.pending.idx===expected&&$('resultDialog')&&!$('resultDialog').hidden)nextProblem();
- },4300);
+ },Math.max(4300,Number(me.coolUntil||0)-serverNow()+500));
 }
 function openResultDialog(p,result){
  const modal=$('resultDialog');if(!modal)return;
@@ -1898,7 +1898,7 @@ async function nextProblem(){
       current.pending=null;current.tries=0;current.coolUntil=0;current.pausedElapsed=0;current.paused=false;current.startedAt=serverNow();current.t=serverNow();return current;
     });
     if(tx.committed&&tx.snapshot.exists()){me=norm(tx.snapshot.val(),me.id);closeResultDialog();renderProblem();}
-    else {updateCooldownUI();resultPieceStatus('다음 문제로 넘어가지 못했어요. 조각 저장을 확인해 주세요.','ng');}
+    else {updateCooldownUI();resultPieceStatus('다음 문제로 이동하지 못했어요. 연결 상태를 확인하고 다시 눌러 주세요.','ng');}
   }catch(e){hintStatus('다음 문제 저장 실패: '+e.message,'ng');if($('nextBtn'))$('nextBtn').disabled=false;}
 }
 
