@@ -3013,7 +3013,19 @@ function renderTeacher(){
           <button type="button" class="btn secondary" id="customClassRoom">다른 학년·반</button></div></div>
         <p class="muted" id="classRoomMessage">현재 ${esc(roomTitle(ROOM))} 학생 기록을 보고 있어요.</p>
         <input type="text" id="shareLink" aria-label="학생 실시간 연결 링크" readonly>
-        <button class="btn mint" id="shareCopy" type="button">학생 연결 링크 복사</button>
+        <div class="classRejoinActions">
+          <button class="btn mint" id="shareCopy" type="button">학생 연결 링크 복사</button>
+          <button class="btn secondary" id="showClassRejoinQR" type="button">📷 튕긴 학생 재입장 QR</button>
+        </div>
+        <div class="classRejoinQrOverlay" id="classRejoinQrOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="classRejoinQrTitle">
+          <div class="classRejoinQrCard">
+            <button class="btn secondary classRejoinQrClose" id="closeClassRejoinQR" type="button">닫기</button>
+            <h3 id="classRejoinQrTitle">학생 재입장 QR</h3>
+            <p class="muted">튕긴 학생은 카메라로 QR을 찍고 같은 반 방으로 다시 들어오면 돼.</p>
+            <img id="classRejoinQrImage" alt="현재 반 학생 재입장 QR 코드">
+            <a id="classRejoinQrLink" target="_blank" rel="noopener">학생 접속 링크 열기</a>
+          </div>
+        </div>
         <p id="shareLinkMsg" class="muted" aria-live="polite"></p>
       </div>
       <div style="margin:14px 0"><button class="btn mint" id="csvBtn">CSV 내보내기</button><span class="smallPill" id="studentTotal">참여 0명</span></div>
@@ -3031,6 +3043,16 @@ function renderTeacher(){
   const joinLink=classJoinLink();
   $('shareLink').value=joinLink;
   $('shareCopy').onclick=copyClassJoinLink;
+  const rejoinQrLink=classJoinLink();
+  const rejoinQrImage=$('classRejoinQrImage');
+  $('classRejoinQrLink').href=rejoinQrLink;
+  rejoinQrImage.src='https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=14&data='+encodeURIComponent(rejoinQrLink);
+  rejoinQrImage.onerror=()=>{rejoinQrImage.onerror=null;rejoinQrImage.src='https://quickchart.io/qr?size=360&text='+encodeURIComponent(rejoinQrLink);};
+  const rejoinQrOverlay=$('classRejoinQrOverlay');
+  $('showClassRejoinQR').onclick=()=>{rejoinQrOverlay.hidden=false;$('closeClassRejoinQR').focus();};
+  $('closeClassRejoinQR').onclick=()=>{rejoinQrOverlay.hidden=true;$('showClassRejoinQR').focus();};
+  rejoinQrOverlay.onclick=e=>{if(e.target===rejoinQrOverlay)$('closeClassRejoinQR').click();};
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!rejoinQrOverlay.hidden)$('closeClassRejoinQR').click();},{once:false});
   $('tbl').onclick=e=>{const button=e.target.closest('[data-key]');if(button){teacherDraftProgress=null;teacherMirrorSelectStudent(button.dataset.key)}};
   $('detail').onchange=e=>{if(e.target.id==='teacherProgress')teacherDraftProgress=Number(e.target.value);};
   $('detail').onclick=e=>{
