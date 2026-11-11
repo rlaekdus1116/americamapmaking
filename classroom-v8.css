@@ -298,6 +298,9 @@ main{grid-template-columns:minmax(440px,550px) minmax(0,1fr);max-width:1480px}
 .resultPieceArea{background:#fffdf8;border:2px dashed #e9c18f;padding:15px;border-radius:17px;margin:12px 0}
 .resultPieceArea .muted{font-size:14px;line-height:1.55}
 .resultPieceControls{gap:14px;margin:14px 0 10px}
+Warning: truncated output (original token count: 11040)
+Total output lines: 358
+
 .resultDragPiece{background:#ffe2ef;border:2px solid #cb8ab3;box-shadow:0 4px 0 #d9a1c1;
  cursor:grab;user-select:none;-webkit-user-select:none;touch-action:manipulation}
 .resultDragPiece:active{cursor:grabbing}
@@ -482,42 +485,7 @@ main{grid-template-columns:minmax(440px,550px) minmax(0,1fr);max-width:1480px}
  body.inquiryView .inquiryStep4 .mysteryQuestionBlock:nth-child(4){grid-column:2;grid-row:2}
  body.inquiryView .inquiryStep4 #inquirySubmit{grid-column:1/-1!important;min-height:40px!important;margin:0!important;padding:7px 11px!important;border-radius:9px!important;font-size:14px!important;box-shadow:none!important}
 }
-@media (orientation:landscape) and (min-width:850px) and (max-height:700px){
- body.inquiryView #app{padding:5px 9px!important}
- body.inquiryView .inquiryRoot{padding:7px 10px!important;gap:5px!important}
- body.inquiryView .inquiryTop{gap:7px!important}
- body.inquiryView .inquiryStep3 .inquiryRootChip{min-height:30px!important;font-size:10px!important}
- body.inquiryView .inquiryStep3 #cultureQuizCheck{min-height:38px!important}
- body.inquiryView .inquiryStep3 #inqCultureReason{height:42px!important;flex-basis:42px!important}
- body.inquiryView .inquiryStep3 #cultureSaveReason,body.inquiryView .inquiryStep3 #inquirySubmit{min-height:34px!important}
- body.inquiryView .inquiryStep4 .mysteryQuestions{gap:4px!important}
- body.inquiryView .inquiryStep4 .mysteryQuestionBlock{padding:5px 7px!important}
-}
-
-/* Individual tablet refinements: larger route-tap guidance and compact culture studio. */
-body.inquiryView .inquiryStep2 .migrationMapInstruction{flex:0 0 auto!important;min-height:48px!important;display:flex!important;align-items:center!important;justify-content:center!important;margin:2px 0 5px!important;padding:7px 10px!important;border:2px solid #7bb3d1!important;border-radius:12px!important;background:#e2f4ff!important;color:#194c6c!important;font-size:clamp(17px,2vw,23px)!important;font-weight:900!important;line-height:1.15!important;text-align:center!important;box-shadow:0 2px 0 #c3e1f0!important}
-body.inquiryView .inquiryStep2 .migrationMapInstruction[data-stage="1"]{background:#fff2d9!important;border-color:#e6bd66!important;color:#714d14!important}
-body.inquiryView .inquiryStep2 .migrationMapInstruction[data-stage="2"]{background:#e0f6e9!important;border-color:#82c9a5!important;color:#1f6448!important}
-body.inquiryView .inquiryStep2 .migrationMap{flex:1 1 0!important;min-height:0!important}
-body.inquiryView .inquiryStep2 .migrationReasonChoice:disabled{opacity:.55!important;cursor:not-allowed!important}
-body.inquiryView .inquiryStep2 .inquiryFixedCompare{display:grid!important;grid-template-columns:1fr auto 1fr!important;align-items:center!important;gap:8px!important;margin:4px 0!important}
-body.inquiryView .inquiryStep2 .inquiryFixedCompare>div{display:flex!important;flex-direction:column!important;gap:2px!important;padding:8px 10px!important;border:2px solid #c8dbe7!important;border-radius:11px!important;background:#fff!important}
-body.inquiryView .inquiryStep2 .inquiryFixedCompare>div span{font-size:11px!important;color:#647b8c!important}
-body.inquiryView .inquiryStep2 .inquiryFixedCompare>div strong{font-size:clamp(18px,2vw,25px)!important;color:#285574!important}
-body.inquiryView .inquiryStep2 .compareVs{font-size:12px!important;font-weight:900!important;color:#73899a!important}
-body.inquiryView .inquiryStep3 #cultureDrawPane[hidden],body.inquiryView .inquiryStep3 #cultureSearchPane[hidden]{display:none!important}
-body.inquiryView .inquiryStep3 .culturePicturePanel{gap:5px!important}
-body.inquiryView .inquiryStep3 .culturePictureTabs button{flex:1!important;min-height:36px!important;font-size:12px!important}
-body.inquiryView .inquiryStep3 .cultureSearchRow input{min-height:34px!important;font-size:12px!important}
-body.inquiryView .inquiryStep3 .cultureSearchResults{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;overflow:hidden!important}
-body.inquiryView .inquiryStep3 .cultureReference img{height:clamp(42px,7vh,68px)!important}
-body.inquiryView .inquiryStep3 .cultureReference.selected{border:2px solid #3185b5!important;background:#e7f5ff!important;box-shadow:0 0 0 2px #a8d7ef!important}
-body.inquiryView .inquiryStep3 .cultureImageCredit{min-height:14px!important;font-size:10px!important;line-height:1.15!important;margin:0!important}
-body.inquiryView .inquiryStep3 #cultureDrawPane{min-height:0!important;flex:1 1 auto!important}
-body.inquiryView .inquiryStep3 #cultureDrawCanvas{min-height:80px!important;flex:1 1 auto!important}
-body.inquiryView .inquiryStep3 .cultureCanvasTools{gap:4px!important}
-body.inquiryView .inquiryStep3 .cultureCanvasTools button:not(.cultureColor){min-height:31px!important;padding:4px 7px!important;font-size:11px!important}
-body.inquiryView .inquiryStep3 .cultureColor{width:26px!important;height:26px!important;min-height:26px!important}
+@media (orientation:landscape) and (min-width:850px) and (max-heig…1040 tokens truncated…height:26px!important;min-height:26px!important}
 body.inquiryView .inquiryStep3 .teacherDrawingPreview{display:block;width:min(100%,480px);height:auto;max-height:220px;border-radius:10px;background:#fff}
 .teacherInquiryRecord details{margin:8px 0;padding:8px 10px;border:1px solid #d9e4eb;border-radius:10px;background:#f9fbfc}
 .teacherInquiryRecord details>summary{cursor:pointer;font-weight:850;color:#315a76}
@@ -625,4 +593,34 @@ body.inquiryView .inquiryStep3 .cultureDrawWorkspace.cultureDrawFullScreen .cult
 @media(max-width:700px){
  .teacherCultureDrawings{grid-template-columns:repeat(2,minmax(0,1fr))}
  body.inquiryView .inquiryStep3 .inquiryRootChip{min-height:44px!important;font-size:14px!important}
+}
+
+/* Culture drawing board: stable proportions and controls that remain reachable in fullscreen. */
+body.inquiryView .inquiryStep3 .cultureCanvasStage{display:grid!important;place-items:center!important;flex:1 1 auto!important;min-width:0!important;min-height:0!important;overflow:hidden!important;container-type:size!important}
+body.inquiryView .inquiryStep3 #cultureDrawCanvas{display:block!important;width:min(100cqw,133.333cqh)!important;height:min(100cqh,75cqw)!important;max-width:100%!important;max-height:100%!important;min-height:0!important;aspect-ratio:4/3!important;flex:none!important;object-fit:fill!important}
+.cultureDrawWorkspace.cultureDrawFullScreen{grid-template-rows:minmax(44px,auto) minmax(0,1fr) auto!important;gap:7px!important;padding:8px!important}
+.cultureDrawWorkspace.cultureDrawFullScreen .cultureWorkspaceHeader{position:relative!important;min-height:44px!important;padding:5px 126px 5px 10px!important}
+.cultureDrawWorkspace.cultureDrawFullScreen #cultureFullscreen{position:fixed!important;top:max(env(safe-area-inset-top),8px)!important;right:max(env(safe-area-inset-right),8px)!important;z-index:100003!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:104px!important;min-height:42px!important;padding:7px 13px!important;border:2px solid #6c91a8!important;border-radius:12px!important;background:#fff!important;color:#193e56!important;font-size:15px!important;font-weight:950!important;box-shadow:0 3px 10px #203b4d30!important;touch-action:manipulation!important}
+.cultureDrawWorkspace.cultureDrawFullScreen .cultureCanvasStage{width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;display:grid!important;place-items:center!important;overflow:hidden!important;container-type:size!important;background:#e8edf0!important;border-radius:12px!important}
+.cultureDrawWorkspace.cultureDrawFullScreen #cultureDrawCanvas{width:min(100cqw,133.333cqh)!important;height:min(100cqh,75cqw)!important;max-width:100%!important;max-height:100%!important;min-height:0!important;aspect-ratio:4/3!important;flex:none!important;border:2px solid #bac9d2!important;border-radius:10px!important;box-shadow:0 4px 18px #2138471c!important}
+.cultureDrawWorkspace.cultureDrawFullScreen .cultureCanvasTools{display:flex!important;flex:0 0 auto!important;flex-wrap:wrap!important;justify-content:center!important;align-items:center!important;gap:6px!important;max-height:20dvh!important;overflow:auto!important;padding:6px 9px!important;touch-action:manipulation!important}
+.cultureDrawWorkspace.cultureDrawFullScreen .cultureCanvasTools button:not(.cultureColor){min-height:40px!important;padding:6px 10px!important;font-size:clamp(11px,1.2vw,15px)!important}
+.cultureDrawWorkspace.cultureDrawFullScreen .cultureCanvasTools .cultureColor{width:clamp(24px,3vw,36px)!important;height:clamp(24px,3vw,36px)!important;min-height:clamp(24px,3vw,36px)!important}
+@media(orientation:portrait){
+ .cultureDrawWorkspace.cultureDrawFullScreen .cultureCanvasStage{container-type:size!important}
+ .cultureDrawWorkspace.cultureDrawFullScreen #cultureDrawCanvas{width:min(100cqw,75cqh)!important;height:min(100cqh,133.333cqw)!important;aspect-ratio:3/4!important}
+}
+.cultureIntroOverlay{position:fixed;inset:0;z-index:110000;display:grid;place-items:center;padding:18px;background:#122d43c9;backdrop-filter:blur(7px)}
+.cultureIntroCard{width:min(94vw,780px);padding:clamp(26px,5vw,58px);border:3px solid #b6d7e8;border-radius:30px;background:linear-gradient(145deg,#eff9ff,#fff8eb 70%,#f5efff);box-shadow:0 24px 90px #06182780;text-align:center;color:#244860}
+.cultureIntroEyebrow{font-size:clamp(16px,2.3vw,23px);font-weight:900;letter-spacing:.06em;color:#567d96}
+.cultureIntroCard h2{margin:13px 0 17px;font-size:clamp(30px,5.3vw,52px);line-height:1.25;color:#203e57}
+.cultureIntroCard p{margin:0 0 12px;font-size:clamp(17px,2.4vw,24px);line-height:1.5;font-weight:750}
+.cultureIntroCard strong{display:block;margin:8px 0 24px;font-size:clamp(18px,2.7vw,27px);line-height:1.45;color:#356a86}
+.cultureIntroCard button{min-width:min(100%,260px);min-height:58px;border:0;border-radius:16px;background:#2e789c;color:white;font-size:clamp(18px,2.4vw,23px);font-weight:950;box-shadow:0 5px 0 #205a78;touch-action:manipulation}
+@media(orientation:landscape) and (max-height:520px){
+ .cultureDrawWorkspace.cultureDrawFullScreen{grid-template-rows:38px minmax(0,1fr) auto!important;gap:4px!important;padding:5px!important}
+ .cultureDrawWorkspace.cultureDrawFullScreen .cultureWorkspaceHeader{min-height:38px!important}
+ .cultureDrawWorkspace.cultureDrawFullScreen #cultureFullscreen{min-height:35px!important;min-width:88px!important;top:5px!important;right:5px!important;font-size:13px!important}
+ .cultureDrawWorkspace.cultureDrawFullScreen .cultureCanvasTools{max-height:25dvh!important;gap:4px!important;padding:3px 6px!important}
+ .cultureDrawWorkspace.cultureDrawFullScreen .cultureCanvasTools button:not(.cultureColor){min-height:32px!important;padding:4px 7px!important}
 }
