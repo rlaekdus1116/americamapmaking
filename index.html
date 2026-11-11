@@ -71,7 +71,7 @@ td:first-child{border-left:1px solid var(--line);border-radius:14px 0 0 14px} td
 .btn.secondary{background:#f5f0fc;border:1px solid var(--line)}
 </style>
 <link rel="stylesheet" href="liquid-glass.css">
-<link rel="stylesheet" href="classroom-v8.css?v=20261111-rejoin-qr">
+<link rel="stylesheet" href="classroom-v8.css?v=20261111-process-ui">
 
 <style id="inquiryStyles">
 .inquiryRoot{max-width:940px;margin:0 auto 34px;padding:clamp(18px,3vw,34px)}
@@ -843,25 +843,13 @@ function culturePersist(){
  }
 }
 function cultureUpdatePicture(){const n=cultureActive;if($('inqCultureCountry')){$('inqCultureCountry').value=String(cultureActive);$('inqCultureCountry').disabled=true;}if($('cultureCaseProgress'))$('cultureCaseProgress').textContent='완료 '+Object.keys(cultureSolved).filter(i=>cultureReasons[i]&&cultureReasons[i].length>=18).length+' / '+INQUIRY_CULTURES.length+' · '+INQUIRY_CULTURES[n].name;}
-function cultureSetTab(tab){const search=tab==='search';if($('cultureSearchPane'))$('cultureSearchPane').hidden=!search;if($('cultureDrawPane'))$('cultureDrawPane').hidden=search;if($('cultureSearchTab'))$('cultureSearchTab').setAttribute('aria-pressed',String(search));if($('cultureDrawTab'))$('cultureDrawTab').setAttribute('aria-pressed',String(!search));if(!search)cultureCanvasResize();}
 function cultureImageSearch(){
- const input=$('cultureSearchInput'),results=$('cultureSearchResults'),button=$('cultureSearchButton');if(!input||!results)return;
- const queries=['Our Lady of Guadalupe Mexico','Tango dance Argentina','hamburger history United States','Rio Carnival Brazil'];
- input.value=cultureSearchQueries[cultureActive]||INQUIRY_CULTURES[cultureActive].query||queries[cultureActive];
- const run=async()=>{
-  const q=input.value.trim();if(!q)return;cultureSearchQueries[cultureActive]=q;culturePersist();results.innerHTML='<span>사진을 찾고 있어…</span>';
-  try{
-   const url='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch='+encodeURIComponent(q)+'&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url&iiurlwidth=300&format=json&origin=*';
-   const response=await fetch(url);if(!response.ok)throw Error('검색 연결 실패');const data=await response.json();
-   const pages=Object.values(data.query?.pages||{}).filter(p=>p.imageinfo?.[0]?.thumburl||p.imageinfo?.[0]?.url);
-   if(!pages.length){results.innerHTML='<span>사진이 없어요. 검색어를 바꿔 봐.</span>';return;}
-   results.innerHTML=pages.slice(0,8).map((p,i)=>{const info=p.imageinfo[0],ref={title:p.title.replace(/^File:/,''),url:info.thumburl||info.url,pageUrl:'https://commons.wikimedia.org/wiki/'+encodeURIComponent(p.title.replace(/ /g,'_'))};return '<a class="cultureReference" href="'+esc(ref.pageUrl)+'" target="_blank" rel="noopener" data-reference-index="'+i+'"><img loading="lazy" src="'+esc(ref.url)+'" alt="'+esc(ref.title)+'"><span>'+esc(ref.title)+'</span></a>';}).join('');
-   [...results.querySelectorAll('[data-reference-index]')].forEach((el,i)=>el.addEventListener('click',event=>{event.preventDefault();const p=pages[i],info=p.imageinfo[0];cultureReferences[cultureActive]={title:p.title.replace(/^File:/,''),url:info.thumburl||info.url,pageUrl:'https://commons.wikimedia.org/wiki/'+encodeURIComponent(p.title.replace(/ /g,'_'))};results.querySelectorAll('.cultureReference').forEach(x=>x.classList.remove('selected'));el.classList.add('selected');if($('cultureImageCredit'))$('cultureImageCredit').innerHTML='선택한 참고 사진: <a target="_blank" rel="noopener" href="'+esc(cultureReferences[cultureActive].pageUrl)+'">원본 출처 보기</a>';culturePersist();}));
-  }catch(e){results.innerHTML='<span>사진 검색에 연결하지 못했어. 잠시 뒤 다시 눌러 줘.</span>';}
- };
- if(button)button.onclick=run;input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();run();}};
- if($('cultureSearchTab'))$('cultureSearchTab').onclick=()=>cultureSetTab('search');if($('cultureDrawTab'))$('cultureDrawTab').onclick=()=>cultureSetTab('draw');
- run();
+ const link=$('cultureReferenceSearch');if(!link)return;
+ const queries=['Our Lady of Guadalupe Mexico image','Tango Argentina dance image','hamburger United States history image','Rio Carnival Brazil image'];
+ const q=INQUIRY_CULTURES[cultureActive].query||queries[cultureActive]||INQUIRY_CULTURES[cultureActive].name;
+ link.href='https://www.google.com/search?tbm=isch&q='+encodeURIComponent(q);
+ link.textContent='인터넷에서 '+INQUIRY_CULTURES[cultureActive].name+' 사진 찾기 ↗';
+ link.onclick=()=>{cultureSearchQueries[cultureActive]=q;culturePersist();};
 }
 function cultureCanvasRedraw(){
  const canvas=$('cultureDrawCanvas');if(!canvas)return;const ctx=canvas.getContext('2d'),w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;
@@ -876,10 +864,15 @@ function cultureInitCanvas(){
  canvas.onpointerdown=e=>{canvas.setPointerCapture(e.pointerId);cultureCurrentStroke={tool:cultureTool,color:culturePen,size:cultureTool==='eraser'?.045:.008,points:[point(e)]};cultureCanvasRedraw();};
  canvas.onpointermove=e=>{if(!cultureCurrentStroke)return;const p=point(e),last=cultureCurrentStroke.points.at(-1);if(last&&Math.hypot(p[0]-last[0],p[1]-last[1])<.003)return;if(cultureCurrentStroke.points.length<400)cultureCurrentStroke.points.push(p);cultureCanvasRedraw();};
  const finish=()=>{if(!cultureCurrentStroke)return;cultureDrawings[cultureActive]=[...(cultureDrawings[cultureActive]||[]),cultureCurrentStroke].slice(-250);cultureCurrentStroke=null;cultureCanvasRedraw();culturePersist();};canvas.onpointerup=finish;canvas.onpointercancel=finish;
- document.querySelectorAll('.cultureColor').forEach(b=>b.onclick=()=>{cultureTool='pen';culturePen=b.dataset.color;document.querySelectorAll('.cultureColor').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));});
+ document.querySelectorAll('.cultureColor').forEach(b=>b.onclick=()=>{cultureTool='pen';culturePen=b.dataset.color;if($('cultureColorWheel'))$('cultureColorWheel').value=culturePen;document.querySelectorAll('.cultureColor').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));});
+ if($('cultureColorWheel'))$('cultureColorWheel').oninput=e=>{cultureTool='pen';culturePen=e.target.value;document.querySelectorAll('.cultureColor').forEach(x=>x.setAttribute('aria-pressed','false'));if($('cultureEraser'))$('cultureEraser').setAttribute('aria-pressed','false');};
  if($('cultureEraser'))$('cultureEraser').onclick=()=>{cultureTool='eraser';document.querySelectorAll('.cultureColor').forEach(x=>x.setAttribute('aria-pressed','false'));};
  if($('cultureUndo'))$('cultureUndo').onclick=()=>{cultureDrawings[cultureActive]=(cultureDrawings[cultureActive]||[]).slice(0,-1);cultureCanvasRedraw();culturePersist();};
  if($('cultureClear'))$('cultureClear').onclick=()=>{cultureDrawings[cultureActive]=[];cultureCanvasRedraw();culturePersist();};
+ const workspace=$('cultureDrawWorkspace'),full=$('cultureFullscreen');
+ const setFull=on=>{workspace?.classList.toggle('cultureDrawFullScreen',on);if(full){full.textContent=on?'전체 화면 닫기':'전체 화면에서 그리기';full.setAttribute('aria-pressed',String(on));}requestAnimationFrame(cultureCanvasResize);};
+ if(full&&workspace)full.onclick=()=>setFull(!workspace.classList.contains('cultureDrawFullScreen'));
+ if(!window.cultureFullscreenEscapeBound){window.cultureFullscreenEscapeBound=true;document.addEventListener('keydown',e=>{if(e.key==='Escape'){const node=$('cultureDrawWorkspace'),button=$('cultureFullscreen');if(node?.classList.contains('cultureDrawFullScreen')){node.classList.remove('cultureDrawFullScreen');if(button){button.textContent='전체 화면에서 그리기';button.setAttribute('aria-pressed','false');}requestAnimationFrame(cultureCanvasResize);}}});}
  cultureCanvasResize();
 }
 function cultureSaveReason(){const n=cultureActive,reason=String($('inqCultureReason')?.value||'').trim();if(!cultureSolved[n])return inquiryNotice('문화 요소 정답을 먼저 확인해 줘.',true);if(reason.length<18)return inquiryNotice('이 문화가 결합한 이유를 18자 이상 적어 줘.',true);cultureReasons[n]=reason;cultureReasonDrafts[n]=reason;if(n<INQUIRY_CULTURES.length-1){cultureActive=n+1;const country=$('inqCultureCountry');country.value=String(cultureActive);country.dataset.previous=String(cultureActive);if($('inqCultureReason'))$('inqCultureReason').value=cultureReasonDrafts[cultureActive]||'';document.querySelectorAll('.inquiryRootChip').forEach(x=>x.setAttribute('aria-pressed',String((cultureSelections[cultureActive]||[]).includes(x.dataset.root))));inquiryUpdateEquation();if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent='문화 요소 두 개를 골라 봐.';cultureUpdatePicture();cultureImageSearch();cultureCanvasRedraw();inquiryNotice('이 사례 저장 완료. 다음 문화 사례를 살펴보자.');}else inquiryNotice('4개 사례 모두 완료! 역사 탐정 단계로 이동할 수 있어.');cultureUpdatePicture();culturePersist();}
@@ -974,14 +967,13 @@ function inquiryRender(){
     '<div class="inquiryCultureIntro"><label for="inqCultureCountry">순서대로 탐구하기 (과달루페 → 탱고 → 햄버거 → 카니발)</label>'+
     '<select id="inqCultureCountry">'+countries+'</select></div>'+
     '<div class="inquiryCultureResult">탐구 문화: <span id="inqCultureName"></span></div>'+
-    '<div class="culturePicturePanel" aria-label="문화 사례 참고 사진 검색과 그림판">'+
-    '<div class="culturePictureTabs"><button type="button" id="cultureSearchTab" aria-pressed="true">사례 사진 찾기</button><button type="button" id="cultureDrawTab" aria-pressed="false">직접 그리기</button></div>'+
-    '<div id="cultureSearchPane"><div class="cultureSearchRow"><input id="cultureSearchInput" aria-label="문화 사례 사진 검색어"><button type="button" id="cultureSearchButton">검색</button></div><div id="cultureSearchResults" class="cultureSearchResults" aria-live="polite"></div><p id="cultureImageCredit" class="cultureImageCredit">Wikimedia Commons의 사진을 눌러 원본을 볼 수 있어.</p></div>'+
-    '<div id="cultureDrawPane" hidden><canvas id="cultureDrawCanvas" aria-label="손가락이나 펜으로 문화 사례 그리기"></canvas><div class="cultureCanvasTools">'+
-    '<button class="cultureColor" type="button" data-color="#e64b5d" aria-label="빨강" style="background:#e64b5d" aria-pressed="true"></button><button class="cultureColor" type="button" data-color="#f2a900" aria-label="노랑" style="background:#f2a900" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#27885a" aria-label="초록" style="background:#27885a" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#2878c8" aria-label="파랑" style="background:#2878c8" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#874ab8" aria-label="보라" style="background:#874ab8" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#202b36" aria-label="검정" style="background:#202b36" aria-pressed="false"></button><button type="button" id="cultureEraser">지우개</button><button type="button" id="cultureUndo">한 획 지우기</button><button type="button" id="cultureClear">모두 지우기</button></div></div><span id="cultureCaseProgress">완료 0 / 4</span></div>'+
+    '<div class="culturePicturePanel" aria-label="인터넷 사진 참고와 문화 사례 그림판">'+
+    '<div class="cultureReferenceHelp"><b>① 사진을 인터넷에서 찾아 관찰해 보세요.</b><a id="cultureReferenceSearch" href="https://www.google.com/search?tbm=isch&q=Our%20Lady%20of%20Guadalupe%20Mexico%20image" target="_blank" rel="noopener">인터넷에서 사진 찾기 ↗</a><span>새 탭에서 사진을 본 뒤 이 화면으로 돌아와 그림으로 표현해요.</span></div>'+
+    '<div id="cultureDrawWorkspace" class="cultureDrawWorkspace"><div class="cultureWorkspaceHeader"><b>② 참고 사진을 보고 직접 그리기</b><button type="button" id="cultureFullscreen" aria-pressed="false">전체 화면에서 그리기</button></div><canvas id="cultureDrawCanvas" aria-label="손가락이나 펜으로 문화 사례 그리기"></canvas><div class="cultureCanvasTools"><label class="cultureColorWheelLabel" for="cultureColorWheel">색상환 <input id="cultureColorWheel" type="color" value="#e64b5d" aria-label="원하는 색 고르기"></label>'+
+    '<button class="cultureColor" type="button" data-color="#e64b5d" aria-label="빨강" style="background:#e64b5d" aria-pressed="true"></button><button class="cultureColor" type="button" data-color="#f07832" aria-label="주황" style="background:#f07832" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#f2c230" aria-label="노랑" style="background:#f2c230" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#8caf3f" aria-label="연두" style="background:#8caf3f" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#27885a" aria-label="초록" style="background:#27885a" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#29a6a5" aria-label="청록" style="background:#29a6a5" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#2878c8" aria-label="파랑" style="background:#2878c8" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#384b91" aria-label="남색" style="background:#384b91" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#874ab8" aria-label="보라" style="background:#874ab8" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#df70ad" aria-label="분홍" style="background:#df70ad" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#80573b" aria-label="갈색" style="background:#80573b" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#202b36" aria-label="검정" style="background:#202b36" aria-pressed="false"></button><button type="button" id="cultureEraser">지우개</button><button type="button" id="cultureUndo">한 획 지우기</button><button type="button" id="cultureClear">모두 지우기</button></div></div><span id="cultureCaseProgress">완료 0 / 4</span></div>'+
     '<p class="inquirySource">교과서 98~99쪽 사례에서 문화가 결합하는 과정을 찾아보자.</p></div>'+
     '<div class="inquiryQuestion"><h3>결합한 문화 요소 직접 고르기</h3>'+
-    '<p>① 문화 요소 <b>2개 선택</b> → ② 큰 <b>정답 확인</b> 버튼 누르기 → ③ 이유 작성·저장</p>'+
+    '<p class="cultureChoiceInstruction">① 문화 요소 <b>2개 선택</b> → ② <b>정답 확인</b> → ③ 이유 작성·저장</p>'+
     '<div class="inquiryRoots" id="inqCultureRoots">'+roots+'</div>'+
     '<div class="inquiryEquationPanel" aria-live="polite">'+
     '<div id="inqMixFormula" class="inquiryMixFormula"></div><span id="inqMixCount" class="inquiryMixCount"></span></div>'+
@@ -1096,7 +1088,7 @@ async function inquirySubmit(step){
 function previewOnlyStart(){
  document.body.classList.add('teacherPreviewBody');
  firebaseState='online';serverVerified=true;
- app.innerHTML='<section class="card" style="max-width:640px;margin:32px auto"><h2>학생 시점 미리보기</h2><p>교사용 화면에서 확인할 단계나 학생을 선택하세요.</p></section>';
+ app.innerHTML='<section class="card teacherPreviewEmpty" style="max-width:760px;margin:32px auto"><h2>학생 이름을 선택해 주세요</h2><p>교사용 화면에서 학생 이름을 누르면 그 학생의 저장된 화면이 여기에 표시돼요.</p></section>';
  window.addEventListener('message',e=>{
   if(e.origin!==location.origin||e.source!==window.parent)return;
   const x=e.data;
@@ -1122,6 +1114,11 @@ function previewOnlyFakeQuiz(status){
  return q;
 }
 function previewOnlyApply(x){
+ if(x.mode==='empty'){
+  destroyMap();renderHdr();
+  app.innerHTML='<section class="card teacherPreviewEmpty"><h2>학생 이름을 선택해 주세요</h2><p>교사용 화면에서 학생 이름을 누르면 그 학생이 현재 보고 있는 저장 화면이 여기에 표시돼요.</p><p>단계별 미리보기가 필요하면 교사용 화면에서 화면을 선택해 주세요.</p></section>';
+  return;
+ }
  const raw=x.record&&typeof x.record==='object'?x.record:null;
  // In this iframe there are no write refs, even when the source is a real student.
  const student=raw?norm(migrateGameFormat(raw),raw.id||nameKey(raw.name||'학생')):fresh('체험 학생');
@@ -1417,18 +1414,13 @@ function applyClassroomCommand(command){
   const scene=Number(command.scene),now=serverNow();
   if(scene<0||scene>49||(scene>36&&scene<43))return;
   const x=norm(migrateGameFormat(raw),me?.id);
-  // A later whole-class move must not erase a teacher's per-student assignment.
-  if(hasPendingIndividualControl(x)){
-   x.classControlRevision=revision;
-   x.lastClassControlSkippedAt=now;
-   return x;
-  }
   const old=x.cur;
   const to=scene<PROBLEMS.length?scene:PROBLEMS.length;
   x.cur=to;x.done=to;x.pending=null;x.tries=0;x.coolUntil=0;x.paused=false;x.pausedElapsed=0;x.startedAt=now;x.t=now;
   teacherAlignQuestionOrder(x,scene);
   x.teacherQuestionIndex=scene<PROBLEMS.length?scene:null;
   x.activeQuestionUid=scene<PROBLEMS.length?(PROBLEMS[scene]?.uid||null):null;
+  x.individualScene=null;x.individualControlAt=0;
   x.classControlRevision=revision;
   x.teacherRevision=(Number(x.teacherRevision)||0)+1;
   x.teacherAdjustments=[...(x.teacherAdjustments||[]),{from:old,to,scene,at:now,group:true}].slice(-30);
@@ -2749,7 +2741,7 @@ async function teacherDeleteStudent(){
 /* Teacher console controls a sandboxed student-rendering iframe.
    Navigation never writes to Firebase; selecting a live student only copies the
    already-read player snapshot into the isolated frame. */
-let teacherMirrorScene=0,teacherMirrorResult=false,teacherMirrorMode='browse',teacherMirrorSelected='';
+let teacherMirrorScene=0,teacherMirrorResult=false,teacherMirrorMode='empty',teacherMirrorSelected='';
 function teacherMirrorSceneOptions(){
  const start=[{id:41,label:'이름 입력 화면'}];
  for(let i=0;i<PROBLEMS.length;i++){
@@ -2787,6 +2779,7 @@ function teacherMirrorSelectStudent(key){
  teacherMirrorSelected=key;
  teacherMirrorMode='snapshot';
  teacherMirrorResult=false;
+ teacherMirrorScene=studentSceneOf(lastAll[key]);
  teacherMirrorRenderControls();
  teacherMirrorSend();
  // Preserve original teacher details and recorded student's controls.
@@ -2804,14 +2797,20 @@ function teacherMirrorRenderControls(){
  res.checked=teacherMirrorResult;
  res.disabled=teacherMirrorMode==='snapshot'||teacherMirrorScene>=33;
  $('teacherMirrorCurrent').textContent=teacherMirrorMode==='snapshot'&&keep?
-   '선택한 학생의 저장된 현재 화면 · '+(lastAll[keep]?.name||'학생'):
-   '모든 단계를 자유롭게 이동하는 교사용 체험 화면';
+   (lastAll[keep]?.name||'선택 학생')+' 학생의 저장된 현재 화면을 표시 중':
+   teacherMirrorMode==='empty'?'아래 학생 명단에서 이름을 누르면 실제 저장 화면이 표시돼요.':
+   '교사용 단계별 체험 화면 · 학생 기록 변경 없음';
+ const title=$('teacherMirrorTitle');if(title)title.textContent=keep&&teacherMirrorMode==='snapshot'?(lastAll[keep]?.name||'선택 학생')+' 학생의 현재 화면':'학생 이름을 선택해 현재 화면 보기';
+ scene.disabled=teacherMirrorMode==='snapshot';
  const actual=$('teacherMirrorLive');
  if(actual)actual.disabled=!keep;
 }
 function teacherMirrorSend(){
  const frame=$('teacherMirrorFrame');
  if(!frame?.contentWindow)return;
+ if(teacherMirrorMode==='empty'){
+  frame.contentWindow.postMessage({type:'AMAP_TEACHER_PREVIEW_STATE',scene:teacherMirrorScene,result:false,mode:'empty',record:null},location.origin);return;
+ }
  frame.contentWindow.postMessage({
   type:'AMAP_TEACHER_PREVIEW_STATE',
   scene:teacherMirrorScene,
@@ -2854,7 +2853,8 @@ function teacherMirrorAttach(){
    if(teacherMirrorSelected){
      teacherMirrorMode='snapshot';
      selectedKey=teacherMirrorSelected;renderTeacherViews(lastAll);
-   }else teacherMirrorMode='browse';
+     teacherMirrorScene=studentSceneOf(lastAll[teacherMirrorSelected]);
+   }else teacherMirrorMode='empty';
    teacherMirrorResult=false;teacherMirrorRenderControls();teacherMirrorSend();
  };
  scene.onchange=()=>teacherMirrorSetScene(Number(scene.value));
@@ -2921,7 +2921,7 @@ function teacherPopulationAnswerGuide(){
 function teacherClassControlHtml(){
  return '<section class="card" id="teacherClassControl" style="margin-bottom:14px;border:2px solid #9dcbbe">'+
   '<h2>📺 전체 학생 화면 · 실시간 진도 통제</h2>'+
-  '<p class="muted">미리보기와 별개로 실제 학생 화면을 이동해요. 답변·점수는 보존하고, 개별 화면을 지정한 학생은 전체 이동 후에도 그 화면을 유지해요.</p>'+
+  '<p class="muted">실제 학생 화면을 모두 같은 단계로 이동해요. 개별 이동으로 지정한 화면도 이 명령을 누르면 전체 선택 화면으로 바뀌며, 답변과 점수는 보존돼요.</p>'+
   '<div class="teacherMirrorControls"><label class="teacherMirrorField">모두에게 보여줄 화면<select id="teacherClassScene">'+teacherMirrorSceneOptions().replace(/<option value="(37|38|39|40|41|42)"[^>]*>[^<]*<\/option>/g,'')+'</select></label>'+
   '<button type="button" class="btn mint" id="teacherClassApply">이 화면으로 전체 이동 →</button>'+
   '<button type="button" class="btn secondary" id="teacherClassPrevious">← 한 화면 이전</button>'+
@@ -2942,8 +2942,7 @@ function teacherClassControlRender(){
  select.value=String(command.scene);
  const total=Object.keys(lastAll||{}).length;
  const matched=Object.values(lastAll||{}).filter(p=>Number(p?.classControlRevision)>=Number(command.revision)).length;
- const individuallySet=Object.values(lastAll||{}).filter(hasPendingIndividualControl).length;
- status.textContent='현재 지시: '+(select.selectedOptions[0]?.textContent||'')+' · 확인 '+matched+'/'+total+'명 · 개별 화면 유지 '+individuallySet+'명';
+ status.textContent='현재 지시: '+(select.selectedOptions[0]?.textContent||'')+' · 확인 '+matched+'/'+total+'명 · 전체 이동은 개별 지정을 덮어써요';
 }
 async function teacherClassApply(scene){
  if(!TEACHER||!db||!serverVerified||firebaseState!=='online')return alert('Firebase 서버가 연결되어야 전체 진도를 이동할 수 있어요.');
@@ -2977,7 +2976,7 @@ function teacherMirrorHtml(){
  url.searchParams.set('mode','preview');
  url.searchParams.set('room',ROOM);
  return '<section class="card teacherMirror" id="teacherMirrorConsole">'+
-  '<div class="teacherMirrorHeader"><div><span class="smallPill">교사용 학생 시점 체험</span><h2>학생 화면 전체 미리보기</h2></div>'+
+  '<div class="teacherMirrorHeader"><div><span class="smallPill">교사용 학생 시점 확인</span><h2 id="teacherMirrorTitle">학생 이름을 선택해 현재 화면 보기</h2></div>'+
   '<span class="teacherMirrorFlag">학생 기록 변경 없음 · 읽기 전용</span></div>'+
   '<p class="teacherMirrorNotice">학생을 선택하면 그 학생이 저장한 현재 화면을 재현하고, 단계 선택과 건너뛰기로 모든 문제와 탐구 화면을 확인할 수 있어요. 학생이 제출 전 입력 중인 내용은 보이지 않아요.</p>'+
   '<div class="teacherMirrorControls"><label class="teacherMirrorField">학생 선택<select id="teacherMirrorStudent"></select></label>'+
@@ -3002,7 +3001,7 @@ function teacherMirrorHtml(){
 function renderTeacher(){
   document.body.classList.remove('inquiryView','mapLearningView');
   renderHdr();
-  app.innerHTML=`${teacherClassControlHtml()}${teacherPopulationAnswerGuide()}${teacherMirrorHtml()}<details class="teacherOptionalQuiz"><summary>별도 활동 · 기억력 대결 운영 (열어서 사용)</summary><section id="liveTeacherPanel" class="liveTeacherPanel teacherProjector"></section></details><main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
+  app.innerHTML=`${teacherClassControlHtml()}${teacherPopulationAnswerGuide()}${teacherMirrorHtml()}<details class="card teacherCultureGallery" id="teacherCultureGallery"><summary>🖼 문화 혼종성 그림 모아보기</summary><p class="muted">학생이 앱 그림판에 저장한 그림을 사례별로 모아 보여요.</p><div id="teacherCultureGalleryGrid"></div></details><details class="teacherOptionalQuiz"><summary>별도 활동 · 기억력 대결 운영 (열어서 사용)</summary><section id="liveTeacherPanel" class="liveTeacherPanel teacherProjector"></section></details><main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
     <section class="card"><div class="smallPill">${iconArt("book")} 교사용 관리</div><h2>${esc(roomTitle(ROOM))} 탐험 현황</h2>
       <p class="muted">학생 이름을 누르면 문제별 결과를 확인할 수 있어요.</p>
       <div class="teacherShare">
@@ -3013,19 +3012,7 @@ function renderTeacher(){
           <button type="button" class="btn secondary" id="customClassRoom">다른 학년·반</button></div></div>
         <p class="muted" id="classRoomMessage">현재 ${esc(roomTitle(ROOM))} 학생 기록을 보고 있어요.</p>
         <input type="text" id="shareLink" aria-label="학생 실시간 연결 링크" readonly>
-        <div class="classRejoinActions">
-          <button class="btn mint" id="shareCopy" type="button">학생 연결 링크 복사</button>
-          <button class="btn secondary" id="showClassRejoinQR" type="button">📷 튕긴 학생 재입장 QR</button>
-        </div>
-        <div class="classRejoinQrOverlay" id="classRejoinQrOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="classRejoinQrTitle">
-          <div class="classRejoinQrCard">
-            <button class="btn secondary classRejoinQrClose" id="closeClassRejoinQR" type="button">닫기</button>
-            <h3 id="classRejoinQrTitle">학생 재입장 QR</h3>
-            <p class="muted">튕긴 학생은 카메라로 QR을 찍고 같은 반 방으로 다시 들어오면 돼.</p>
-            <img id="classRejoinQrImage" alt="현재 반 학생 재입장 QR 코드">
-            <a id="classRejoinQrLink" target="_blank" rel="noopener">학생 접속 링크 열기</a>
-          </div>
-        </div>
+        <button class="btn mint" id="shareCopy" type="button">학생 연결 링크 복사</button>
         <p id="shareLinkMsg" class="muted" aria-live="polite"></p>
       </div>
       <div style="margin:14px 0"><button class="btn mint" id="csvBtn">CSV 내보내기</button><span class="smallPill" id="studentTotal">참여 0명</span></div>
@@ -3043,16 +3030,6 @@ function renderTeacher(){
   const joinLink=classJoinLink();
   $('shareLink').value=joinLink;
   $('shareCopy').onclick=copyClassJoinLink;
-  const rejoinQrLink=classJoinLink();
-  const rejoinQrImage=$('classRejoinQrImage');
-  $('classRejoinQrLink').href=rejoinQrLink;
-  rejoinQrImage.src='https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=14&data='+encodeURIComponent(rejoinQrLink);
-  rejoinQrImage.onerror=()=>{rejoinQrImage.onerror=null;rejoinQrImage.src='https://quickchart.io/qr?size=360&text='+encodeURIComponent(rejoinQrLink);};
-  const rejoinQrOverlay=$('classRejoinQrOverlay');
-  $('showClassRejoinQR').onclick=()=>{rejoinQrOverlay.hidden=false;$('closeClassRejoinQR').focus();};
-  $('closeClassRejoinQR').onclick=()=>{rejoinQrOverlay.hidden=true;$('showClassRejoinQR').focus();};
-  rejoinQrOverlay.onclick=e=>{if(e.target===rejoinQrOverlay)$('closeClassRejoinQR').click();};
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!rejoinQrOverlay.hidden)$('closeClassRejoinQR').click();},{once:false});
   $('tbl').onclick=e=>{const button=e.target.closest('[data-key]');if(button){teacherDraftProgress=null;teacherMirrorSelectStudent(button.dataset.key)}};
   $('detail').onchange=e=>{if(e.target.id==='teacherProgress')teacherDraftProgress=Number(e.target.value);};
   $('detail').onclick=e=>{
@@ -3163,9 +3140,20 @@ function teacherDrawingSvg(strokes){
  const paths=(strokes||[]).map(s=>{if(!s.points?.length)return '';const d=s.points.map((p,i)=>(i?'L':'M')+' '+(p[0]*500).toFixed(1)+' '+(p[1]*300).toFixed(1)).join(' ');return '<path d="'+d+'" fill="none" stroke="'+(s.tool==='eraser'?'#fff':esc(s.color||'#222'))+'" stroke-width="'+Math.max(2,(s.size||.008)*500).toFixed(1)+'" stroke-linecap="round" stroke-linejoin="round"/>';}).join('');
  return '<svg viewBox="0 0 500 300" class="teacherDrawingPreview" role="img" aria-label="학생이 그린 문화 그림"><rect width="500" height="300" rx="12" fill="white" stroke="#ccd9e2"/>'+paths+'</svg>';
 }
+function teacherCultureGalleryRender(all){
+ const root=$('teacherCultureGalleryGrid');if(!root)return;
+ root.innerHTML=INQUIRY_CULTURES.map((culture,index)=>{
+  const drawings=ranked(all).map(student=>{
+   const draft=student.inquiry?.cultureDraft||{},saved=student.inquiry?.culture?.completedCases?.[index]||{};
+   const strokes=draft.drawings?.[index]||saved.drawing||[];
+   return strokes.length?'<article class="teacherCultureDrawing"><b>'+esc(student.name)+'</b>'+teacherDrawingSvg(strokes)+'</article>':'';
+  }).filter(Boolean);
+  return '<section class="teacherCultureCase"><h3>'+esc(culture.name)+' · '+drawings.length+'개</h3>'+(drawings.length?'<div class="teacherCultureDrawings">'+drawings.join('')+'</div>':'<p class="muted">아직 저장된 그림이 없어요.</p>')+'</section>';
+ }).join('');
+}
 
 function renderTeacherViews(all){
-  const list=ranked(all);teacherMirrorRenderControls();teacherClassControlRender();$('studentTotal').textContent='참여 '+list.length+'명'+(firebaseState==='offline'?' · 이 브라우저 기록만':'');
+  const list=ranked(all);teacherMirrorRenderControls();teacherClassControlRender();teacherCultureGalleryRender(all);$('studentTotal').textContent='참여 '+list.length+'명'+(firebaseState==='offline'?' · 이 브라우저 기록만':'');
   $('tbl').innerHTML=list.length?list.map((p,i)=>{
     const status=p.pending?'결과 확인 중':p.cur>=PROBLEMS.length?inquiryLabel(inquiryStep(p)):(p.cur+1)+'번 진행';
     return `<tr><td>${i+1}</td><td><button class="nameBtn" data-key="${esc(p.id)}">${esc(p.name)}</button></td><td>${p.score}점</td><td>${p.done}/${PROBLEMS.length}</td><td>${status}</td></tr>`;
