@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta name="app-build" content="2026-11-10-classroom-control-fix">
+<meta name="app-build" content="2026-11-11-tab6-fit">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>아메리카 지도 만들기 · 20나라 + 랜드마크 8곳 + 자연환경 5곳</title>
@@ -71,7 +71,7 @@ td:first-child{border-left:1px solid var(--line);border-radius:14px 0 0 14px} td
 .btn.secondary{background:#f5f0fc;border:1px solid var(--line)}
 </style>
 <link rel="stylesheet" href="liquid-glass.css">
-<link rel="stylesheet" href="classroom-v8.css?v=20261111-process-ui">
+<link rel="stylesheet" href="classroom-v8.css?v=20261111-tab6-fit">
 
 <style id="inquiryStyles">
 .inquiryRoot{max-width:940px;margin:0 auto 34px;padding:clamp(18px,3vw,34px)}
@@ -639,19 +639,9 @@ function migrationChooseOrigin(id){
  if($('migrationQuestionCountry'))$('migrationQuestionCountry').textContent=r.name+' → '+r.destination;
  migrationReasonSelected=MIGRATION_REASON_CHOICES.some(x=>x.id===migrationChoices[id])?migrationChoices[id]:'';
  const hispanic=r.id==='al';
- const questionByRoute={
-  ae:'영국·유럽 이주민이 캐나다에 정착하면서 오늘날까지 남긴 언어는 무엇일까?',
-  af:'서아프리카 사람들이 미국으로 강제로 이동하게 된 역사적 배경은 무엇일까?',
-  aa:'동아시아 사람들이 미국으로 이주한 주된 까닭은 무엇일까?',
-  al:'멕시코 등 라틴아메리카 출신 이주민의 증가는 미국의 인구 구성에 어떤 변화를 가져왔을까?',
-  ls:'에스파냐의 식민 지배 이후 멕시코에서 널리 쓰이게 된 언어는 무엇일까?',
-  lp:'포르투갈의 식민 지배 이후 브라질에서 널리 쓰이게 된 언어는 무엇일까?',
-  lf:'서아프리카 사람들이 브라질로 강제로 이동하게 된 역사적 배경은 무엇일까?',
-  la:'동아시아 사람들이 브라질로 이주한 주된 까닭은 무엇일까?'
- };
- const question=questionByRoute[r.id]||'이 이동 경로에서 확인할 수 있는 역사적 사실은 무엇일까?';
+ const question=hispanic?'이러한 인구 이동은 미국의 인구 구성에 어떤 영향을 주었을까?':'이 사람들은 왜 이동했을까?';
  if($('migrationBigQuestion'))$('migrationBigQuestion').textContent=question;
- if($('migrationWriteLabel'))$('migrationWriteLabel').textContent=hispanic?'미국 인구 구성에 생긴 변화를 골라 봐.':'질문에 맞는 답을 골라 봐.';
+ if($('migrationWriteLabel'))$('migrationWriteLabel').textContent=hispanic?'미국 인구 구성에 생긴 변화를 골라 봐.':'이동 사유를 하나 골라 줘.';
  if($('migrationHispanicDefinition')){$('migrationHispanicDefinition').hidden=!hispanic;$('migrationHispanicDefinition').textContent=hispanic?'히스패닉: 에스파냐어를 모국어로 사용하면서 미국에 거주하는 라틴 아메리카 출신 사람.':'';}
  migrationRenderReasons();
  if($('migrationFeedback'))$('migrationFeedback').textContent=migrationChoices[id]?'이 경로의 답을 저장했어.':'';
@@ -665,13 +655,7 @@ function migrationRenderReasons(){
    {id:'settlement',text:'미국의 인구가 유럽계만으로 바뀌었다.'},
    {id:'forced',text:'미국으로 이주한 모든 아프리카계 인구가 감소했다.'},
    {id:'economic',text:'이 이동은 캐나다의 인구 구성에만 영향을 주었다.'}
-  ]:r.reason==='settlement'&&r.id==='ae'?
-  [{id:'settlement',text:'영어와 영국 문화가 캐나다 사회에 자리 잡았다.'},{id:'forced',text:'아프리카계 주민이 모두 캐나다를 떠났다.'},{id:'economic',text:'캐나다에서 스페인어가 공용어가 되었다.'},{id:'hispanic',text:'이 이동은 미국의 인구 구성에만 영향을 주었다.'}]:
-  r.reason==='settlement'?
-  [{id:'settlement',text:r.id==='ls'?'에스파냐의 식민 지배 뒤 멕시코에서 스페인어가 널리 쓰이게 되었다.':'포르투갈의 식민 지배 뒤 브라질에서 포르투갈어가 널리 쓰이게 되었다.'},{id:'forced',text:'이주민이 모두 아메리카를 떠났다.'},{id:'economic',text:'현지에서 영어가 공용어가 되었다.'},{id:'hispanic',text:'이 이동은 캐나다의 인구 구성에만 영향을 주었다.'}]:
-  r.reason==='forced'?
-  [{id:'forced',text:'대서양 노예 무역으로 아프리카 사람들이 강제로 이주했다.'},{id:'settlement',text:'휴가와 관광을 위해 자유롭게 이동했다.'},{id:'economic',text:'유럽 유학을 위해 이주했다.'},{id:'hispanic',text:'모두 멕시코에서 미국으로 이동했다.'}]:
-  [{id:'economic',text:'일자리와 경제적 기회를 찾으려 이주했다.'},{id:'settlement',text:'식민 지배를 위해 국가가 강제로 보냈다.'},{id:'forced',text:'대서양 노예 무역에 따른 강제 이주였다.'},{id:'hispanic',text:'모두 유럽으로 돌아갔다.'}];
+  ]:MIGRATION_REASON_CHOICES.filter(x=>x.id!=='hispanic');
  el.innerHTML=options.map(x=>'<button type="button" class="migrationReasonChoice'+(migrationReasonSelected===x.id?' selected':'')+'" data-migration-reason="'+esc(x.id)+'" aria-pressed="'+(migrationReasonSelected===x.id)+'"><span class="migrationReasonDot" aria-hidden="true"></span><span>'+esc(x.text)+'</span></button>').join('');
  el.querySelectorAll('[data-migration-reason]').forEach(button=>button.onclick=()=>{
   migrationReasonSelected=button.dataset.migrationReason||'';
@@ -939,7 +923,7 @@ function inquiryRender(){
     '<p class="migrationQuestionCountry" id="migrationQuestionCountry"></p>'+
     '<div class="migrationBigQuestion" id="migrationBigQuestion">이 사람들은 왜 이동했을까?</div>'+
     '<p id="migrationHispanicDefinition" class="migrationWriteExample" hidden></p>'+
- '<p class="migrationWriteLabel" id="migrationWriteLabel">질문에 맞는 답을 골라 봐.</p>'+
+ '<p class="migrationWriteLabel" id="migrationWriteLabel">이동 사유를 하나 골라 줘.</p>'+
  '<div class="migrationReasonLinks" id="migrationReasonLinks" role="group" aria-label="이동 이유 선택"></div>'+
  '<button type="button" class="btn secondary" id="migrationCheck" disabled>선택한 이유 확인하기 →</button>'+
     '<p id="migrationFeedback" aria-live="polite"></p>'+
