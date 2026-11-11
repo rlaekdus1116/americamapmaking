@@ -2975,6 +2975,7 @@ function teacherMirrorHtml(){
  const url=new URL(location.origin+location.pathname);
  url.searchParams.set('mode','preview');
  url.searchParams.set('room',ROOM);
+ url.searchParams.set('v',new URL(location.href).searchParams.get('v')||String(Date.now()));
  return '<section class="card teacherMirror" id="teacherMirrorConsole">'+
   '<div class="teacherMirrorHeader"><div><span class="smallPill">교사용 학생 시점 확인</span><h2 id="teacherMirrorTitle">학생 이름을 선택해 현재 화면 보기</h2></div>'+
   '<span class="teacherMirrorFlag">학생 기록 변경 없음 · 읽기 전용</span></div>'+
