@@ -71,7 +71,7 @@ td:first-child{border-left:1px solid var(--line);border-radius:14px 0 0 14px} td
 .btn.secondary{background:#f5f0fc;border:1px solid var(--line)}
 </style>
 <link rel="stylesheet" href="liquid-glass.css">
-<link rel="stylesheet" href="classroom-v8.css?v=20261106-student-photos">
+<link rel="stylesheet" href="classroom-v8.css?v=20261111-tablet-ui">
 
 <style id="inquiryStyles">
 .inquiryRoot{max-width:940px;margin:0 auto 34px;padding:clamp(18px,3vw,34px)}
@@ -887,22 +887,19 @@ function inquiryRender(){
  }else if(step===4){
    title='역사 탐정 · 멕시코 죽은 자의 날';
    lead='영화 코코의 배경으로도 알려진 멕시코 죽은 자의 날. 실제 축제의 문화적 뿌리를 탐구해 보자.';
-   body='<div class="inquiryData mysteryEvidence"><h3>🔎 멕시코 죽은 자의 날(Día de Muertos)</h3>'+
-    '<p class="inquirySource">영화 「코코」에 등장하는 축제의 실제 문화적 배경을 살펴보자. 영화 속 표현과 실제 전통은 구별해야 해.</p>'+
+   body='<div class="inquiryData mysteryEvidence"><h3>멕시코 죽은 자의 날 · 역사 자료</h3>'+
+    '<p class="inquirySource">영화 「코코」의 배경이 된 축제야. 영화 표현과 실제 전통을 구별해 살펴보자.</p>'+
     '<div class="mysteryStats"><div><b>꽃 장식</b><strong>🌼</strong></div><div><b>추모 제단</b><strong>🕯️</strong></div><div><b>해골 장식</b><strong>💀</strong></div><div><b>가족의 기억</b><strong>🖼️</strong></div></div>'+
-    '<h3>🎭 역사 단서</h3><p>멕시코 원주민의 죽은 이를 기리는 전통과 에스파냐 식민 지배 시기에 전해진 가톨릭의 추모 관습이 오랜 시간 만나 변화했어. 지역마다 풍습은 달라.</p></div>'+
-    '<div class="inquiryQuestion mysteryQuestions"><h3>① 인구 구성에서 단서 찾기</h3>'+
-    '<label for="inqClue">죽은 자의 날에 나타나는 장식이나 풍습 두 가지를 찾아보세요.</label>'+
-    '<input id="inqClue" type="text" placeholder="예: ○○ 장식과 ○○ 풍습이 보인다.">'+
-    '<h3>② 과거의 인구 이동 추론하기</h3>'+
-    '<label for="inqMigrationHypothesis">에스파냐의 식민 지배로 멕시코에 어떤 종교 문화가 전해졌을까요?</label>'+
-    '<textarea id="inqMigrationHypothesis" rows="2" placeholder="에스파냐 사람들이 전한 ○○ 문화가 기존의 ○○ 전통과 만났을 것이다."></textarea>'+
-    '<h3>③ 문화의 결합 설명하기</h3>'+
-    '<label for="inqCultureClue">원주민 전통과 가톨릭 문화가 축제에서 어떻게 함께 나타나는지 설명해 보세요.</label>'+
-    '<textarea id="inqCultureClue" rows="2" placeholder="원주민의 ○○ 전통과 가톨릭의 ○○ 관습이 만나 변화했다."></textarea>'+
-    '<h3>④ 역사 탐정의 결론</h3>'+
-    '<label for="inqFinal">앞의 단서를 바탕으로 죽은 자의 날이 문화 혼종성 사례인 이유를 설명해 보세요.</label>'+
-    '<textarea id="inqFinal" rows="3" placeholder="죽은 자의 날은 원주민의 ○○와 가톨릭의 ○○가 역사적으로 만나 형성된 문화다. 그 배경에는 ○○가 있다."></textarea>'+
+    '<h3>역사 단서</h3><p>멕시코 원주민의 추모 전통과 에스파냐 식민 지배 시기에 전해진 가톨릭 관습이 오랜 시간 만나 변화했어. 지역마다 풍습은 달라.</p></div>'+
+    '<div class="inquiryQuestion mysteryQuestions">'+
+    '<div class="mysteryQuestionBlock"><h3>① 축제에서 단서 찾기</h3><label for="inqClue">장식이나 풍습 두 가지를 적어 줘.</label>'+
+    '<input id="inqClue" type="text" placeholder="예: 꽃 장식, 추모 제단"></div>'+
+    '<div class="mysteryQuestionBlock"><h3>② 문화가 전해진 배경</h3><label for="inqMigrationHypothesis">에스파냐에서 어떤 문화가 전해졌을까?</label>'+
+    '<textarea id="inqMigrationHypothesis" rows="2" placeholder="가톨릭의 ○○ 관습이 전해졌다."></textarea></div>'+
+    '<div class="mysteryQuestionBlock"><h3>③ 두 문화가 만난 모습</h3><label for="inqCultureClue">원주민 전통과 가톨릭 관습이 어떻게 함께 나타나?</label>'+
+    '<textarea id="inqCultureClue" rows="2" placeholder="원주민의 ○○와 가톨릭의 ○○가 함께 나타난다."></textarea></div>'+
+    '<div class="mysteryQuestionBlock"><h3>④ 역사 탐정의 결론</h3><label for="inqFinal">이 축제가 문화 혼종성 사례인 이유를 설명해 줘.</label>'+
+    '<textarea id="inqFinal" rows="3" placeholder="죽은 자의 날은 원주민의 ○○와 가톨릭의 ○○가 만나 형성됐다. 그 배경에는 ○○가 있다."></textarea></div>'+
     '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">역사 탐정 보고서 제출하기 ✓</button></div>';
  }else{
    title='모든 탐구 단계를 완료했어요!';
