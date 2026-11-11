@@ -71,7 +71,7 @@ td:first-child{border-left:1px solid var(--line);border-radius:14px 0 0 14px} td
 .btn.secondary{background:#f5f0fc;border:1px solid var(--line)}
 </style>
 <link rel="stylesheet" href="liquid-glass.css">
-<link rel="stylesheet" href="classroom-v8.css?v=20261111-tablet-ui">
+<link rel="stylesheet" href="classroom-v8.css?v=20261111-process-ui">
 
 <style id="inquiryStyles">
 .inquiryRoot{max-width:940px;margin:0 auto 34px;padding:clamp(18px,3vw,34px)}
@@ -358,9 +358,23 @@ body.inquiryView .inquiryStep2 .migrationRouteProgress{font-size:14px;font-weigh
 .inquiryStep4 .mysteryQuestions input,.inquiryStep4 .mysteryQuestions textarea{width:100%!important;box-sizing:border-box!important;border:2px solid #c2d9e7!important;border-radius:11px!important;padding:8px 10px!important;font-size:14px!important}
 @media(orientation:landscape) and (min-width:850px){.inquiryStep4 .mysteryStats{gap:5px;margin:6px 0}.inquiryStep4 .mysteryStats>div{padding:5px}.inquiryStep4 .mysteryQuestions textarea{min-height:48px!important}}
 </style><style id="culturePictureAndCompletion">
-.inquiryStep3 .culturePicturePanel{border:2px solid #c1dbe9;border-radius:18px;background:linear-gradient(130deg,#e4f3ff,#fff1df);padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:5px}
-.inquiryStep3 .culturePictureEmoji{font-size:clamp(54px,7vw,95px);line-height:1.2;filter:drop-shadow(0 4px 3px #718fa344)}
-.inquiryStep3 #cultureCaseProgress{font-size:14px;font-weight:850;color:#326a8a}
+.inquiryStep3 .culturePicturePanel{border:2px solid #c1dbe9;border-radius:18px;background:#f7fafb;padding:9px;text-align:left;display:flex;flex-direction:column;gap:6px;min-height:0;overflow:hidden}
+.inquiryStep3 .culturePictureTabs{display:flex;gap:6px;flex:0 0 auto}
+.inquiryStep3 .culturePictureTabs button,.inquiryStep3 .cultureCanvasTools button{min-height:35px;padding:5px 9px;border:1px solid #c6d8e4;border-radius:9px;background:#fff;color:#2c526e;font-weight:800;touch-action:manipulation}
+.inquiryStep3 .culturePictureTabs button[aria-pressed="true"]{background:#dcefff;border-color:#5597c2}
+.inquiryStep3 .cultureSearchRow{display:flex;gap:6px;flex:0 0 auto}
+.inquiryStep3 .cultureSearchRow input{min-width:0;flex:1}
+.inquiryStep3 .cultureSearchRow button{min-width:64px;border-radius:9px;background:#dcefff;color:#244f70;font-weight:800}
+.inquiryStep3 .cultureSearchResults{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;min-height:0;overflow:auto;align-content:start}
+.inquiryStep3 .cultureReference{min-width:0;border:1px solid #d3dfe6;border-radius:8px;background:#fff;padding:3px;color:#34566c;font-size:10px;line-height:1.15;text-decoration:none;overflow:hidden}
+.inquiryStep3 .cultureReference img{display:block;width:100%;height:68px;object-fit:cover;border-radius:5px;background:#edf2f5}
+.inquiryStep3 .cultureReference span{display:block;height:24px;overflow:hidden;margin-top:2px}
+.inquiryStep3 #cultureDrawPane{display:flex;flex-direction:column;gap:5px;min-height:0;flex:1}
+.inquiryStep3 #cultureDrawCanvas{display:block;width:100%;height:100%;min-height:90px;border:1px solid #d0dce4;border-radius:8px;background:#fff;touch-action:none}
+.inquiryStep3 .cultureCanvasTools{display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex:0 0 auto}
+.inquiryStep3 .cultureColor{width:29px;height:29px;min-height:29px!important;padding:0!important;border:2px solid #fff!important;box-shadow:0 0 0 1px #aebbc4;border-radius:50%!important}
+.inquiryStep3 .cultureColor[aria-pressed="true"]{outline:3px solid #326f9b;outline-offset:1px}
+.inquiryStep3 #cultureCaseProgress{font-size:12px;font-weight:850;color:#326a8a;text-align:right}
 .inquiryStep3 #cultureSaveReason{margin:6px 0!important}
 </style><style id="cultureAnswerCTAStyle">
 .inquiryStep3 #cultureQuizCheck{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;min-height:66px!important;padding:11px 15px!important;box-sizing:border-box!important;margin:9px 0 5px!important;border:3px solid #1a6599!important;border-radius:16px!important;background:#286ea8!important;color:#fff!important;font-size:clamp(17px,1.9vw,23px)!important;font-weight:900!important;line-height:1.35!important;box-shadow:0 5px 0 #184d79,0 9px 17px #285b8b34!important;cursor:pointer!important;touch-action:manipulation}
@@ -377,7 +391,7 @@ body.inquiryView .inquiryStep2 .migrationRouteProgress{font-size:14px;font-weigh
 @media(prefers-reduced-motion:reduce){.inquiryStep3 #cultureQuizCheck{animation:none!important}}
 @media(orientation:landscape) and (max-height:800px){.inquiryStep3 #cultureQuizCheck{min-height:55px!important;margin:4px 0!important;padding:7px 12px!important}.inquiryStep3 #cultureQuizFeedback{padding:4px 7px!important;margin:3px 0 5px!important}.inquiryStep3 #cultureSaveReason{min-height:44px!important}}
 </style></head>
-<body data-app-build="2026-11-10-culture-cta">
+<body data-app-build="2026-11-11-americas-interactions">
 <header>
   <div class="headIn">
     <h1>아메리카 지도 만들기 <span class="titleBadge">나라 20 · 랜드마크 8 · 자연 5</span></h1>
@@ -588,7 +602,7 @@ function migrationMapInit(){
  const el=$('inqMigrationMap');if(!el)return;
  if(globeFrame)cancelAnimationFrame(globeFrame);
  globeCanvas=document.createElement('canvas');globeCanvas.className='globeCanvas';
- el.replaceChildren(globeCanvas);globeCtx=globeCanvas.getContext('2d');globeTapStage=2;globeTapStart=null;
+ el.replaceChildren(globeCanvas);globeCtx=globeCanvas.getContext('2d');globeTapStage=0;globeTapStart=null;
  const status=document.createElement('div');status.className='globeStatus';status.id='globeStatus';el.appendChild(status);
  const hint=document.createElement('div');hint.className='globeHint';hint.textContent='현재 이동 경로가 화살표로 표시돼요. 지구본을 돌려 자세히 살펴보세요.';el.appendChild(hint);
  globeCanvas.onpointerdown=e=>{globeDrag={x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY};globeCanvas.setPointerCapture(e.pointerId);globeLast=performance.now()};
@@ -603,15 +617,20 @@ function globeTap(e){
  const rect=globeCanvas.getBoundingClientRect(),w=rect.width,h=rect.height,cx=w*.5,cy=h*.5,R=Math.min(h*.465,w*.34);
  const x=e.clientX-rect.left,y=e.clientY-rect.top,pt=globeTapStage===0?r.coords:r.target,p=globeProject(pt,cx,cy,R);
  if(p.z<0){globeAngle=pt[1];globeLat=pt[0]*.3;globeLast=performance.now();migrationMapDraw();return}
- if(Math.hypot(x-p.x,y-p.y)>38){$('globeStatus').textContent='표시된 '+(globeTapStage===0?'출발지':'도착지')+' 점을 눌러 줘.';return}
- if(globeTapStage===0){globeTapStage=1;globeAngle=r.target[1];globeLat=r.target[0]*.3;globeLast=performance.now()}
- else if(globeTapStage===1){globeTapStage=2;globeAngle=r.target[1];globeLast=performance.now()}
+ if(Math.hypot(x-p.x,y-p.y)>46){$('globeStatus').textContent='큰 안내를 보고 '+(globeTapStage===0?'출발지':'도착지')+' 점을 눌러 줘.';return}
+ if(globeTapStage===0){globeTapStage=1;globeAngle=r.target[1];globeLat=r.target[0]*.3;globeLast=performance.now();migrationStoreRouteProgress('origin')}
+ else if(globeTapStage===1){globeTapStage=2;globeAngle=r.target[1];globeLast=performance.now();migrationStoreRouteProgress('destination')}
  migrationMapDraw();
 }
 function migrationMapDraw(){
  const r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected);
  const status=$('globeStatus');
- if(status&&r)status.textContent='→ '+r.name+' → '+r.destination+' · 화살표를 보고 질문에 답해 줘.';
+ const instruction=$('migrationMapInstruction');
+ const steps=['① 출발지 점을 눌러 줘: '+(r?.name||''),'② 도착지 점을 눌러 줘: '+(r?.destination||''),'③ 경로를 확인하고 오른쪽 질문에 답해 줘.'];
+ if(status&&r)status.textContent=steps[Math.max(0,Math.min(2,globeTapStage))];
+ if(instruction&&r){instruction.textContent=steps[Math.max(0,Math.min(2,globeTapStage))];instruction.dataset.stage=String(globeTapStage);}
+ if($('migrationCheck'))$('migrationCheck').disabled=globeTapStage!==2||!migrationReasonSelected;
+ if($('migrationReasonLinks'))$('migrationReasonLinks').querySelectorAll('button').forEach(b=>b.disabled=globeTapStage!==2);
 }
 function migrationChooseOrigin(id){
  const r=MIGRATION_ROUTES.find(x=>x.id===id);if(!r)return;
@@ -620,12 +639,23 @@ function migrationChooseOrigin(id){
  if($('migrationQuestionCountry'))$('migrationQuestionCountry').textContent=r.name+' → '+r.destination;
  migrationReasonSelected=MIGRATION_REASON_CHOICES.some(x=>x.id===migrationChoices[id])?migrationChoices[id]:'';
  const hispanic=r.id==='al';
- const question=hispanic?'이러한 인구 이동은 미국의 인구 구성에 어떤 영향을 주었을까?':r.reason==='forced'?'이 사람들은 어떤 역사적 배경에서 강제로 이동했을까?':r.reason==='settlement'?'이 사람들은 어떤 식민 지배와 정착의 역사 속에서 이동했을까?':'이 사람들은 어떤 배경에서 이동했을까?';
+ const questionByRoute={
+  ae:'영국·유럽 이주민이 캐나다에 정착하면서 오늘날까지 남긴 언어는 무엇일까?',
+  af:'서아프리카 사람들이 미국으로 강제로 이동하게 된 역사적 배경은 무엇일까?',
+  aa:'동아시아 사람들이 미국으로 이주한 주된 까닭은 무엇일까?',
+  al:'멕시코 등 라틴아메리카 출신 이주민의 증가는 미국의 인구 구성에 어떤 변화를 가져왔을까?',
+  ls:'에스파냐의 식민 지배 이후 멕시코에서 널리 쓰이게 된 언어는 무엇일까?',
+  lp:'포르투갈의 식민 지배 이후 브라질에서 널리 쓰이게 된 언어는 무엇일까?',
+  lf:'서아프리카 사람들이 브라질로 강제로 이동하게 된 역사적 배경은 무엇일까?',
+  la:'동아시아 사람들이 브라질로 이주한 주된 까닭은 무엇일까?'
+ };
+ const question=questionByRoute[r.id]||'이 이동 경로에서 확인할 수 있는 역사적 사실은 무엇일까?';
  if($('migrationBigQuestion'))$('migrationBigQuestion').textContent=question;
+ if($('migrationWriteLabel'))$('migrationWriteLabel').textContent=hispanic?'미국 인구 구성에 생긴 변화를 골라 봐.':'질문에 맞는 답을 골라 봐.';
  if($('migrationHispanicDefinition')){$('migrationHispanicDefinition').hidden=!hispanic;$('migrationHispanicDefinition').textContent=hispanic?'히스패닉: 에스파냐어를 모국어로 사용하면서 미국에 거주하는 라틴 아메리카 출신 사람.':'';}
  migrationRenderReasons();
  if($('migrationFeedback'))$('migrationFeedback').textContent=migrationChoices[id]?'이 경로의 답을 저장했어.':'';
- globeTapStage=2;globeAngle=r.coords[1];globeLat=r.coords[0]*.3;globeLast=performance.now();migrationUpdate();migrationMapDraw();
+ globeTapStage=0;globeAngle=r.coords[1];globeLat=r.coords[0]*.3;globeLast=performance.now();migrationUpdate();migrationMapDraw();
 }
 function migrationRenderReasons(){
  const el=$('migrationReasonLinks'),r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected);if(!el||!r)return;
@@ -635,15 +665,32 @@ function migrationRenderReasons(){
    {id:'settlement',text:'미국의 인구가 유럽계만으로 바뀌었다.'},
    {id:'forced',text:'미국으로 이주한 모든 아프리카계 인구가 감소했다.'},
    {id:'economic',text:'이 이동은 캐나다의 인구 구성에만 영향을 주었다.'}
-  ]:MIGRATION_REASON_CHOICES.filter(x=>x.id!=='hispanic');
+  ]:r.reason==='settlement'&&r.id==='ae'?
+  [{id:'settlement',text:'영어와 영국 문화가 캐나다 사회에 자리 잡았다.'},{id:'forced',text:'아프리카계 주민이 모두 캐나다를 떠났다.'},{id:'economic',text:'캐나다에서 스페인어가 공용어가 되었다.'},{id:'hispanic',text:'이 이동은 미국의 인구 구성에만 영향을 주었다.'}]:
+  r.reason==='settlement'?
+  [{id:'settlement',text:r.id==='ls'?'에스파냐의 식민 지배 뒤 멕시코에서 스페인어가 널리 쓰이게 되었다.':'포르투갈의 식민 지배 뒤 브라질에서 포르투갈어가 널리 쓰이게 되었다.'},{id:'forced',text:'이주민이 모두 아메리카를 떠났다.'},{id:'economic',text:'현지에서 영어가 공용어가 되었다.'},{id:'hispanic',text:'이 이동은 캐나다의 인구 구성에만 영향을 주었다.'}]:
+  r.reason==='forced'?
+  [{id:'forced',text:'대서양 노예 무역으로 아프리카 사람들이 강제로 이주했다.'},{id:'settlement',text:'휴가와 관광을 위해 자유롭게 이동했다.'},{id:'economic',text:'유럽 유학을 위해 이주했다.'},{id:'hispanic',text:'모두 멕시코에서 미국으로 이동했다.'}]:
+  [{id:'economic',text:'일자리와 경제적 기회를 찾으려 이주했다.'},{id:'settlement',text:'식민 지배를 위해 국가가 강제로 보냈다.'},{id:'forced',text:'대서양 노예 무역에 따른 강제 이주였다.'},{id:'hispanic',text:'모두 유럽으로 돌아갔다.'}];
  el.innerHTML=options.map(x=>'<button type="button" class="migrationReasonChoice'+(migrationReasonSelected===x.id?' selected':'')+'" data-migration-reason="'+esc(x.id)+'" aria-pressed="'+(migrationReasonSelected===x.id)+'"><span class="migrationReasonDot" aria-hidden="true"></span><span>'+esc(x.text)+'</span></button>').join('');
  el.querySelectorAll('[data-migration-reason]').forEach(button=>button.onclick=()=>{
   migrationReasonSelected=button.dataset.migrationReason||'';
   el.querySelectorAll('[data-migration-reason]').forEach(item=>{const on=item.dataset.migrationReason===migrationReasonSelected;item.classList.toggle('selected',on);item.setAttribute('aria-pressed',String(on));});
   if($('migrationFeedback'))$('migrationFeedback').textContent='선택한 답: '+(options.find(x=>x.id===migrationReasonSelected)?.text||'');
-  if($('migrationCheck'))$('migrationCheck').disabled=false;
+  if($('migrationCheck'))$('migrationCheck').disabled=globeTapStage!==2;
+  const r0=MIGRATION_ROUTES.find(x=>x.id===migrationSelected),draft={...(me?.inquiry?.routeProcessDraft||{}),[migrationSelected]:{...((me?.inquiry?.routeProcessDraft||{})[migrationSelected]||{}),origin:globeTapStage>=1,destination:globeTapStage>=2,selected:globeTapStage,choice:migrationReasonSelected,updatedAt:Date.now()}};
+  if(me?.inquiry)me.inquiry.routeProcessDraft=draft;
+  if(r0&&!PREVIEW_ONLY&&playerRef&&serverVerified&&firebaseState==='online')playerRef.child('inquiry/routeProcessDraft').update({[migrationSelected]:draft[migrationSelected]}).catch(()=>{});
+  migrationMapDraw();
  });
- if($('migrationCheck'))$('migrationCheck').disabled=!migrationReasonSelected;
+ if($('migrationCheck'))$('migrationCheck').disabled=!migrationReasonSelected||globeTapStage!==2;
+ if(globeTapStage!==2)el.querySelectorAll('button').forEach(b=>b.disabled=true);
+}
+function migrationStoreRouteProgress(stage){
+ const r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected);if(!r)return;
+ const state={...(me?.inquiry?.routeProcessDraft||{}),[r.id]:{origin:true,destination:stage==='destination',selected:globeTapStage,updatedAt:Date.now()}};
+ if(me?.inquiry)me.inquiry.routeProcessDraft=state;
+ if(!PREVIEW_ONLY&&playerRef&&serverVerified&&firebaseState==='online')playerRef.child('inquiry/routeProcessDraft').update({[r.id]:state[r.id]}).catch(()=>{});
 }
 function migrationShowChapter(region){
  const old=$('migrationChapterPopup');if(old)old.remove();
@@ -680,12 +727,18 @@ async function migrationCheckReason(){
  const r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected),choice=migrationReasonSelected;
  if(!r||migrationSaving)return;
  if(!PREVIEW_ONLY&&(!playerRef||!serverVerified||firebaseState!=='online'))return inquiryNotice('서버에 연결한 뒤 답을 저장할 수 있어. 연결 상태를 확인해 줘.',true);
- if(!choice)return inquiryNotice('이 경로에 맞는 이동 이유를 하나 선택해 줘.',true);
- if(choice!==r.reason){$('migrationFeedback').textContent='다시 생각해 봐. 출발지와 도착지, 역사 단서를 함께 살펴봐.';return;}
+ if(globeTapStage!==2)return inquiryNotice('큰 안내에 나온 출발지와 도착지 점을 먼저 눌러 줘.',true);
+ if(!choice)return inquiryNotice('질문에 맞는 답을 하나 선택해 줘.',true);
+ if(choice!==r.reason){
+  const prior=me?.inquiry?.routeProcessDraft?.[r.id]||{},attempts=[...(prior.attempts||[]),{choice,correct:false,at:Date.now()}].slice(-20),entry={...prior,origin:true,destination:true,selected:2,choice,attempts};
+  if(me?.inquiry){me.inquiry.routeProcessDraft=me.inquiry.routeProcessDraft||{};me.inquiry.routeProcessDraft[r.id]=entry;}
+  if(!PREVIEW_ONLY&&playerRef&&serverVerified&&firebaseState==='online')playerRef.child('inquiry/routeProcessDraft').update({[r.id]:entry}).catch(()=>{});
+  $('migrationFeedback').textContent='다시 살펴봐. 지도 경로와 질문 속 나라를 같이 확인해 줘.';return;
+ }
  const previous={...migrationChoices};migrationChoices[r.id]=choice;
  migrationSaving=true;if($('migrationCheck'))$('migrationCheck').disabled=true;
  if(!PREVIEW_ONLY&&playerRef&&serverVerified&&firebaseState==='online'){
-  try{await playerRef.child('inquiry').update({routeDraft:{...migrationChoices}});}
+  try{const prior=me?.inquiry?.routeProcessDraft?.[r.id]||{},entry={...prior,origin:true,destination:true,selected:2,answer:choice,attempts:[...(prior.attempts||[]),{choice,correct:true,at:Date.now()}].slice(-20),submittedAt:Date.now()};await playerRef.child('inquiry').update({routeDraft:{...migrationChoices},routeProcessDraft:{...(me?.inquiry?.routeProcessDraft||{}),[r.id]:entry}});}
   catch(e){migrationChoices=previous;$('migrationFeedback').textContent='저장에 실패했어. 연결을 확인한 뒤 다시 눌러 줘.';if($('migrationCheck'))$('migrationCheck').disabled=false;migrationSaving=false;return;}
  }
  migrationSaving=false;
@@ -715,10 +768,10 @@ function migrationInit(){
  if(scene==='anglo'&&!PREVIEW_ONLY&&!Number(me?.classControlRevision))migrationShowChapter('anglo');
 }
 const INQUIRY_CULTURES=[
- {name:'과달루페 성모상',country:'멕시코'},
- {name:'탱고',country:'아르헨티나'},
- {name:'햄버거',country:'미국'},
- {name:'리우 카니발',country:'브라질'}
+ {name:'과달루페 성모상',country:'멕시코',query:'Our Lady of Guadalupe Mexico'},
+ {name:'탱고',country:'아르헨티나',query:'Tango dance Argentina'},
+ {name:'햄버거',country:'미국',query:'hamburger history United States'},
+ {name:'리우 카니발',country:'브라질',query:'Rio Carnival Brazil'}
 ];
 const CULTURE_ANSWERS=[['eu-religion','native'],['eu-music','africa-rhythm'],['german-food','us-life'],['eu-festival','africa-drums']];
 const INQUIRY_ROOTS=[
@@ -761,30 +814,81 @@ function cultureUpdateCheckCTA(){
 function inquiryEnableMixer(){
  const country=$('inqCultureCountry');if(!country)return;
  const chips=[...document.querySelectorAll('.inquiryRootChip')];
- country.onchange=()=>{if(Number(country.value)!==cultureActive){country.value=String(cultureActive);return;}const old=Number(country.dataset.previous||0);if($('inqCultureReason')&&cultureSolved[old]){const value=$('inqCultureReason').value.trim();if(value.length>=18)cultureReasons[old]=value;}country.dataset.previous=country.value;if($('inqCultureReason'))$('inqCultureReason').value=cultureReasons[Number(country.value)]||'';chips.forEach(x=>x.setAttribute('aria-pressed','false'));inquiryUpdateEquation();cultureUpdatePicture();if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent=(cultureSolved[Number(country.value)]?'완료한 사례예요.':'문화 요소 두 개를 찾아보세요.');cultureUpdateCheckCTA();};
+ country.value=String(cultureActive);country.disabled=true;country.dataset.previous=String(cultureActive);
+ chips.forEach(x=>x.setAttribute('aria-pressed',String((cultureSelections[cultureActive]||[]).includes(x.dataset.root))));
+ if($('inqCultureReason'))$('inqCultureReason').value=cultureReasonDrafts[cultureActive]||cultureReasons[cultureActive]||'';
  if($('cultureQuizCheck'))$('cultureQuizCheck').onclick=cultureQuizCheck;
  if($('cultureSaveReason'))$('cultureSaveReason').onclick=cultureSaveReason;
+ if($('inqCultureReason'))$('inqCultureReason').oninput=()=>{cultureReasonDrafts[cultureActive]=$('inqCultureReason').value;culturePersist();};
  cultureUpdatePicture();
  for(const chip of chips)chip.onclick=()=>{
   const on=chip.getAttribute('aria-pressed')==='true';
   if(!on&&inquiryPickedRoots().length>=2)return inquiryNotice('문화 요소는 두 개만 골라 줘.',true);
   chip.setAttribute('aria-pressed',on?'false':'true');
-  inquiryNotice('');inquiryUpdateEquation();
+  cultureSelections[cultureActive]=inquiryPickedRoots().map(x=>x.id);culturePersist();inquiryNotice('');inquiryUpdateEquation();
  };
  inquiryUpdateEquation();
 }
-let cultureSolved={},cultureReasons={},cultureLockUntil=0,cultureLockTimer=null;
-const CULTURE_PICTURES=['⛪🌺','💃🎻','🍔🥨','🎭🥁'];
-let cultureActive=0;
-function culturePersist(){if(!PREVIEW_ONLY&&playerRef&&serverVerified&&firebaseState==='online')playerRef.child('inquiry').update({cultureDraft:{solved:{...cultureSolved},reasons:{...cultureReasons},active:cultureActive}}).catch(()=>inquiryNotice('문화 답변 저장 실패. 연결을 확인해 줘.',true));}
-function cultureUpdatePicture(){const n=Number($('inqCultureCountry')?.value)||0;if($('inqCultureCountry')){$('inqCultureCountry').value=String(cultureActive);$('inqCultureCountry').disabled=true;}if($('cultureCasePicture'))$('cultureCasePicture').textContent=CULTURE_PICTURES[n]||'🎨';if($('cultureCaseProgress'))$('cultureCaseProgress').textContent='완료 '+Object.keys(cultureSolved).filter(i=>cultureReasons[i]&&cultureReasons[i].length>=18).length+' / '+INQUIRY_CULTURES.length;}
-function cultureSaveReason(){const n=Number($('inqCultureCountry')?.value)||0,reason=String($('inqCultureReason')?.value||'').trim();if(!cultureSolved[n])return inquiryNotice('문화 요소 정답을 먼저 확인해 줘.',true);if(reason.length<18)return inquiryNotice('이 문화가 결합한 이유를 18자 이상 적어 줘.',true);cultureReasons[n]=reason;if(n<INQUIRY_CULTURES.length-1){cultureActive=n+1;const country=$('inqCultureCountry');country.value=String(cultureActive);country.dataset.previous=String(cultureActive);if($('inqCultureReason'))$('inqCultureReason').value=cultureReasons[cultureActive]||'';document.querySelectorAll('.inquiryRootChip').forEach(x=>x.setAttribute('aria-pressed','false'));inquiryUpdateEquation();if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent='① 문화 요소 두 개를 선택해 주세요.';inquiryUpdateEquation();inquiryNotice('이전 사례 완료! 다음 문화 사례를 탐구해 보자.');}else inquiryNotice('4개 사례 모두 완료! 역사 탐정 단계로 이동할 수 있어.');cultureUpdatePicture();culturePersist();}
+let cultureSolved={},cultureReasons={},cultureSelections={},cultureReasonDrafts={},cultureDrawings={},cultureReferences={},cultureSearchQueries={},cultureLockUntil=0,cultureLockTimer=null,culturePersistTimer=null,cultureActive=0,culturePen='#e64b5d',cultureTool='pen',cultureCurrentStroke=null,cultureResizeObserver=null;
+let inquiryDraftTimer=null;
+function saveInquiryProcessDraft(section,data){
+ if(!me)return;
+ me.inquiry=me.inquiry||{};me.inquiry.processDraft=me.inquiry.processDraft||{};me.inquiry.processDraft[section]={...(me.inquiry.processDraft[section]||{}),...data,updatedAt:Date.now()};
+ clearTimeout(inquiryDraftTimer);inquiryDraftTimer=setTimeout(()=>{if(!PREVIEW_ONLY&&playerRef&&serverVerified&&firebaseState==='online')playerRef.child('inquiry/processDraft/'+section).update(data).catch(()=>{});},650);
+}
+function culturePersist(){
+ if(me){me.inquiry=me.inquiry||{};me.inquiry.cultureDraft={...(me.inquiry.cultureDraft||{}),solved:{...cultureSolved},reasons:{...cultureReasons},reasonDrafts:{...cultureReasonDrafts},selections:{...cultureSelections},drawings:{...cultureDrawings},references:{...cultureReferences},searchQueries:{...cultureSearchQueries},active:cultureActive,updatedAt:Date.now()};}
+ if(!PREVIEW_ONLY&&playerRef&&serverVerified&&firebaseState==='online'){
+  clearTimeout(culturePersistTimer);culturePersistTimer=setTimeout(()=>playerRef.child('inquiry/cultureDraft').update({solved:{...cultureSolved},reasons:{...cultureReasons},reasonDrafts:{...cultureReasonDrafts},selections:{...cultureSelections},drawings:{...cultureDrawings},references:{...cultureReferences},searchQueries:{...cultureSearchQueries},active:cultureActive,updatedAt:Date.now()}).catch(()=>inquiryNotice('문화 답변 저장 실패. 연결을 확인해 줘.',true)),450);
+ }
+}
+function cultureUpdatePicture(){const n=cultureActive;if($('inqCultureCountry')){$('inqCultureCountry').value=String(cultureActive);$('inqCultureCountry').disabled=true;}if($('cultureCaseProgress'))$('cultureCaseProgress').textContent='완료 '+Object.keys(cultureSolved).filter(i=>cultureReasons[i]&&cultureReasons[i].length>=18).length+' / '+INQUIRY_CULTURES.length+' · '+INQUIRY_CULTURES[n].name;}
+function cultureSetTab(tab){const search=tab==='search';if($('cultureSearchPane'))$('cultureSearchPane').hidden=!search;if($('cultureDrawPane'))$('cultureDrawPane').hidden=search;if($('cultureSearchTab'))$('cultureSearchTab').setAttribute('aria-pressed',String(search));if($('cultureDrawTab'))$('cultureDrawTab').setAttribute('aria-pressed',String(!search));if(!search)cultureCanvasResize();}
+function cultureImageSearch(){
+ const input=$('cultureSearchInput'),results=$('cultureSearchResults'),button=$('cultureSearchButton');if(!input||!results)return;
+ const queries=['Our Lady of Guadalupe Mexico','Tango dance Argentina','hamburger history United States','Rio Carnival Brazil'];
+ input.value=cultureSearchQueries[cultureActive]||INQUIRY_CULTURES[cultureActive].query||queries[cultureActive];
+ const run=async()=>{
+  const q=input.value.trim();if(!q)return;cultureSearchQueries[cultureActive]=q;culturePersist();results.innerHTML='<span>사진을 찾고 있어…</span>';
+  try{
+   const url='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch='+encodeURIComponent(q)+'&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url&iiurlwidth=300&format=json&origin=*';
+   const response=await fetch(url);if(!response.ok)throw Error('검색 연결 실패');const data=await response.json();
+   const pages=Object.values(data.query?.pages||{}).filter(p=>p.imageinfo?.[0]?.thumburl||p.imageinfo?.[0]?.url);
+   if(!pages.length){results.innerHTML='<span>사진이 없어요. 검색어를 바꿔 봐.</span>';return;}
+   results.innerHTML=pages.slice(0,8).map((p,i)=>{const info=p.imageinfo[0],ref={title:p.title.replace(/^File:/,''),url:info.thumburl||info.url,pageUrl:'https://commons.wikimedia.org/wiki/'+encodeURIComponent(p.title.replace(/ /g,'_'))};return '<a class="cultureReference" href="'+esc(ref.pageUrl)+'" target="_blank" rel="noopener" data-reference-index="'+i+'"><img loading="lazy" src="'+esc(ref.url)+'" alt="'+esc(ref.title)+'"><span>'+esc(ref.title)+'</span></a>';}).join('');
+   [...results.querySelectorAll('[data-reference-index]')].forEach((el,i)=>el.addEventListener('click',event=>{event.preventDefault();const p=pages[i],info=p.imageinfo[0];cultureReferences[cultureActive]={title:p.title.replace(/^File:/,''),url:info.thumburl||info.url,pageUrl:'https://commons.wikimedia.org/wiki/'+encodeURIComponent(p.title.replace(/ /g,'_'))};results.querySelectorAll('.cultureReference').forEach(x=>x.classList.remove('selected'));el.classList.add('selected');if($('cultureImageCredit'))$('cultureImageCredit').innerHTML='선택한 참고 사진: <a target="_blank" rel="noopener" href="'+esc(cultureReferences[cultureActive].pageUrl)+'">원본 출처 보기</a>';culturePersist();}));
+  }catch(e){results.innerHTML='<span>사진 검색에 연결하지 못했어. 잠시 뒤 다시 눌러 줘.</span>';}
+ };
+ if(button)button.onclick=run;input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();run();}};
+ if($('cultureSearchTab'))$('cultureSearchTab').onclick=()=>cultureSetTab('search');if($('cultureDrawTab'))$('cultureDrawTab').onclick=()=>cultureSetTab('draw');
+ run();
+}
+function cultureCanvasRedraw(){
+ const canvas=$('cultureDrawCanvas');if(!canvas)return;const ctx=canvas.getContext('2d'),w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;
+ const scale=Math.min(devicePixelRatio||1,2);if(canvas.width!==Math.round(w*scale)||canvas.height!==Math.round(h*scale)){canvas.width=Math.round(w*scale);canvas.height=Math.round(h*scale);}ctx.setTransform(scale,0,0,scale,0,0);ctx.clearRect(0,0,w,h);ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+ const strokes=[...(cultureDrawings[cultureActive]||[])];if(cultureCurrentStroke)strokes.push(cultureCurrentStroke);
+ for(const stroke of strokes){if(!stroke.points?.length)continue;ctx.save();ctx.globalCompositeOperation=stroke.tool==='eraser'?'destination-out':'source-over';ctx.strokeStyle=stroke.color||'#202b36';ctx.lineWidth=Math.max(3,(stroke.size||.008)*w);ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();stroke.points.forEach((p,i)=>{const x=p[0]*w,y=p[1]*h;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});if(stroke.points.length===1)ctx.lineTo(stroke.points[0][0]*w+.1,stroke.points[0][1]*h+.1);ctx.stroke();ctx.restore();}
+}
+function cultureCanvasResize(){cultureCanvasRedraw();}
+function cultureInitCanvas(){
+ const canvas=$('cultureDrawCanvas');if(!canvas)return;if(cultureResizeObserver)cultureResizeObserver.disconnect();cultureResizeObserver=new ResizeObserver(cultureCanvasResize);cultureResizeObserver.observe(canvas);
+ const point=e=>{const r=canvas.getBoundingClientRect();return [Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))];};
+ canvas.onpointerdown=e=>{canvas.setPointerCapture(e.pointerId);cultureCurrentStroke={tool:cultureTool,color:culturePen,size:cultureTool==='eraser'?.045:.008,points:[point(e)]};cultureCanvasRedraw();};
+ canvas.onpointermove=e=>{if(!cultureCurrentStroke)return;const p=point(e),last=cultureCurrentStroke.points.at(-1);if(last&&Math.hypot(p[0]-last[0],p[1]-last[1])<.003)return;if(cultureCurrentStroke.points.length<400)cultureCurrentStroke.points.push(p);cultureCanvasRedraw();};
+ const finish=()=>{if(!cultureCurrentStroke)return;cultureDrawings[cultureActive]=[...(cultureDrawings[cultureActive]||[]),cultureCurrentStroke].slice(-250);cultureCurrentStroke=null;cultureCanvasRedraw();culturePersist();};canvas.onpointerup=finish;canvas.onpointercancel=finish;
+ document.querySelectorAll('.cultureColor').forEach(b=>b.onclick=()=>{cultureTool='pen';culturePen=b.dataset.color;document.querySelectorAll('.cultureColor').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));});
+ if($('cultureEraser'))$('cultureEraser').onclick=()=>{cultureTool='eraser';document.querySelectorAll('.cultureColor').forEach(x=>x.setAttribute('aria-pressed','false'));};
+ if($('cultureUndo'))$('cultureUndo').onclick=()=>{cultureDrawings[cultureActive]=(cultureDrawings[cultureActive]||[]).slice(0,-1);cultureCanvasRedraw();culturePersist();};
+ if($('cultureClear'))$('cultureClear').onclick=()=>{cultureDrawings[cultureActive]=[];cultureCanvasRedraw();culturePersist();};
+ cultureCanvasResize();
+}
+function cultureSaveReason(){const n=cultureActive,reason=String($('inqCultureReason')?.value||'').trim();if(!cultureSolved[n])return inquiryNotice('문화 요소 정답을 먼저 확인해 줘.',true);if(reason.length<18)return inquiryNotice('이 문화가 결합한 이유를 18자 이상 적어 줘.',true);cultureReasons[n]=reason;cultureReasonDrafts[n]=reason;if(n<INQUIRY_CULTURES.length-1){cultureActive=n+1;const country=$('inqCultureCountry');country.value=String(cultureActive);country.dataset.previous=String(cultureActive);if($('inqCultureReason'))$('inqCultureReason').value=cultureReasonDrafts[cultureActive]||'';document.querySelectorAll('.inquiryRootChip').forEach(x=>x.setAttribute('aria-pressed',String((cultureSelections[cultureActive]||[]).includes(x.dataset.root))));inquiryUpdateEquation();if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent='문화 요소 두 개를 골라 봐.';cultureUpdatePicture();cultureImageSearch();cultureCanvasRedraw();inquiryNotice('이 사례 저장 완료. 다음 문화 사례를 살펴보자.');}else inquiryNotice('4개 사례 모두 완료! 역사 탐정 단계로 이동할 수 있어.');cultureUpdatePicture();culturePersist();}
 function cultureQuizCheck(){
  const index=Number($('inqCultureCountry')?.value)||0,chosen=inquiryPickedRoots().map(x=>x.id).sort(),expected=(CULTURE_ANSWERS[index]||[]).slice().sort();
  const notice=$('cultureQuizFeedback');if(!notice)return;
  if(Date.now()<cultureLockUntil)return;
  if(chosen.length!==2){notice.textContent='문화 요소 두 개를 골라 확인해 보세요.';return;}
- if(chosen.join('|')===expected.join('|')){cultureSolved[index]=chosen;notice.textContent='✓ 정답! 아래에 결합한 이유를 작성한 뒤 [이 사례의 이유 저장하기]를 눌러 주세요.';cultureUpdatePicture();cultureUpdateCheckCTA();culturePersist();}
+ if(chosen.join('|')===expected.join('|')){cultureSolved[index]=chosen;cultureSelections[index]=chosen;notice.textContent='✓ 정답! 아래에 결합한 이유를 쓰고 이 사례를 저장해 줘.';cultureUpdatePicture();cultureUpdateCheckCTA();culturePersist();}
  else{cultureLockUntil=Date.now()+10000;notice.textContent='다시 생각해 보세요. 10초 후 재도전할 수 있어요.';document.querySelectorAll('.inquiryRootChip,#cultureQuizCheck').forEach(x=>x.disabled=true);cultureUpdateCheckCTA();
  clearTimeout(cultureLockTimer);cultureLockTimer=setTimeout(()=>{document.querySelectorAll('.inquiryRootChip,#cultureQuizCheck').forEach(x=>x.disabled=false);if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent='다시 선택한 다음 정답 확인 버튼을 눌러 주세요.';cultureUpdateCheckCTA();},10000);}
 }
@@ -835,14 +939,14 @@ function inquiryRender(){
     '<section class="inquiryData inquiryChartPanel"><h3>출발지 → 도착지</h3><div class="migrationRegions">'+
     '<button data-migration-region="anglo" type="button">앵글로아메리카 <span>0/4</span></button>'+
     '<button data-migration-region="latin" type="button">라틴아메리카 <span>0/4</span></button></div>'+
-    '<div id="inqMigrationMap" class="migrationMap"></div>'+
+    '<div id="migrationMapInstruction" class="migrationMapInstruction" aria-live="polite">① 출발지 점을 눌러 줘</div><div id="inqMigrationMap" class="migrationMap"></div>'+
     '</section>'+
     '<section class="inquiryQuestion inquiryAnswerPanel"><h3>인구 이동 탐구 <small id="migrationProgress"></small></h3>'+
     '<div id="migrationRouteProgress" class="migrationRouteProgress" aria-live="polite"></div>'+
     '<p class="migrationQuestionCountry" id="migrationQuestionCountry"></p>'+
     '<div class="migrationBigQuestion" id="migrationBigQuestion">이 사람들은 왜 이동했을까?</div>'+
     '<p id="migrationHispanicDefinition" class="migrationWriteExample" hidden></p>'+
- '<p class="migrationWriteLabel" id="migrationWriteLabel">이동 이유를 하나 골라 줘.</p>'+
+ '<p class="migrationWriteLabel" id="migrationWriteLabel">질문에 맞는 답을 골라 봐.</p>'+
  '<div class="migrationReasonLinks" id="migrationReasonLinks" role="group" aria-label="이동 이유 선택"></div>'+
  '<button type="button" class="btn secondary" id="migrationCheck" disabled>선택한 이유 확인하기 →</button>'+
     '<p id="migrationFeedback" aria-live="polite"></p>'+
@@ -853,12 +957,12 @@ function inquiryRender(){
     '<section class="inquiryData inquiryChartPanel"><button type="button" class="btn secondary migrationBack" id="migrationBack">← 인구 이동 단계로</button><h3>교과서 원그래프 · 민족과 인종 구성</h3>'+
     '<div class="inquiryGraphWrap"><img class="inquiryOriginalGraph" src="assets/americas_population_97.webp" alt="아메리카 국가별 민족과 인종 구성 원그래프"></div>'+
     '<p class="inquirySource"><a href="assets/americas_population_97.webp" target="_blank" rel="noopener">원그래프 크게 보기</a></p></section>'+
-    '<section class="inquiryQuestion inquiryAnswerPanel"><div class="migrationBigQuestion">원그래프에서 어떤 차이를 발견했나요?</div><h3>원그래프 관찰 · 서술형</h3>'+
+    '<section class="inquiryQuestion inquiryAnswerPanel"><div class="migrationBigQuestion">미국과 멕시코의 원그래프를 비교해 봐.</div><h3>두 나라 인구 구성 비교</h3>'+
     ''+
-    '<div class="inquiryCountryPick"><label>첫 번째 국가<select id="inqCountryA">'+options+'</select></label>'+
-    '<label>두 번째 국가<select id="inqCountryB">'+options+'</select></label></div>'+
-    '<label for="inqEvidence">① 각 나라에서 가장 비율이 높은 집단을 찾고 ② 두 나라의 차이를 원그래프의 비율을 근거로 설명하세요.</label>'+
-    '<textarea id="inqEvidence" rows="4" placeholder="첫 번째 나라에서 가장 비율이 높은 집단은 …, 두 번째 나라는 …이다. 두 나라의 차이는 …이다."></textarea>'+
+    '<div class="inquiryCountryPick inquiryFixedCompare"><div><span>비교할 나라 ①</span><strong>미국</strong></div><span class="compareVs">비교</span><div><span>비교할 나라 ②</span><strong>멕시코</strong></div></div>'+
+    '<input type="hidden" id="inqCountryA" value="미국"><input type="hidden" id="inqCountryB" value="멕시코">'+
+    '<label for="inqEvidence">원그래프에서 미국과 멕시코의 가장 큰 인구 집단과 비율을 각각 찾아 비교해 봐.</label>'+
+    '<textarea id="inqEvidence" rows="4" placeholder="미국은 ○○계가 73%로 가장 크고, 멕시코는 ○○계가 64%로 가장 커. 가장 큰 집단과 비율이 이렇게 달라."></textarea>'+
     '<button type="button" class="btn mint" id="inquirySubmit">원그래프 관찰 저장 · 다음 단계 →</button></section></div>';
  }else if(step===3){
    title='서로 다른 문화가 만나면 무엇이 만들어질까?';
@@ -870,7 +974,11 @@ function inquiryRender(){
     '<div class="inquiryCultureIntro"><label for="inqCultureCountry">순서대로 탐구하기 (과달루페 → 탱고 → 햄버거 → 카니발)</label>'+
     '<select id="inqCultureCountry">'+countries+'</select></div>'+
     '<div class="inquiryCultureResult">탐구 문화: <span id="inqCultureName"></span></div>'+
-    '<div class="culturePicturePanel" aria-label="문화 사례를 나타내는 그림"><div id="cultureCasePicture" class="culturePictureEmoji">⛪🌺</div><span id="cultureCaseProgress">완료 0 / 4</span></div>'+
+    '<div class="culturePicturePanel" aria-label="문화 사례 참고 사진 검색과 그림판">'+
+    '<div class="culturePictureTabs"><button type="button" id="cultureSearchTab" aria-pressed="true">사례 사진 찾기</button><button type="button" id="cultureDrawTab" aria-pressed="false">직접 그리기</button></div>'+
+    '<div id="cultureSearchPane"><div class="cultureSearchRow"><input id="cultureSearchInput" aria-label="문화 사례 사진 검색어"><button type="button" id="cultureSearchButton">검색</button></div><div id="cultureSearchResults" class="cultureSearchResults" aria-live="polite"></div><p id="cultureImageCredit" class="cultureImageCredit">Wikimedia Commons의 사진을 눌러 원본을 볼 수 있어.</p></div>'+
+    '<div id="cultureDrawPane" hidden><canvas id="cultureDrawCanvas" aria-label="손가락이나 펜으로 문화 사례 그리기"></canvas><div class="cultureCanvasTools">'+
+    '<button class="cultureColor" type="button" data-color="#e64b5d" aria-label="빨강" style="background:#e64b5d" aria-pressed="true"></button><button class="cultureColor" type="button" data-color="#f2a900" aria-label="노랑" style="background:#f2a900" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#27885a" aria-label="초록" style="background:#27885a" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#2878c8" aria-label="파랑" style="background:#2878c8" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#874ab8" aria-label="보라" style="background:#874ab8" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#202b36" aria-label="검정" style="background:#202b36" aria-pressed="false"></button><button type="button" id="cultureEraser">지우개</button><button type="button" id="cultureUndo">한 획 지우기</button><button type="button" id="cultureClear">모두 지우기</button></div></div><span id="cultureCaseProgress">완료 0 / 4</span></div>'+
     '<p class="inquirySource">교과서 98~99쪽 사례에서 문화가 결합하는 과정을 찾아보자.</p></div>'+
     '<div class="inquiryQuestion"><h3>결합한 문화 요소 직접 고르기</h3>'+
     '<p>① 문화 요소 <b>2개 선택</b> → ② 큰 <b>정답 확인</b> 버튼 누르기 → ③ 이유 작성·저장</p>'+
@@ -918,10 +1026,13 @@ function inquiryRender(){
   '<p id="inqNotice" class="inquiryNotice" aria-live="polite"></p></section>';
  if(step===2){
    $('inqCountryA').value='미국';
-   $('inqCountryB').value='자메이카';
+   $('inqCountryB').value='멕시코';
+   const graphDraft=me?.inquiry?.processDraft?.graph||{};$('inqEvidence').value=graphDraft.evidence||'';
+   $('inqEvidence').addEventListener('input',()=>saveInquiryProcessDraft('graph',{a:'미국',b:'멕시코',evidence:$('inqEvidence').value}));
    migrationInit();
  }
- if(step===3){const draft=me?.inquiry?.cultureDraft||{};cultureSolved={...(draft.solved||{})};cultureReasons={...(draft.reasons||{})};cultureActive=Math.max(0,Math.min(INQUIRY_CULTURES.length-1,Number(draft.active)||0));inquiryEnableMixer();}
+ if(step===3){const draft=me?.inquiry?.cultureDraft||{};cultureSolved={...(draft.solved||{})};cultureReasons={...(draft.reasons||{})};cultureSelections={...(draft.selections||{})};cultureReasonDrafts={...(draft.reasonDrafts||draft.reasons||{})};cultureDrawings={...(draft.drawings||{})};cultureReferences={...(draft.references||{})};cultureSearchQueries={...(draft.searchQueries||{})};cultureActive=Math.max(0,Math.min(INQUIRY_CULTURES.length-1,Number(draft.active)||0));inquiryEnableMixer();cultureImageSearch();cultureInitCanvas();}
+ if(step===4){const d=me?.inquiry?.processDraft?.reflection||{};for(const [id,key] of [['inqClue','clue'],['inqMigrationHypothesis','hypothesis'],['inqCultureClue','cultureClue'],['inqFinal','final']]){if($(id)){ $(id).value=d[key]||'';$(id).addEventListener('input',()=>saveInquiryProcessDraft('reflection',{[key]:$(id).value}));}}}
  if($('inquirySubmit'))$('inquirySubmit').onclick=()=>inquirySubmit(step);
  showConn();
 }
@@ -932,14 +1043,13 @@ async function inquirySubmit(step){
  let answer={};
  const v=id=>String($(id)?.value||'').trim();
  if(step===2){
-   const a=v('inqCountryA'),b=v('inqCountryB'),evidence=v('inqEvidence');
-   if(!a||!b||a===b)return inquiryNotice('서로 다른 두 나라를 골라 줘.',true);
+   const a='미국',b='멕시코',evidence=v('inqEvidence');
 
    if(evidence.length<25){
      return inquiryNotice('원그래프에서 관찰한 두 나라의 인구 구성 차이를 25자 이상 적어 줘.',true);
    }
    if(migrationCount('anglo')<4||migrationCount('latin')<4)return inquiryNotice('앵글로와 라틴아메리카 인구 이동 경로를 모두 완료해 줘.',true);
- answer={a,b,evidence,cause:'',migration:{...migrationChoices}};
+   answer={a,b,evidence,cause:'',migration:{...migrationChoices},processDraft:me?.inquiry?.processDraft||{}};
  }else if(step===3){
    const index=Number($('inqCultureCountry')?.value);
    const culture=INQUIRY_CULTURES[index],roots=inquiryPickedRoots(),reason=v('inqCultureReason');
@@ -947,7 +1057,7 @@ async function inquirySubmit(step){
    if(cultureSolved[index]&&reason.length>=18)cultureReasons[index]=reason;
    if(INQUIRY_CULTURES.some((c,i)=>!cultureSolved[i]||!cultureReasons[i]||cultureReasons[i].length<18))return inquiryNotice('4개 사례 모두 정답을 확인하고 결합 이유까지 작성해 줘.',true);
    if(index!==INQUIRY_CULTURES.length-1)return inquiryNotice('마지막 사례까지 순서대로 완료해 줘.',true);
-   answer={completedCases:Object.keys(cultureSolved).map(i=>({name:INQUIRY_CULTURES[i].name,country:INQUIRY_CULTURES[i].country,elements:cultureSolved[i],reason:cultureReasons[i]})),country:culture.country,culture:culture.name,elements:roots.map(x=>x.text),
+   answer={completedCases:Object.keys(cultureSolved).map(i=>({name:INQUIRY_CULTURES[i].name,country:INQUIRY_CULTURES[i].country,elements:cultureSolved[i],elementLabels:(cultureSolved[i]||[]).map(id=>INQUIRY_ROOTS.find(x=>x.id===id)?.text||id),reason:cultureReasons[i],drawing:cultureDrawings[i]||[],reference:cultureReferences[i]||null})),country:culture.country,culture:culture.name,elements:roots.map(x=>x.text),
     formula:roots.map(x=>x.text).join(' + ')+' = '+culture.name+' ('+culture.country+')',
     reason,link:''};
  }else if(step===4){
@@ -956,7 +1066,7 @@ async function inquirySubmit(step){
    if(hypothesis.length<15)return inquiryNotice('② 에스파냐에서 전해진 문화를 설명해 줘.',true);
    if(cultureClue.length<12)return inquiryNotice('③ 두 문화가 만난 모습을 적어 줘.',true);
    if(final.length<30)return inquiryNotice('④ 문화 혼종성인 이유를 30자 이상 설명해 줘.',true);
-   answer={final,clue,hypothesis,cultureClue,change:'죽은 자의 날 사례에서 문화 혼종성의 역사적 배경을 탐구함'};
+   answer={final,clue,hypothesis,cultureClue,processDraft:me?.inquiry?.processDraft||{},change:'죽은 자의 날 사례에서 문화 혼종성의 역사적 배경을 탐구함'};
  }else return;
  const button=$('inquirySubmit');if(button)button.disabled=true;
  inquirySaving=true;inquiryNotice('Firebase에 답변을 저장하는 중...');
@@ -1351,6 +1461,8 @@ function watchMe(){
       playerRef=null;me=null;destroyMap();store.del('amap-name-'+ROOM);
       renderJoin('선생님이 기록을 초기화했어요. 새로 시작하려면 이름을 입력해 주세요.');return;
     }
+    const previous=me;
+    const previousInquiryStep=previous?inquiryStep(previous):null;
     const next=norm(s.val(),me?.id);
     const teacherMoved=!!me&&next.teacherRevision!==me.teacherRevision;
     const changed=(!me)||sig(next)!==renderedSig;
@@ -1363,7 +1475,9 @@ function watchMe(){
     }else if(changed&&map){
       if(me.cur>=PROBLEMS.length&&!me.pending)inquiryRender();else renderProblem();
     }else if(changed&&$('inquiryRoot')){
-      if(me.cur<PROBLEMS.length||me.pending)renderStudent();else inquiryRender();
+      if(me.cur<PROBLEMS.length||me.pending)renderStudent();
+      else if(previousInquiryStep!==inquiryStep(me))inquiryRender();
+      else renderedSig=sig(me);
     }else if(map)refreshPieces();
   };
   playerRef.on('value',playerListener,err=>{hintStatus('Firebase에서 진도를 읽지 못했어요: '+err.message,'ng');});
@@ -2546,7 +2660,7 @@ function teacherRenderControls(p){
  '<p class="muted">이 학생 한 명만 선택한 화면으로 즉시 이동합니다. 기존 점수·완료 기록·서술형 답변은 지우지 않습니다.</p>'+
  '<label for="teacherProgress" style="font-weight:800">이 학생에게 보여줄 화면</label>'+
  '<select id="teacherProgress" style="width:100%;min-height:48px;font-size:16px">'+opts+'</select>'+
- '<button type="button" class="btn mint" id="teacherProgressApply" style="width:100%;min-height:56px;font-size:18px;font-weight:900;margin:8px 0 3px">선택한 학생 화면 강제 이동 →</button>'+
+ '<button type="button" class="btn mint" id="teacherProgressApply" data-student-key="'+esc(p.id)+'" style="width:100%;min-height:56px;font-size:18px;font-weight:900;margin:8px 0 3px">선택한 학생 화면 강제 이동 →</button>'+
  '<p id="teacherActionStatus" aria-live="polite" style="font-weight:800">현재 화면: '+esc(sceneLabel)+' · 교사 조정 '+(p.teacherAdjustments?.length||0)+'회</p>'+
  '<div class="teacherActionRow"><button type="button" class="btn secondary" id="teacherBackup">기록 백업</button>'+
  '<button type="button" class="btn secondary teacherDanger" id="teacherDelete">이 학생 기록 삭제</button></div>'+
@@ -2574,15 +2688,19 @@ function teacherApplySceneToRecord(x,scene,now){
  x.teacherAdjustments=[...(x.teacherAdjustments||[]),{from:previous,to,scene,at:now,individual:true}].slice(-30);
  return x;
 }
-async function teacherProgressApply(){
+async function teacherProgressApply(targetKey=selectedKey){
  if(!TEACHER||!db||!serverVerified||firebaseState!=='online')return teacherMessage('Firebase 연결을 확인한 뒤 개별 이동할 수 있어요.',true);
- const key=selectedKey,student=lastAll[key];
+ const key=String(targetKey||'');selectedKey=key;
+ let student=lastAll[key];
  if(!key||!student)return teacherMessage('목록에서 학생 이름을 먼저 선택해 줘.',true);
  const scene=Number($('teacherProgress')?.value);
  if(!Number.isInteger(scene)||scene<0||scene>49||(scene>36&&scene<43))return teacherMessage('선택한 화면 번호가 올바르지 않아.',true);
  const btn=$('teacherProgressApply');if(btn)btn.disabled=true;
  teacherMessage(student.name+' 학생에게 화면 이동 명령 전송 중...',false);
  try{
+  const live=await db.ref(PLAYERS_PATH+'/'+key).once('value');
+  if(!live.exists())throw Error('서버에서 학생의 최신 기록을 찾지 못했어요. 학생 목록을 새로고침해 주세요.');
+  student=norm(live.val(),key);
   const controlSnapshot=await db.ref(CLASS_CONTROL_PATH).once('value');
   const currentGroup=controlSnapshot.val()||{};
   const ref=db.ref(PLAYERS_PATH+'/'+key);
@@ -2597,7 +2715,8 @@ async function teacherProgressApply(){
   const record=result.snapshot.val();
   if(Number(record.individualScene)!==scene)throw Error('저장한 화면과 확인된 화면이 달라요.');
   teacherDraftProgress=null;
-  teacherMessage(student.name+' 학생만 강제 이동 완료 · 기록 서버 저장 확인',false);
+  lastAll={...lastAll,[key]:record};renderTeacherViews(lastAll);
+  teacherMessage(student.name+' 학생만 화면 이동 완료 · 서버 기록 확인됨',false);
  }catch(e){teacherMessage('개별 이동 실패: '+e.message,true);}
  finally{if(btn)btn.disabled=false;}
 }
@@ -2769,9 +2888,9 @@ function teacherMirrorAttach(){
 }
 function teacherPopulationAnswerGuide(){
  const routes=[
- ['영국·유럽 → 캐나다','식민 지배와 정착'],['서아프리카 → 미국','노예 무역에 따른 강제 이주'],
- ['동아시아 → 미국','일자리 등 경제적 이유'],['라틴아메리카 → 미국','미국 내 히스패닉 인구 증가'],
- ['에스파냐 → 멕시코','식민 지배와 정착'],['포르투갈 → 브라질','식민 지배와 정착'],
+ ['영국·유럽 → 캐나다','영국계 정착으로 영어와 영국 문화가 자리 잡음'],['서아프리카 → 미국','대서양 노예 무역에 따른 강제 이주'],
+ ['동아시아 → 미국','일자리와 경제적 기회를 찾는 이주'],['멕시코(히스패닉) → 미국','라틴아메리카 출신 이주민 증가로 히스패닉 인구 비중이 커짐'],
+ ['에스파냐 → 멕시코','식민 지배 뒤 스페인어가 널리 쓰이고 유럽계·원주민 문화가 만남'],['포르투갈 → 브라질','식민 지배 뒤 포르투갈어가 널리 쓰임'],
  ['서아프리카 → 브라질','노예 무역에 따른 강제 이주'],['동아시아 → 브라질','일자리 등 경제적 이유']
  ];
  const row=routes.map(x=>'<tr><td>'+x[0]+'</td><td>'+x[1]+'</td></tr>').join('');
@@ -2908,7 +3027,8 @@ function renderTeacher(){
   $('tbl').onclick=e=>{const button=e.target.closest('[data-key]');if(button){teacherDraftProgress=null;teacherMirrorSelectStudent(button.dataset.key)}};
   $('detail').onchange=e=>{if(e.target.id==='teacherProgress')teacherDraftProgress=Number(e.target.value);};
   $('detail').onclick=e=>{
-    if(e.target.closest('#teacherProgressApply'))teacherProgressApply();
+    const apply=e.target.closest('#teacherProgressApply');
+    if(apply)teacherProgressApply(apply.dataset.studentKey||selectedKey);
     else if(e.target.closest('#teacherDelete'))teacherDeleteStudent();
     else if(e.target.closest('#teacherBackup'))teacherSaveBackup(selectedKey);
     else if(e.target.closest('#teacherMoveButton'))teacherMoveStudent();
@@ -2998,15 +3118,21 @@ function teacherPreviewInit(p){
 }
 
 function teacherInquiryHtml(p){
- const i=p.inquiry||{},step=inquiryStep(p);
- const show=(label,v)=>'<strong>'+esc(label)+'</strong><p>'+esc(v||'미제출')+'</p>';
- return '<section class="teacherInquiryRecord"><h3>교과서 탐구 활동</h3><p>현재 단계: <b>'+esc(inquiryLabel(step))+'</b></p>'+
-  show('인구 자료 분석과 역사적 까닭',i.demography?.evidence)+
-  show('문화 혼종성 사례',i.culture?.culture)+
-  show('문화 요소 조합식',i.culture?.formula)+
-  show('조합을 선택한 까닭',i.culture?.reason)+
-  show('최종 판단',i.reflection?.final)+
-  show('수정·보완한 이유',i.reflection?.change)+'</section>';
+ const i=p.inquiry||{},step=inquiryStep(p),draft=i.processDraft||{},culture=i.cultureDraft||{};
+ const show=(label,v)=>'<strong>'+esc(label)+'</strong><p>'+esc(v||'아직 입력하지 않음')+'</p>';
+ const routeRows=MIGRATION_ROUTES.map(r=>{const tap=i.routeProcessDraft?.[r.id]||{},answer=i.routeDraft?.[r.id]||tap.answer||tap.choice,labels={settlement:'정착·식민 지배',forced:'강제 이주',economic:'경제적 이주',hispanic:'미국 내 히스패닉 인구 증가'},attempts=(tap.attempts||[]).map((a,n)=>(n+1)+'. '+(labels[a.choice]||a.choice)+(a.correct?' · 정답':' · 다시 선택')).join(' / ');return '<tr><td>'+esc(r.name)+' → '+esc(r.destination)+'</td><td>'+(tap.origin?'출발지 점 확인':'미완료')+' · '+(tap.destination?'도착지 점 확인':'미완료')+'</td><td>'+esc(answer?(labels[answer]||answer):'미제출')+(attempts?'<br><small>시도: '+esc(attempts)+'</small>':'')+'</td></tr>';}).join('');
+ const graph=draft.graph||i.demography||{};
+ const caseRows=INQUIRY_CULTURES.map((x,n)=>{const saved=i.culture?.completedCases?.[n]||{},ids=culture.selections?.[n]||culture.solved?.[n]||saved.elements||[],labels=ids.map(id=>INQUIRY_ROOTS.find(a=>a.id===id)?.text||id).join(' + ');const reason=culture.reasonDrafts?.[n]||culture.reasons?.[n]||saved.reason;const ref=culture.references?.[n]||saved.reference;const strokes=culture.drawings?.[n]||saved.drawing||[];return '<details class="teacherProcessCase"><summary>'+esc(x.name)+' · '+(reason?'이유 저장 완료':'작성 중')+'</summary><p><b>사진 검색어:</b> '+esc(culture.searchQueries?.[n]||'검색하지 않음')+'</p><p><b>선택한 문화 요소:</b> '+esc(labels||'아직 선택하지 않음')+'</p><p><b>작성 중인 결합 이유:</b> '+esc(reason||'아직 입력하지 않음')+'</p>'+(ref?'<p><b>참고 사진:</b> <a href="'+esc(ref.pageUrl)+'" target="_blank" rel="noopener">'+esc(ref.title||'원본 보기')+'</a></p>':'<p><b>참고 사진:</b> 선택하지 않음</p>')+(strokes.length?'<p><b>학생 그림:</b></p>'+teacherDrawingSvg(strokes):'<p><b>학생 그림:</b> 아직 그리지 않음</p>')+'</details>';}).join('');
+ const reflection=draft.reflection||{};
+ return '<section class="teacherInquiryRecord"><h3>교과서 탐구 활동 · 학생 입력 과정</h3><p>현재 단계: <b>'+esc(inquiryLabel(step))+'</b></p><details open><summary>1. 인구 이동 경로</summary><div class="teacherProcessTable"><table><thead><tr><th>경로</th><th>지도 점 확인</th><th>선택한 답</th></tr></thead><tbody>'+routeRows+'</tbody></table></div></details>'+
+  '<details open><summary>2. 원그래프 비교 · 미국과 멕시코</summary>'+show('학생이 입력한 비교 근거',graph.evidence||i.demography?.evidence)+(i.demography?.submittedAt?'<p>제출 완료 · '+new Date(i.demography.submittedAt).toLocaleString('ko-KR')+'</p>':'<p class="muted">제출 전 입력 내용도 자동 저장돼요.</p>')+'</details>'+
+  '<details><summary>3. 문화 혼종성 · 사례별 선택과 그림</summary>'+caseRows+'</details>'+
+  '<details><summary>4. 역사 탐정 · 입력 단계별 기록</summary>'+show('① 축제 단서',reflection.clue||i.reflection?.clue)+show('② 에스파냐에서 전해진 문화',reflection.hypothesis||i.reflection?.hypothesis)+show('③ 두 문화가 만난 모습',reflection.cultureClue||i.reflection?.cultureClue)+show('④ 최종 결론',reflection.final||i.reflection?.final)+(i.reflection?.submittedAt?'<p>최종 제출 · '+new Date(i.reflection.submittedAt).toLocaleString('ko-KR')+'</p>':'')+'</details>'+
+  show('최종 저장된 문화 혼종성 답',i.culture?.formula)+show('최종 저장된 역사적 근거',i.culture?.reason)+'</section>';
+}
+function teacherDrawingSvg(strokes){
+ const paths=(strokes||[]).map(s=>{if(!s.points?.length)return '';const d=s.points.map((p,i)=>(i?'L':'M')+' '+(p[0]*500).toFixed(1)+' '+(p[1]*300).toFixed(1)).join(' ');return '<path d="'+d+'" fill="none" stroke="'+(s.tool==='eraser'?'#fff':esc(s.color||'#222'))+'" stroke-width="'+Math.max(2,(s.size||.008)*500).toFixed(1)+'" stroke-linecap="round" stroke-linejoin="round"/>';}).join('');
+ return '<svg viewBox="0 0 500 300" class="teacherDrawingPreview" role="img" aria-label="학생이 그린 문화 그림"><rect width="500" height="300" rx="12" fill="white" stroke="#ccd9e2"/>'+paths+'</svg>';
 }
 
 function renderTeacherViews(all){

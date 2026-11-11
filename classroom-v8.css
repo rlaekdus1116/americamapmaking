@@ -446,7 +446,6 @@ main{grid-template-columns:minmax(440px,550px) minmax(0,1fr);max-width:1480px}
  body.inquiryView .inquiryStep3 .inquiryCultureIntro select{height:38px!important;min-height:38px!important}
  body.inquiryView .inquiryStep3 .inquiryCultureResult{padding:7px 9px!important;border:1px solid #e0e7eb!important;border-radius:9px!important;background:#f7f9fa!important;font-size:13px!important}
  body.inquiryView .inquiryStep3 .culturePicturePanel{flex:1 1 auto!important;min-height:0!important;justify-content:center!important;gap:6px!important;padding:8px!important;border:1px solid #dce5ea!important;border-radius:12px!important;background:#f7fafb!important}
- body.inquiryView .inquiryStep3 .culturePictureEmoji{font-size:clamp(54px,7vw,84px)!important;line-height:1.05!important}
  body.inquiryView .inquiryStep3 #cultureCaseProgress{font-size:12px!important}
  body.inquiryView .inquiryStep3 .inquirySource{display:none!important}
  body.inquiryView .inquiryStep3 .inquiryQuestion{display:flex!important;flex-direction:column!important;gap:4px!important}
@@ -494,3 +493,36 @@ main{grid-template-columns:minmax(440px,550px) minmax(0,1fr);max-width:1480px}
  body.inquiryView .inquiryStep4 .mysteryQuestions{gap:4px!important}
  body.inquiryView .inquiryStep4 .mysteryQuestionBlock{padding:5px 7px!important}
 }
+
+/* Individual tablet refinements: larger route-tap guidance and compact culture studio. */
+body.inquiryView .inquiryStep2 .migrationMapInstruction{flex:0 0 auto!important;min-height:48px!important;display:flex!important;align-items:center!important;justify-content:center!important;margin:2px 0 5px!important;padding:7px 10px!important;border:2px solid #7bb3d1!important;border-radius:12px!important;background:#e2f4ff!important;color:#194c6c!important;font-size:clamp(17px,2vw,23px)!important;font-weight:900!important;line-height:1.15!important;text-align:center!important;box-shadow:0 2px 0 #c3e1f0!important}
+body.inquiryView .inquiryStep2 .migrationMapInstruction[data-stage="1"]{background:#fff2d9!important;border-color:#e6bd66!important;color:#714d14!important}
+body.inquiryView .inquiryStep2 .migrationMapInstruction[data-stage="2"]{background:#e0f6e9!important;border-color:#82c9a5!important;color:#1f6448!important}
+body.inquiryView .inquiryStep2 .migrationMap{flex:1 1 0!important;min-height:0!important}
+body.inquiryView .inquiryStep2 .migrationReasonChoice:disabled{opacity:.55!important;cursor:not-allowed!important}
+body.inquiryView .inquiryStep2 .inquiryFixedCompare{display:grid!important;grid-template-columns:1fr auto 1fr!important;align-items:center!important;gap:8px!important;margin:4px 0!important}
+body.inquiryView .inquiryStep2 .inquiryFixedCompare>div{display:flex!important;flex-direction:column!important;gap:2px!important;padding:8px 10px!important;border:2px solid #c8dbe7!important;border-radius:11px!important;background:#fff!important}
+body.inquiryView .inquiryStep2 .inquiryFixedCompare>div span{font-size:11px!important;color:#647b8c!important}
+body.inquiryView .inquiryStep2 .inquiryFixedCompare>div strong{font-size:clamp(18px,2vw,25px)!important;color:#285574!important}
+body.inquiryView .inquiryStep2 .compareVs{font-size:12px!important;font-weight:900!important;color:#73899a!important}
+body.inquiryView .inquiryStep3 #cultureDrawPane[hidden],body.inquiryView .inquiryStep3 #cultureSearchPane[hidden]{display:none!important}
+body.inquiryView .inquiryStep3 .culturePicturePanel{gap:5px!important}
+body.inquiryView .inquiryStep3 .culturePictureTabs button{flex:1!important;min-height:36px!important;font-size:12px!important}
+body.inquiryView .inquiryStep3 .cultureSearchRow input{min-height:34px!important;font-size:12px!important}
+body.inquiryView .inquiryStep3 .cultureSearchResults{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;overflow:hidden!important}
+body.inquiryView .inquiryStep3 .cultureReference img{height:clamp(42px,7vh,68px)!important}
+body.inquiryView .inquiryStep3 .cultureReference.selected{border:2px solid #3185b5!important;background:#e7f5ff!important;box-shadow:0 0 0 2px #a8d7ef!important}
+body.inquiryView .inquiryStep3 .cultureImageCredit{min-height:14px!important;font-size:10px!important;line-height:1.15!important;margin:0!important}
+body.inquiryView .inquiryStep3 #cultureDrawPane{min-height:0!important;flex:1 1 auto!important}
+body.inquiryView .inquiryStep3 #cultureDrawCanvas{min-height:80px!important;flex:1 1 auto!important}
+body.inquiryView .inquiryStep3 .cultureCanvasTools{gap:4px!important}
+body.inquiryView .inquiryStep3 .cultureCanvasTools button:not(.cultureColor){min-height:31px!important;padding:4px 7px!important;font-size:11px!important}
+body.inquiryView .inquiryStep3 .cultureColor{width:26px!important;height:26px!important;min-height:26px!important}
+body.inquiryView .inquiryStep3 .teacherDrawingPreview{display:block;width:min(100%,480px);height:auto;max-height:220px;border-radius:10px;background:#fff}
+.teacherInquiryRecord details{margin:8px 0;padding:8px 10px;border:1px solid #d9e4eb;border-radius:10px;background:#f9fbfc}
+.teacherInquiryRecord details>summary{cursor:pointer;font-weight:850;color:#315a76}
+.teacherProcessTable{max-width:100%;overflow:auto}
+.teacherProcessTable table{width:100%;border-collapse:collapse;font-size:12px}
+.teacherProcessTable th,.teacherProcessTable td{padding:5px 7px;border-bottom:1px solid #dce5eb;text-align:left}
+.teacherProcessCase{margin:6px 0!important;background:#fff!important}
+.teacherProcessCase p{margin:5px 0!important}
