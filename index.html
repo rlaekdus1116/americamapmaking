@@ -1418,7 +1418,7 @@ function applyClassroomCommand(command){
   if(scene<0||scene>49||(scene>36&&scene<43))return;
   const x=norm(migrateGameFormat(raw),me?.id);
   // A later whole-class move must not erase a teacher's per-student assignment.
-  if(Number.isInteger(x.individualScene)){
+  if(hasPendingIndividualControl(x)){
    x.classControlRevision=revision;
    x.lastClassControlSkippedAt=now;
    return x;
@@ -1451,6 +1451,13 @@ function watchClassroomControl(){
  classroomControlRef=db.ref(CLASS_CONTROL_PATH);
  classroomControlListener=s=>{classroomCommand=s.val();if(classroomCommand)applyClassroomCommand(classroomCommand);};
  classroomControlRef.on('value',classroomControlListener,e=>console.warn('Classroom control listener:',e.message));
+}
+function hasPendingIndividualControl(p){
+ if(!Number.isInteger(p?.individualScene))return false;
+ const assignedAt=Number(p.individualControlAt)||0;
+ if(!assignedAt)return false;
+ const activityAt=Math.max(Number(p.t)||0,Number(p.lastSubmission?.at)||0,Number(p.inquiry?.updatedAt)||0);
+ return activityAt<=assignedAt;
 }
 function watchMe(){
   if(!playerRef)return;
@@ -2642,7 +2649,7 @@ function teacherMessage(s,bad){
  if(el){el.textContent=s;el.style.color=bad?'#aa3158':'#267457';}
 }
 function studentSceneOf(p){
- if(Number.isInteger(p?.individualScene))return p.individualScene;
+ if(hasPendingIndividualControl(p))return p.individualScene;
  if(Number.isInteger(p?.teacherQuestionIndex)&&Number(p.cur)<PROBLEMS.length)return p.teacherQuestionIndex;
  if(Number(p?.cur)<PROBLEMS.length)return Number(p.cur)||0;
  const step=inquiryStep(p);
@@ -2935,7 +2942,7 @@ function teacherClassControlRender(){
  select.value=String(command.scene);
  const total=Object.keys(lastAll||{}).length;
  const matched=Object.values(lastAll||{}).filter(p=>Number(p?.classControlRevision)>=Number(command.revision)).length;
- const individuallySet=Object.values(lastAll||{}).filter(p=>Number.isInteger(p?.individualScene)).length;
+ const individuallySet=Object.values(lastAll||{}).filter(hasPendingIndividualControl).length;
  status.textContent='현재 지시: '+(select.selectedOptions[0]?.textContent||'')+' · 확인 '+matched+'/'+total+'명 · 개별 화면 유지 '+individuallySet+'명';
 }
 async function teacherClassApply(scene){
