@@ -527,14 +527,48 @@ body.inquiryView .inquiryStep3 .teacherDrawingPreview{display:block;width:min(10
 .teacherProcessCase{margin:6px 0!important;background:#fff!important}
 .teacherProcessCase p{margin:5px 0!important}
 
-/* Student re-entry QR in the teacher dashboard. */
-.classRejoinActions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.classRejoinQrOverlay{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(34,38,48,.58);backdrop-filter:blur(4px)}
-.classRejoinQrOverlay[hidden]{display:none!important}
-.classRejoinQrCard{position:relative;width:min(440px,100%);max-height:min(92dvh,760px);overflow:auto;display:flex;flex-direction:column;align-items:center;gap:12px;padding:24px;border:2px solid #e6dcea;border-radius:26px;background:#fffdfb;box-shadow:0 18px 60px rgba(24,28,38,.25);text-align:center}
-.classRejoinQrCard h3{margin:5px 0 0;font-size:23px;color:#344c67}
-.classRejoinQrCard p{margin:0;line-height:1.55}
-.classRejoinQrCard img{display:block;width:min(320px,78vw);height:auto;aspect-ratio:1/1;object-fit:contain;padding:10px;border:1px solid #e4e9ee;border-radius:15px;background:#fff}
-.classRejoinQrCard a{color:#2c648e;font-weight:750;overflow-wrap:anywhere}
-.classRejoinQrClose{align-self:flex-end;padding:8px 14px}
-@media(max-width:600px){.classRejoinQrCard{padding:18px}.classRejoinActions .btn{font-size:13px;padding:10px 13px}}
+/* Culture studio: students find visual references online, then draw in the app. */
+body.inquiryView .inquiryStep3 .cultureReferenceHelp{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:5px!important;padding:9px 11px!important;border:1px solid #d2e0e8!important;border-radius:11px!important;background:#fff!important;font-size:14px!important;line-height:1.3!important}
+body.inquiryView .inquiryStep3 #cultureReferenceSearch{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:42px!important;padding:7px 13px!important;border-radius:10px!important;background:#e4f2fb!important;color:#245879!important;font-size:15px!important;font-weight:900!important;text-decoration:none!important}
+body.inquiryView .inquiryStep3 .cultureDrawWorkspace{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;gap:7px!important;min-height:0!important;padding:8px!important;border:1px solid #d4e0e7!important;border-radius:12px!important;background:#fff!important}
+body.inquiryView .inquiryStep3 .cultureWorkspaceHeader{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;font-size:15px!important}
+body.inquiryView .inquiryStep3 #cultureFullscreen{min-height:39px!important;padding:6px 10px!important;border:1px solid #9bbbd0!important;border-radius:9px!important;background:#edf7fc!important;color:#285574!important;font-size:13px!important;font-weight:900!important;white-space:nowrap!important}
+body.inquiryView .inquiryStep3 #cultureDrawCanvas{height:auto!important;min-height:180px!important;flex:1 1 auto!important;border:2px solid #bfced8!important;border-radius:10px!important;background:#fff!important;touch-action:none!important}
+body.inquiryView .inquiryStep3 .cultureCanvasTools{gap:7px!important;row-gap:7px!important;align-items:center!important}
+body.inquiryView .inquiryStep3 .cultureCanvasTools .cultureColor{width:32px!important;height:32px!important;min-height:32px!important;border:2px solid white!important;box-shadow:0 0 0 1px #9cabb6!important}
+body.inquiryView .inquiryStep3 .cultureCanvasTools .cultureColorWheelLabel{display:inline-flex!important;align-items:center!important;gap:6px!important;padding:4px 8px!important;border:1px solid #cbd8e0!important;border-radius:9px!important;background:#f5f8fa!important;font-size:13px!important;font-weight:850!important}
+body.inquiryView .inquiryStep3 #cultureColorWheel{width:44px!important;height:40px!important;padding:2px!important;border:1px solid #b9c9d3!important;border-radius:8px!important;background:white!important}
+body.inquiryView .inquiryStep3 .cultureCanvasTools button:not(.cultureColor){min-height:38px!important;padding:6px 10px!important;font-size:13px!important}
+body.inquiryView .inquiryStep3 .cultureChoiceInstruction{font-size:clamp(15px,1.5vw,18px)!important;line-height:1.35!important;font-weight:750!important}
+body.inquiryView .inquiryStep3 .inquiryRoots{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
+body.inquiryView .inquiryStep3 .inquiryRootChip{min-height:46px!important;padding:8px 9px!important;font-size:clamp(14px,1.35vw,17px)!important;line-height:1.3!important}
+.teacherCultureGallery{margin:12px 0!important}
+.teacherCultureGallery>summary{cursor:pointer;font-size:20px;font-weight:900;color:#284f6c}
+.teacherCultureCase{margin:12px 0;padding:12px;border:1px solid #d8e2e8;border-radius:14px;background:#f8fafb}
+.teacherCultureCase h3{margin:0 0 9px;color:#315b76}
+.teacherCultureDrawings{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.teacherCultureDrawing{min-width:0;padding:8px;border:1px solid #dbe4e9;border-radius:11px;background:white}
+.teacherCultureDrawing>b{display:block;margin:0 0 6px;color:#3a5c73}
+.teacherCultureDrawing .teacherDrawingPreview{width:100%;max-height:none}
+.teacherPreviewEmpty{min-height:220px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;background:#f7fafc!important}
+.teacherPreviewEmpty h2{margin-bottom:7px}
+.cultureDrawWorkspace.cultureDrawFullScreen{position:fixed!important;inset:0!important;z-index:100000!important;width:100vw!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important;box-sizing:border-box!important;padding:14px!important;border:0!important;border-radius:0!important;background:#f4f7f9!important;overflow:auto!important}
+.cultureDrawWorkspace.cultureDrawFullScreen #cultureDrawCanvas{min-height:0!important;flex:1 1 auto!important}
+@media (orientation:landscape) and (min-width:850px){
+ body.inquiryView .inquiryStep3 .cultureReferenceHelp{gap:3px!important;padding:6px 8px!important;font-size:12px!important}
+ body.inquiryView .inquiryStep3 #cultureReferenceSearch{min-height:34px!important;padding:4px 9px!important;font-size:13px!important}
+ body.inquiryView .inquiryStep3 .cultureDrawWorkspace{gap:4px!important;padding:5px!important}
+ body.inquiryView .inquiryStep3 .cultureWorkspaceHeader{font-size:13px!important}
+ body.inquiryView .inquiryStep3 #cultureFullscreen{min-height:32px!important;padding:4px 8px!important;font-size:12px!important}
+ body.inquiryView .inquiryStep3 #cultureDrawCanvas{min-height:115px!important}
+ body.inquiryView .inquiryStep3 .cultureCanvasTools{gap:4px!important;row-gap:4px!important}
+ body.inquiryView .inquiryStep3 .cultureCanvasTools .cultureColor{width:27px!important;height:27px!important;min-height:27px!important}
+ body.inquiryView .inquiryStep3 .cultureCanvasTools button:not(.cultureColor){min-height:30px!important;padding:4px 7px!important;font-size:11px!important}
+ body.inquiryView .inquiryStep3 .cultureCanvasTools .cultureColorWheelLabel{font-size:11px!important}
+ body.inquiryView .inquiryStep3 #cultureColorWheel{width:36px!important;height:32px!important}
+ body.inquiryView .inquiryStep3 .inquiryRootChip{min-height:38px!important;padding:5px 7px!important;font-size:14px!important}
+}
+@media(max-width:700px){
+ .teacherCultureDrawings{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.inquiryView .inquiryStep3 .inquiryRootChip{min-height:44px!important;font-size:14px!important}
+}
