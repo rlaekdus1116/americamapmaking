@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 67284)
-Total output lines: 3290
-
 <!doctype html>
 <html lang="ko">
 <head>
@@ -1045,7 +1042,450 @@ function inquiryRender(){
     '<div class="mysteryQuestionBlock"><h3>② 문화가 전해진 배경</h3><label for="inqMigrationHypothesis">에스파냐에서 어떤 문화가 전해졌을까?</label>'+
     '<textarea id="inqMigrationHypothesis" rows="2" placeholder="가톨릭의 ○○ 관습이 전해졌다."></textarea></div>'+
     '<div class="mysteryQuestionBlock"><h3>③ 두 문화가 만난 모습</h3><label for="inqCultureClue">원주민 전통과 가톨릭 관습이 어떻게 함께 나타나?</label>'+
-    '<textarea id="inqCultureClue" rows="2" placeholder="원주민의 ○○…7284 tokens truncated…ureDraft={...(x.inquiry.cultureDraft||{}),active:scene-46};}
+    '<textarea id="inqCultureClue" rows="2" placeholder="원주민의 ○○와 가톨릭의 ○○가 함께 나타난다."></textarea></div>'+
+    '<div class="mysteryQuestionBlock"><h3>④ 역사 탐정의 결론</h3><label for="inqFinal">이 축제가 문화 혼종성 사례인 이유를 설명해 줘.</label>'+
+    '<textarea id="inqFinal" rows="3" placeholder="죽은 자의 날은 원주민의 ○○와 가톨릭의 ○○가 만나 형성됐다. 그 배경에는 ○○가 있다."></textarea></div>'+
+    '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">역사 탐정 보고서 제출하기 ✓</button></div>';
+ }else{
+   title='모든 탐구 단계를 완료했어요!';
+   lead='지도 만들기와 인구·문화 자료 분석, 그리고 최종 판단까지 저장했어요.';
+   body='<div class="inquiryData"><h3>내 탐구 기록</h3>'+
+    '<p><strong>자료 분석</strong></p><p>'+esc(record.demography?.evidence||'')+'</p>'+
+    '<p><strong>문화 혼종성 분석</strong></p><p>'+esc(record.culture?.formula||'')+'</p><p>'+esc(record.culture?.reason||'')+'</p>'+
+    '<p><strong>최종 판단</strong></p><p>'+esc(record.reflection?.final||'')+'</p>'+
+    '<p><strong>인구 구성 단서</strong></p><p>'+esc(record.reflection?.clue||'')+'</p>'+ '<p><strong>인구 이동 추론</strong></p><p>'+esc(record.reflection?.hypothesis||'')+'</p>'+ '<p><strong>문화 단서</strong></p><p>'+esc(record.reflection?.cultureClue||'')+'</p>'+
+    '<p class="inquirySource">학생 답변은 교사용 관리 화면에서 확인하고 CSV로 내려받을 수 있어요.</p></div>'+
+    '<p class="inquirySource">기억력 퀴즈는 이 탐구와 별도의 선택 활동이야.</p>';
+ }
+ app.innerHTML='<section class="card inquiryRoot inquiryStep'+step+'" id="inquiryRoot"><div class="inquiryTop">'+
+  inquiryProgress(step)+'<div class="inquiryHeading"><h2>'+title+'</h2><p class="inquiryLead">'+lead+'</p></div></div>'+
+  (step===2?body:'<div class="inquiryStageGrid">'+body+'</div>')+
+  '<p id="inqNotice" class="inquiryNotice" aria-live="polite"></p></section>';
+ if(step===2){
+   $('inqCountryA').value='미국';
+   $('inqCountryB').value='멕시코';
+   const graphDraft=me?.inquiry?.processDraft?.graph||{};$('inqEvidence').value=graphDraft.evidence||'';
+   $('inqEvidence').addEventListener('input',()=>saveInquiryProcessDraft('graph',{a:'미국',b:'멕시코',evidence:$('inqEvidence').value}));
+   migrationInit();
+ }
+ if(step===3){const draft=cultureLoadDraft(me?.inquiry?.cultureDraft||{});cultureSolved={...(draft.solved||{})};cultureReasons={...(draft.reasons||{})};cultureSelections={...(draft.selections||{})};cultureReasonDrafts={...(draft.reasonDrafts||draft.reasons||{})};cultureDrawings={...(draft.drawings||{})};cultureReferences={...(draft.references||{})};cultureSearchQueries={...(draft.searchQueries||{})};cultureActive=Math.max(0,Math.min(INQUIRY_CULTURES.length-1,Number(draft.active)||0));inquiryEnableMixer();cultureImageSearch();cultureInitCanvas();if(cultureRestorePending){culturePersist(true);cultureRestorePending=false;}cultureIntroPopup();}
+ if(step===4){const d=me?.inquiry?.processDraft?.reflection||{};for(const [id,key] of [['inqClue','clue'],['inqMigrationHypothesis','hypothesis'],['inqCultureClue','cultureClue'],['inqFinal','final']]){if($(id)){ $(id).value=d[key]||'';$(id).addEventListener('input',()=>saveInquiryProcessDraft('reflection',{[key]:$(id).value}));}}}
+ if($('inquirySubmit'))$('inquirySubmit').onclick=()=>inquirySubmit(step);
+ showConn();
+}
+async function inquirySubmit(step){
+ if(PREVIEW_ONLY){previewOnlyNotify('next');return;}
+ if(inquirySaving||!me||!playerRef)return;
+ if(!serverVerified||firebaseState!=='online')return inquiryNotice('서버에 연결한 뒤 제출할 수 있어요. 현재 답을 복사해 보관해 주세요.',true);
+ const expectedTeacherRevision=Number(me.teacherRevision)||0;
+ let answer={};
+ const v=id=>String($(id)?.value||'').trim();
+ if(step===2){
+   const a='미국',b='멕시코',evidence=v('inqEvidence');
+
+   if(evidence.length<25){
+     return inquiryNotice('원그래프에서 관찰한 두 나라의 인구 구성 차이를 25자 이상 적어 줘.',true);
+   }
+   if(migrationCount('anglo')<4||migrationCount('latin')<4)return inquiryNotice('앵글로와 라틴아메리카 인구 이동 경로를 모두 완료해 줘.',true);
+   answer={a,b,evidence,cause:'',migration:{...migrationChoices},processDraft:me?.inquiry?.processDraft||{}};
+ }else if(step===3){
+   const index=Number($('inqCultureCountry')?.value);
+   const culture=INQUIRY_CULTURES[index],roots=inquiryPickedRoots(),reason=v('inqCultureReason');
+   if(!culture)return inquiryNotice('탐구할 국가를 선택해 줘.',true);
+   if(cultureSolved[index]&&reason.length>=18)cultureReasons[index]=reason;
+   if(INQUIRY_CULTURES.some((c,i)=>!cultureSolved[i]||!cultureReasons[i]||cultureReasons[i].length<18))return inquiryNotice('4개 사례 모두 정답을 확인하고 결합 이유까지 작성해 줘.',true);
+   if(index!==INQUIRY_CULTURES.length-1)return inquiryNotice('마지막 사례까지 순서대로 완료해 줘.',true);
+   answer={completedCases:Object.keys(cultureSolved).map(i=>({name:INQUIRY_CULTURES[i].name,country:INQUIRY_CULTURES[i].country,elements:cultureSolved[i],elementLabels:(cultureSolved[i]||[]).map(id=>INQUIRY_ROOTS.find(x=>x.id===id)?.text||id),reason:cultureReasons[i],drawing:cultureDrawings[i]||[],reference:cultureReferences[i]||null})),country:culture.country,culture:culture.name,elements:roots.map(x=>x.text),
+    formula:roots.map(x=>x.text).join(' + ')+' = '+culture.name+' ('+culture.country+')',
+    reason,link:''};
+ }else if(step===4){
+   const final=v('inqFinal'),clue=v('inqClue'),hypothesis=v('inqMigrationHypothesis'),cultureClue=v('inqCultureClue');
+   if(clue.length<8)return inquiryNotice('① 축제의 장식이나 풍습 두 가지를 적어 줘.',true);
+   if(hypothesis.length<15)return inquiryNotice('② 에스파냐에서 전해진 문화를 설명해 줘.',true);
+   if(cultureClue.length<12)return inquiryNotice('③ 두 문화가 만난 모습을 적어 줘.',true);
+   if(final.length<30)return inquiryNotice('④ 문화 혼종성인 이유를 30자 이상 설명해 줘.',true);
+   answer={final,clue,hypothesis,cultureClue,processDraft:me?.inquiry?.processDraft||{},change:'죽은 자의 날 사례에서 문화 혼종성의 역사적 배경을 탐구함'};
+ }else return;
+ const button=$('inquirySubmit');if(button)button.disabled=true;
+ inquirySaving=true;inquiryNotice('Firebase에 답변을 저장하는 중...');
+ try{
+   const result=await playerRef.transaction(raw=>{
+     if(!raw||raw.pending||Number(raw.cur)<PROBLEMS.length)return;
+     if((Number(raw.teacherRevision)||0)!==expectedTeacherRevision)return;
+     const current=raw.inquiry&&typeof raw.inquiry==='object'?raw.inquiry:{};
+     if(Math.max(2,Number(current.step)||2)!==step)return;
+     const now=serverNow();
+     const next={...current,step:step+1,updatedAt:now};
+     if(step===2)next.demography={...answer,submittedAt:now};
+     if(step===3)next.culture={...answer,submittedAt:now};
+     if(step===4)next.reflection={...answer,submittedAt:now};
+     return {...raw,inquiry:next,t:now};
+   });
+   if(!result.snapshot.exists())throw Error('저장이 확인되지 않았어요. 다시 시도해 주세요.');
+   if(!result.committed){
+     const latest=norm(result.snapshot.val(),me.id);
+     if((Number(latest.teacherRevision)||0)!==expectedTeacherRevision){
+       me=latest;
+       inquiryNotice('선생님이 화면을 이동했어요. 새 화면에서 입력해 주세요.',true);
+       if(me.cur>=PROBLEMS.length&&!me.pending)inquiryRender();else renderStudent();
+       return;
+     }
+     throw Error('저장이 확인되지 않았어요. 다시 시도해 주세요.');
+   }
+   me=norm(result.snapshot.val(),me.id);
+   inquiryRender();
+ }catch(e){inquiryNotice('저장되지 않았어요: '+e.message,true);if(button)button.disabled=false;}
+ finally{inquirySaving=false;}
+}
+
+
+/* Safe, read-only student-perspective mirror. Loads in a teacher iframe.
+   Preview never creates a Firebase connection, reads player data directly,
+   or submits/updates a student record. Snapshots arrive from the teacher parent only. */
+function previewOnlyStart(){
+ document.body.classList.add('teacherPreviewBody');
+ firebaseState='online';serverVerified=true;
+ app.innerHTML='<section class="card teacherPreviewEmpty" style="max-width:760px;margin:32px auto"><h2>학생 이름을 선택해 주세요</h2><p>교사용 화면에서 학생 이름을 누르면 그 학생의 저장된 화면이 여기에 표시돼요.</p></section>';
+ window.addEventListener('message',e=>{
+  if(e.origin!==location.origin||e.source!==window.parent)return;
+  const x=e.data;
+  if(!x||x.type!=='AMAP_TEACHER_PREVIEW_STATE')return;
+  previewOnlyApply(x);
+ });
+ // Links from the student rendering may not navigate away from the preview.
+ document.addEventListener('click',e=>{
+  const a=e.target.closest('a[href]');
+  if(a){e.preventDefault();e.stopPropagation();}
+ },true);
+ window.parent.postMessage({type:'AMAP_TEACHER_PREVIEW_READY'},location.origin);
+}
+function previewOnlyNotify(action){
+ if(!PREVIEW_ONLY||window.parent===window)return;
+ window.parent.postMessage({type:'AMAP_TEACHER_PREVIEW_NAV',action},location.origin);
+}
+function previewOnlyFakeQuiz(status){
+ const now=serverNow(),member={name:me.name,points:170,correct:2,totalMs:3800,joinedAt:now-20000};
+ const q={id:'teacher-preview-only',round:0,order:[LIVE_QUIZ_IDS[0],LIVE_QUIZ_IDS[1]],
+  status,members:{[me.id]:member},answers:{},endsAt:now+15000,revealEndsAt:now+6000};
+ if(status==='reveal')q.answers[me.id]={choice:PROBLEMS[q.order[0]].answer,correct:true,points:100};
+ return q;
+}
+function previewOnlyApply(x){
+ if(x.mode==='empty'){
+  destroyMap();renderHdr();
+  app.innerHTML='<section class="card teacherPreviewEmpty"><h2>학생 이름을 선택해 주세요</h2><p>교사용 화면에서 학생 이름을 누르면 그 학생이 현재 보고 있는 저장 화면이 여기에 표시돼요.</p><p>단계별 미리보기가 필요하면 교사용 화면에서 화면을 선택해 주세요.</p></section>';
+  return;
+ }
+ const raw=x.record&&typeof x.record==='object'?x.record:null;
+ // In this iframe there are no write refs, even when the source is a real student.
+ const student=raw?norm(migrateGameFormat(raw),raw.id||nameKey(raw.name||'학생')):fresh('체험 학생');
+ let scene=Math.max(0,Math.min(49,Math.trunc(Number(x.scene)||0)));
+ const snapshot=x.mode==='snapshot'&&!!raw;
+ if(snapshot){
+   me=student;
+   liveQuiz=null;
+   if(me.paused){
+     destroyMap();renderHdr();
+     app.innerHTML='<div class="joinWrap"><section class="card"><h2>오늘은 여기까지!</h2>'+
+      '<p>현재 '+me.done+'/'+PROBLEMS.length+'문제를 진행했어요.</p>'+
+      '<p>서버에 저장된 학생의 일시 정지 상태를 재현한 화면이에요.</p></section></div>';
+     return;
+   }
+   if(me.cur<PROBLEMS.length||me.pending)renderStudent();
+   else inquiryRender();
+   return;
+ }
+ // Free exploration (optionally based on a particular student's identity/order).
+ const order=validQuestionOrder(student.questionOrder)?student.questionOrder:PROBLEMS.map((_,i)=>i);
+ me={...student,questionOrder:raw?order:PROBLEMS.map((_,i)=>i),paused:false,coolUntil:0,tries:0,pending:null};
+ if(scene===41){
+   destroyMap();renderHdr();
+   app.innerHTML='<div class="joinWrap"><section class="card"><h2>이름을 입력하고 시작해요</h2>'+
+     '<p>같은 반·같은 이름으로 돌아오면 저장한 진도부터 이어서 풀어요.</p>'+
+     '<input placeholder="예: 김민지" disabled><button class="btn mint" disabled>시작하기 ✨</button>'+
+     '<p class="muted">교사용 읽기 전용 미리보기 · 가입과 저장은 실행되지 않아요.</p></section></div>';
+   return;
+ }
+ if(scene===42){
+   destroyMap();renderHdr();app.innerHTML='<div class="joinWrap"><section class="card"><h2>오늘은 여기까지!</h2>'+
+    '<p>현재까지의 점수와 진도를 저장했어요.</p>'+
+    '<p class="muted">학생이 수업을 마치고 일시 정지했을 때의 화면을 미리 보여줘요.</p>'+
+    '<button class="btn mint" type="button" id="previewResume">이어서 풀기</button></section></div>';
+   $('previewResume').onclick=()=>previewOnlyNotify('first');
+   return;
+ }
+ if(scene<=32){
+   // Browse by absolute catalog ID even when the selected student uses shuffled questions.
+   teacherAlignQuestionOrder(me,scene);
+   const catalogQuestion=PROBLEMS[scene];
+   me.activeQuestionUid=catalogQuestion.uid||catalogQuestion.wiki;
+   me.teacherQuestionIndex=scene;
+   const count=Math.min(scene+(x.result?1:0),COUNTRY_END),unlocked=[];
+   for(let i=0;i<count;i++){
+     const q=PROBLEMS[me.questionOrder[i]];
+     if(q?.country&&!unlocked.includes(q.country))unlocked.push(q.country);
+   }
+   me.unlocked=unlocked;
+   me.cur=scene+(x.result?1:0);
+   me.done=me.cur;
+   me.score=raw?student.score:scene*100;
+   if(x.result){
+     const q=catalogQuestion;
+     me.pending={idx:scene,mode:'correct',questionUid:q.uid||q.wiki,questionIndex:scene,points:100,seconds:6,piecePlaced:true};
+     me.teacherQuestionIndex=null;me.activeQuestionUid=null;
+     me.activeQuestionUid=questionAt(me.cur,me)?.uid||null;
+     if(q?.stage==='country'&&q.country&&!me.unlocked.includes(q.country))me.unlocked.push(q.country);
+   }
+   liveQuiz=null;renderStudent();return;
+ }
+ me.cur=PROBLEMS.length;me.done=me.cur;me.pending=null;
+ if(scene<=36||scene>=43){
+   const stage=scene>=46?3:scene>=43?2:scene-31;
+   me.inquiry={...(me.inquiry||{}),step:stage,teacherSubscene:scene===44?'latin':scene===45?'graph':'anglo'};
+   if(scene>=46)me.inquiry.cultureDraft={...(me.inquiry.cultureDraft||{}),active:scene-46};
+   liveQuiz=null;inquiryRender();
+   if($('inquirySubmit'))$('inquirySubmit').textContent='교사 미리보기 · 저장 없이 다음 화면 →';
+   return;
+ }
+ destroyMap();renderHdr();
+ me.inquiry={...(me.inquiry||{}),step:5};
+ liveQuiz=previewOnlyFakeQuiz(scene===37?'lobby':scene===38?'question':scene===39?'reveal':'finished');
+ app.innerHTML='<div class="joinWrap" style="max-width:900px"><section class="card liveStudentPanel" id="liveStudentPanel"></section></div>';
+ liveRenderStudent();
+ // Quiz controls are visible as the student sees them, but disabled in read-only mode.
+ const btn=$('liveJoinButton');
+ if(btn)btn.disabled=true;
+}
+
+function fresh(name){return {id:nameKey(name),name:normName(name),score:0,done:0,cur:0,tries:0,coolUntil:0,log:[],unlocked:[],pending:null,t:serverNow(),createdAt:serverNow(),startedAt:serverNow(),timeSpent:0,paused:false,pausedElapsed:0,schemaVersion:11,questionOrder:createQuestionOrder(nameKey(name))};}
+function norm(p,key){p=p||{};return {id:key||p.id||'',name:p.name||'',score:Number(p.score)||0,done:Number(p.done)||0,cur:Number(p.cur)||0,tries:Number(p.tries)||0,coolUntil:Number(p.coolUntil)||0,log:Array.isArray(p.log)?p.log:[],unlocked:Array.isArray(p.unlocked)?p.unlocked:[],pending:p.pending||null,t:Number(p.t)||0,createdAt:Number(p.createdAt)||0,startedAt:Number(p.startedAt)||0,timeSpent:Number(p.timeSpent)||0,paused:!!p.paused,pausedElapsed:Number(p.pausedElapsed)||0,schemaVersion:Number(p.schemaVersion)||8,teacherRevision:Number(p.teacherRevision)||0,teacherAdjustments:Array.isArray(p.teacherAdjustments)?p.teacherAdjustments:[],teacherSkipped:Array.isArray(p.teacherSkipped)?p.teacherSkipped:[],wrongAttempts:Array.isArray(p.wrongAttempts)?p.wrongAttempts:[],lastSubmission:p.lastSubmission||null,questionOrder:Array.isArray(p.questionOrder)?p.questionOrder:null,activeQuestionUid:typeof p.activeQuestionUid==='string'?p.activeQuestionUid:null,teacherQuestionIndex:Number.isInteger(p.teacherQuestionIndex)?p.teacherQuestionIndex:null,classControlRevision:Number(p.classControlRevision)||0,individualControlAt:Number(p.individualControlAt)||0,individualScene:Number.isInteger(p.individualScene)?p.individualScene:null,inquiry:p.inquiry&&typeof p.inquiry==='object'?p.inquiry:null};}
+function sig(p){return [p.classControlRevision||0,p.cur,p.tries,p.coolUntil,p.done,p.score,p.pending?String(p.pending.idx)+p.pending.mode:'',p.paused?'pause':'play',p.teacherRevision||0,p.lastSubmission?.at||0,p.inquiry?.step||0,p.inquiry?.updatedAt||0,p.pending?.piecePlaced?'piece-placed':'piece-open'].join('|');}
+function ranked(all){return Object.keys(all||{}).map(k=>norm(migrateGameFormat(all[k]),k)).sort((a,b)=>(b.score-a.score)||(b.done-a.done)||(totalTime(a)-totalTime(b))||((a.t||0)-(b.t||0)));}
+function hintStatus(text,cls=''){const el=$('msg');if(el){el.textContent=text;el.className='msg '+cls;}}
+function showConn(){
+ const el=$('conn');
+ const ok=firebaseState==='online'&&serverVerified;
+ if(el){
+   el.textContent=ok?'실시간 저장':firebaseState==='connecting'||(firebaseState==='online'&&!serverVerified)?'서버 확인 중':'서버 미연결 · 게임 중지';
+   el.title=ok?'Firebase 연결 및 기록 읽기 확인됨':'서버 연결을 확인해야 게임할 수 있습니다.';
+ }
+ if(!TEACHER&&map&&me){
+   if($('answerBtn'))$('answerBtn').disabled=!ok;
+   if($('nextBtn'))$('nextBtn').disabled=!ok||(me.coolUntil||0)>serverNow()||!isPendingPieceReady();
+   let overlay=$('serverBlocker');
+   if(!ok&&!overlay){
+     overlay=document.createElement('div');overlay.id='serverBlocker';overlay.setAttribute('role','alert');
+     overlay.innerHTML='<strong>서버에 연결되지 않았어요.</strong><p>기록이 사라지지 않도록 문제 풀이를 잠시 멈췄어요. 연결이 복구되면 이어서 풀 수 있어요.</p>';
+     app.appendChild(overlay);
+   }else if(ok&&overlay)overlay.remove();
+ }
+}
+
+/* Firebase 교실 연결 링크: 설정 키를 저장소 코드에 쓰지 않고 링크 조각(#)으로 전달.
+   앱 실행 즉시 URL에서 제거하고 각 기기 브라우저에 보관한다. */
+function readClassLink(){
+ // iOS Safari and some in-app browsers can lose URL fragments during link transfer.
+ // Accept an ordinary query parameter, too, and keep compatibility with older hash links.
+ const search=new URLSearchParams(location.search);
+ const hash=new URLSearchParams(location.hash.replace(/^#/,''));
+ const key=search.get('connect')||hash.get('connect');
+ if(!key||!/^AIza[\w-]{20,}$/.test(key))return false;
+ store.set('amap-firebase-key',key);
+ try{
+   const clean=new URL(location.href);
+   clean.searchParams.delete('connect');
+   clean.hash='';
+   history.replaceState(null,'',clean.pathname+clean.search);
+ }catch(e){}
+ return true;
+}
+function getClassFirebaseKey(){
+ const active=window.firebase?.apps?.find(a=>a.options.projectId===PROJECT_ID);
+ return active?.options?.apiKey||store.get('amap-firebase-key')||'';
+}
+function classJoinLink(){
+ const link=new URL(location.origin+location.pathname);
+ link.searchParams.set('room',ROOM);
+ link.searchParams.set('v',document.querySelector('meta[name="app-build"]')?.content||'current');
+ return link.href;
+}
+async function copyClassJoinLink(){
+ const link=classJoinLink(),msg=$('shareLinkMsg');
+ if(!link){if(msg)msg.textContent='연결 설정을 찾지 못했어요. 이 브라우저의 Firebase 설정을 확인해 주세요.';return;}
+ try{
+  await navigator.clipboard.writeText(link);
+  if(msg)msg.textContent='복사 완료! 별도의 연결 키 없이 학생용 링크로 접속해요. 기존 기기에만 저장된 기록은 같은 기기·브라우저에서 복구할 수 있어요.';
+ }catch(e){
+  const inp=$('shareLink');
+  if(inp){inp.value=link;inp.focus();inp.select();}
+  if(msg)msg.textContent='아래 링크를 선택한 상태예요. Ctrl+C로 복사해 학생들에게 보내세요.';
+ }
+}
+
+function migrateGameFormat(old){
+ const p={...old};
+ if(Number(p.schemaVersion||8)<9){
+   if(Number(p.cur)>=30)p.cur=Number(p.cur)+5;
+   if(p.pending&&Number(p.pending.idx)>=30)p.pending={...p.pending,idx:Number(p.pending.idx)+5};
+   p.schemaVersion=9;
+ }
+ if(Number(p.schemaVersion)>=11)return ensureQuestionOrder(p);
+ const oldCur=Math.max(0,Math.min(LEGACY_QUESTION_UIDS.length,Number(p.cur)||0));
+ const lookup=new Map(PROBLEMS.map((q,i)=>[q.uid||q.wiki,i]));
+ const selected=LEGACY_QUESTION_UIDS.slice(0,Math.min(oldCur,35)).map(id=>lookup.get(id)).filter(i=>Number.isInteger(i)&&i<COUNTRY_END);
+ const landmarkDone=Math.max(0,Math.min(8,oldCur-35));
+ const oldMatches=LEGACY_QUESTION_UIDS.slice(35,35+landmarkDone).map(id=>lookup.get(id)).filter(i=>Number.isInteger(i)&&i>=COUNTRY_END&&i<CITY_END);
+ const landmarks=[...new Set(oldMatches)];
+ for(let i=COUNTRY_END;i<CITY_END&&landmarks.length<landmarkDone;i++)if(!landmarks.includes(i))landmarks.push(i);
+ let newCur=selected.length;
+ if(oldCur>=35)newCur=COUNTRY_END+landmarks.length;
+ if(oldCur>=43){
+  const nature=LEGACY_QUESTION_UIDS.slice(43,oldCur).filter(id=>{const v=lookup.get(id);return Number.isInteger(v)&&v>=CITY_END;}).length;
+  newCur=CITY_END+nature;
+ }
+ p.questionOrder=createQuestionOrder(p.id||p.name||'',selected,landmarks);
+ p.cur=Math.min(PROBLEMS.length,newCur);p.done=p.cur;
+ if(p.pending){
+  const found=lookup.get(LEGACY_QUESTION_UIDS[p.pending.idx]);
+  const pos=Number.isInteger(found)?p.questionOrder.indexOf(found):-1;
+  p.pending=pos>=0?{...p.pending,idx:pos}:null;
+ }
+ p.unlocked=(Array.isArray(p.unlocked)?p.unlocked:[]).filter(v=>COUNTRIES.some(x=>x.en===v));
+ p.teacherSkipped=Array.isArray(p.teacherSkipped)?p.teacherSkipped.filter(i=>Number(i)<p.cur):[];
+ p.schemaVersion=11;
+ return p;
+}
+async function restoreOfflineStudent(name){
+ if(!db||firebaseState==='offline')return false;
+ const key=nameKey(name),doneKey='amap-synced-v9-'+ROOM+'-'+key;
+ if(store.get(doneKey)==='yes')return false;
+ let records={};
+ try{records=JSON.parse(store.get('amap-local-v8-'+ROOM)||'{}');}catch(e){}
+ const original=records[key];
+ if(!original)return false;
+ const saved=migrateGameFormat(original);
+ const ref=db.ref(playerPath(name));
+ const tx=await ref.transaction(remote=>{
+  if(!remote)return saved;
+  const old=norm(remote,key),local=norm(saved,key);
+  if(local.cur>old.cur)return saved;
+  if(local.cur===old.cur&&local.score>old.score&&local.done>=old.done)return saved;
+  if(local.cur===old.cur&&local.tries>old.tries&&local.done>=old.done)return saved;
+  return;
+ });
+ if(!tx.snapshot.exists())throw Error('학생의 이전 기록을 서버에 올리지 못했어요.');
+ // Keep local copy intact as backup. Only remember success when a server record exists.
+ store.set(doneKey,'yes');
+ return true;
+}
+
+function loadScript(url){
+  return new Promise((resolve,reject)=>{
+    const s=document.createElement('script');s.src=url;s.async=true;s.onload=resolve;s.onerror=()=>reject(new Error('자동 설정 주소 불러오기 실패'));document.head.appendChild(s);
+  });
+}
+async function initFirebase(){
+  firebaseState='connecting';showConn();
+  if(!window.firebase){firebaseState='offline';showConn();return false;}
+  let app=firebase.apps.find(x=>x.options.projectId===PROJECT_ID);
+  const savedKey=store.get('amap-firebase-key');
+  if(!app){
+    try{app=firebase.initializeApp({
+      ...(savedKey?{apiKey:savedKey}:{}),
+      authDomain:'americamapmaking.firebaseapp.com',
+      databaseURL:DATABASE_URL,
+      projectId:PROJECT_ID,
+      storageBucket:'americamapmaking.firebasestorage.app',
+      messagingSenderId:'260167025585',
+      appId:'1:260167025585:web:6cc4c97234bbd5a04f7390',
+      measurementId:'G-29RE67B58S'
+    });}catch(e){console.warn('Firebase local config error',e.message);}
+  }
+  if(!app){firebaseState='offline';showConn();return false;}
+  try{
+    if(app.options.projectId!==PROJECT_ID||app.options.databaseURL!==DATABASE_URL)throw Error('Firebase 프로젝트 정보가 맞지 않습니다');
+    db=firebase.database(app);playersRef=db.ref(PLAYERS_PATH);
+    db.ref('.info/serverTimeOffset').on('value',s=>{serverOffset=Number(s.val())||0;});
+    db.ref('.info/connected').on('value',s=>{firebaseState=s.val()?'online':'connecting';showConn();});
+    return true;
+  }catch(e){console.warn('Firebase initialize failed',e.message);firebaseState='offline';db=null;showConn();return false;}
+}
+
+async function verifyServerConnection(){
+ if(!db||!playersRef)throw Error('Firebase 설정이 없습니다.');
+ const info=db.ref('.info/connected');
+ await new Promise((resolve,reject)=>{
+  let settled=false,timer;
+  const finish=error=>{
+   if(settled)return;settled=true;clearTimeout(timer);info.off('value',onVal);
+   if(error)reject(error);else resolve();
+  };
+  const onVal=s=>{if(s.val()===true)finish();};
+  timer=setTimeout(()=>finish(new Error('Firebase 연결 시간 초과. 네트워크를 확인하세요.')),14000);
+  info.on('value',onVal,e=>finish(e));
+ });
+ await Promise.race([
+  playersRef.limitToFirst(1).once('value'),
+  new Promise((_,reject)=>setTimeout(()=>reject(new Error('학생 기록 읽기를 확인하지 못했어요.')),10000))
+ ]);
+ if(firebaseState!=='online')throw Error('Firebase 실시간 연결이 끊겼어요.');
+ serverVerified=true;showConn();
+}
+function soloLink(){return './solo.html?room='+encodeURIComponent(ROOM);}
+function soloFallbackButton(){return '<a class="btn mint" style="display:inline-block;text-decoration:none;margin-top:12px;box-shadow:none" href="'+soloLink()+'">개별 예비 게임 시작 · 15초 4지선다</a>';}
+function renderServerGate(reason){
+ if(playerRef&&playerListener)playerRef.off('value',playerListener);
+ playerRef=null;me=null;
+ renderHdr();
+ app.innerHTML='<div class="joinWrap"><section class="card"><h2>서버 연결을 확인해 주세요</h2>'+
+ '<p><b>Firebase 서버 연결과 기록 읽기가 확인돼야 게임을 시작할 수 있어요.</b></p>'+
+ '<p class="msg ng">'+esc(reason||'서버에 연결하지 못했어요.')+'</p>'+
+ '<p class="muted">설정 키를 직접 입력할 필요는 없어요. 계속 실패하면 인터넷 연결이나 Firebase 데이터베이스 규칙을 확인해야 해요. 기존 기록은 지우지 않았어요.</p>'+
+ '<button class="btn mint" id="tryServerAgain" type="button">서버 다시 연결</button><p>실시간 연결이 안 될 때에도 아래 예비 게임은 별도로 사용할 수 있어요.</p>'+soloFallbackButton()+'</section></div>';
+ $('tryServerAgain').onclick=()=>{firebaseState='connecting';start();};
+}
+function offlineDb(){
+ const storage='amap-local-v8-'+ROOM, watchers=new Map();
+ const read=()=>{try{return JSON.parse(store.get(storage)||'{}')}catch(e){return {}}};
+ const makeSnap=v=>({val:()=>v,exists:()=>v!=null});
+ const notify=()=>{const all=read();for(const [path,subs] of watchers){const v=path===PLAYERS_PATH?all:all[path.slice(PLAYERS_PATH.length+1)]||null;for(const cb of subs)cb(makeSnap(v));}};
+ window.addEventListener('storage',e=>{if(e.key===storage)notify()});
+ return {ref(path){return {
+  on(event,cb){if(event!=='value')return;if(!watchers.has(path))watchers.set(path,new Set());watchers.get(path).add(cb);const all=read();cb(makeSnap(path===PLAYERS_PATH?all:all[path.slice(PLAYERS_PATH.length+1)]||null));},
+  off(event,cb){if(!watchers.has(path))return;if(cb)watchers.get(path).delete(cb);else watchers.delete(path)},
+  async transaction(update){const all=read(),key=path.slice(PLAYERS_PATH.length+1),old=all[key]||null,next=update(old);if(next===undefined)return {committed:false,snapshot:makeSnap(old)};all[key]=next;store.set(storage,JSON.stringify(all));notify();return {committed:true,snapshot:makeSnap(next)};}
+ }}};
+}
+function watchPlayers(cb){
+  if(!playersRef)return;
+  if(playersListener)playersRef.off('value',playersListener);
+  playersListener=s=>{lastAll=s.val()||{};cb(lastAll);};
+  playersRef.on('value',playersListener,err=>{const node=$('rank')||$('tbl');if(node)node.textContent='Firebase 읽기 실패: '+err.message+' (데이터베이스 규칙을 확인해 주세요.)';});
+}
+function applyClassroomCommand(command){
+ if(TEACHER||PREVIEW_ONLY||QUIZ_ONLY||!playerRef||!command||!Number.isInteger(Number(command.scene)))return;
+ const revision=Number(command.revision)||0;
+ if(!revision||classroomApplying||Number(me?.classControlRevision)>=revision)return;
+ classroomApplying=true;
+ playerRef.transaction(raw=>{
+  if(!raw||Number(raw.classControlRevision)>=revision)return;
+  const scene=Number(command.scene),now=serverNow();
+  if(scene<0||scene>49||(scene>36&&scene<43))return;
+  const x=norm(migrateGameFormat(raw),me?.id);
+  const old=x.cur;
+  const to=scene<PROBLEMS.length?scene:PROBLEMS.length;
+  x.cur=to;x.done=to;x.pending=null;x.tries=0;x.coolUntil=0;x.paused=false;x.pausedElapsed=0;x.startedAt=now;x.t=now;
+  teacherAlignQuestionOrder(x,scene);
+  x.teacherQuestionIndex=scene<PROBLEMS.length?scene:null;
+  x.activeQuestionUid=scene<PROBLEMS.length?(PROBLEMS[scene]?.uid||null):null;
+  x.individualScene=null;x.individualControlAt=0;
+  x.classControlRevision=revision;
+  x.teacherRevision=(Number(x.teacherRevision)||0)+1;
+  x.teacherAdjustments=[...(x.teacherAdjustments||[]),{from:old,to,scene,at:now,group:true}].slice(-30);
+  if(scene>=PROBLEMS.length){
+   const step=scene>=46?3:scene>=43?2:Math.max(2,Math.min(5,scene-PROBLEMS.length+2));
+   x.inquiry={...(x.inquiry||{}),step,teacherSubscene:scene===44?'latin':scene===45?'graph':'anglo',updatedAt:now};
+   if(scene>=46&&scene<=49){x.inquiry.cultureDraft={...(x.inquiry.cultureDraft||{}),active:scene-46};}
   }
   return x;
  }).then(result=>{
