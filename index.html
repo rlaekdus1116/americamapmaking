@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta name="app-build" content="2026-11-12-gallery-fit5">
+<meta name="app-build" content="2026-11-12-migration-instructions-fit6">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>아메리카 지도 만들기 · 20나라 + 랜드마크 8곳 + 자연환경 5곳</title>
@@ -339,6 +339,16 @@ body.inquiryView .inquiryStep2 #migrationExplanation{width:100%!important;min-he
 .migrationChapterCard h2{font-size:clamp(27px,5vw,46px);font-weight:900;line-height:1.25;color:#244d72;margin:8px 0 18px}
 .migrationChapterCard p{font-size:clamp(15px,2vw,21px);font-weight:650;margin:0 0 28px}
 .migrationChapterCard button{min-height:52px;font-size:clamp(16px,2vw,21px);padding:12px 32px;border-radius:16px}
+.migrationChapterCard.migrationTapGuide{width:min(96vw,940px);max-height:min(94dvh,900px);overflow:auto;padding:clamp(20px,4vw,42px);border-width:4px}
+.migrationTapGuide .migrationChapterEyebrow{font-size:clamp(17px,2.3vw,25px)}
+.migrationTapGuide h2{font-size:clamp(30px,5.2vw,54px);margin:8px 0 14px}
+.migrationTapGuide .migrationChapterRoute{display:flex;justify-content:center;align-items:center;gap:clamp(10px,2vw,22px);flex-wrap:wrap;margin:10px auto 18px;padding:12px 18px;border:2px solid #b9d9ec;border-radius:16px;background:#eaf6ff;color:#244d72;font-size:clamp(20px,3.4vw,34px);font-weight:950}
+.migrationTapGuide .migrationChapterSteps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 14px;text-align:left}
+.migrationTapGuide .migrationChapterSteps>div{display:flex;align-items:center;gap:13px;min-height:84px;padding:13px 16px;border:2px solid #d5e2eb;border-radius:15px;background:#fff;color:#28485e;font-size:clamp(16px,2.3vw,23px);line-height:1.35}
+.migrationTapGuide .migrationStepNumber{display:grid;place-items:center;flex:0 0 43px;width:43px;height:43px;border-radius:50%;background:#426f98;color:#fff;font-size:24px;font-weight:950}
+.migrationTapGuide .migrationChapterSteps b{font-size:1.08em;color:#254e70}
+.migrationTapGuide .migrationChapterHint{margin:0 auto 18px!important;padding:10px 14px;border-radius:12px;background:#fff3d9;color:#75551d;font-size:clamp(15px,2vw,20px)!important}
+@media(max-width:620px){.migrationTapGuide .migrationChapterSteps{grid-template-columns:1fr}.migrationTapGuide .migrationChapterSteps>div{min-height:68px}.migrationTapGuide .migrationChapterRoute{padding:9px 12px}}
 body.inquiryView .inquiryStep2 #migrationNextRegion{width:100%;font-size:16px;font-weight:850;min-height:43px;background:#b5e9d5;color:#254e46}
 body.inquiryView .inquiryStep2 #migrationGoGraph[hidden]{display:none!important}
 </style><style id="graphOnlyObservationStage">
@@ -391,7 +401,7 @@ body.inquiryView .inquiryStep2 .migrationRouteProgress{font-size:14px;font-weigh
 @media(prefers-reduced-motion:reduce){.inquiryStep3 #cultureQuizCheck{animation:none!important}}
 @media(orientation:landscape) and (max-height:800px){.inquiryStep3 #cultureQuizCheck{min-height:55px!important;margin:4px 0!important;padding:7px 12px!important}.inquiryStep3 #cultureQuizFeedback{padding:4px 7px!important;margin:3px 0 5px!important}.inquiryStep3 #cultureSaveReason{min-height:44px!important}}
 </style></head>
-<body data-app-build="2026-11-12-gallery-fit5">
+<body data-app-build="2026-11-12-migration-instructions-fit6">
 <header>
   <div class="headIn">
     <h1>아메리카 지도 만들기 <span class="titleBadge">나라 20 · 랜드마크 8 · 자연 5</span></h1>
@@ -626,7 +636,7 @@ function migrationMapDraw(){
  const r=MIGRATION_ROUTES.find(x=>x.id===migrationSelected);
  const status=$('globeStatus');
  const instruction=$('migrationMapInstruction');
- const steps=['① 출발지 점을 눌러 줘: '+(r?.name||''),'② 도착지 점을 눌러 줘: '+(r?.destination||''),'③ 경로를 확인하고 오른쪽 질문에 답해 줘.'];
+ const steps=['① 보라색 출발지 점을 눌러 줘: '+(r?.name||''),'② 분홍색 도착지 점을 눌러 줘: '+(r?.destination||''),'③ 오른쪽에서 이동 이유를 골라 확인해 줘.'];
  if(status&&r)status.textContent=steps[Math.max(0,Math.min(2,globeTapStage))];
  if(instruction&&r){instruction.textContent=steps[Math.max(0,Math.min(2,globeTapStage))];instruction.dataset.stage=String(globeTapStage);}
  if($('migrationCheck'))$('migrationCheck').disabled=globeTapStage!==2||!migrationReasonSelected;
@@ -678,11 +688,14 @@ function migrationStoreRouteProgress(stage){
 }
 function migrationShowChapter(region){
  const old=$('migrationChapterPopup');if(old)old.remove();
- const latin=region==='latin',title=latin?'라틴아메리카 인구':'앵글로아메리카 인구';
+ const key='amap-migration-map-guide-v1-'+ROOM+'-'+(me?.id||'preview')+'-'+region;
+ if(store.get(key)==='yes'){migrationSetRegion(region);return;}
+ const latin=region==='latin',title=latin?'라틴아메리카 인구':'앵글로아메리카 인구',route=MIGRATION_ROUTES.find(x=>x.region===region);
  const modal=document.createElement('div');modal.id='migrationChapterPopup';modal.className='migrationChapterOverlay';
- modal.innerHTML='<div class="migrationChapterCard" role="dialog" aria-modal="true" aria-labelledby="migrationChapterTitle"><div class="migrationChapterEyebrow">인구 이동 탐구</div><div class="migrationChapterNumber">'+(latin?'02':'01')+'</div><h2 id="migrationChapterTitle">'+title+'</h2><p>'+(latin?'멕시코·브라질로 향한 사람들의 이동을 살펴보자.':'미국·캐나다로 향한 사람들의 이동을 살펴보자.')+'</p><button type="button" class="btn mint" id="migrationChapterStart">탐구 시작하기 →</button></div>';
+ modal.innerHTML='<section class="migrationChapterCard migrationTapGuide" role="dialog" aria-modal="true" aria-labelledby="migrationChapterTitle"><div class="migrationChapterEyebrow">'+title+' · 지구본 활동 방법</div><h2 id="migrationChapterTitle">지구본에서 출발지와 도착지를<br>순서대로 눌러 주세요</h2><div class="migrationChapterRoute"><span>'+esc(route?.name||'출발지')+'</span><b>→</b><span>'+esc(route?.destination||'도착지')+'</span></div><div class="migrationChapterSteps"><div><span class="migrationStepNumber">1</span><span><b>보라색 점</b>을 눌러요.<br>출발지: '+esc(route?.name||'')+'</span></div><div><span class="migrationStepNumber">2</span><span><b>분홍색 점</b>을 눌러요.<br>도착지: '+esc(route?.destination||'')+'</span></div><div><span class="migrationStepNumber">3</span><span><b>오른쪽에서 이동 이유</b>를 골라<br>확인 버튼을 눌러요.</span></div><div><span class="migrationStepNumber">!</span><span>다른 경로는 왼쪽에서 고르고,<br>점이 안 보이면 지구본을 드래그해 돌려요.</span></div></div><p class="migrationChapterHint">경로를 볼 때마다 출발지 점을 먼저, 도착지 점을 다음에 한 번씩 눌러요.</p><button type="button" class="btn mint" id="migrationChapterStart">지구본에서 출발지 찍기 →</button></section>';
  document.body.appendChild(modal);
- $('migrationChapterStart').onclick=()=>{modal.remove();migrationSetRegion(region);};
+ $('migrationChapterStart').onclick=()=>{if(!PREVIEW_ONLY)store.set(key,'yes');modal.remove();migrationSetRegion(region);};
+ $('migrationChapterStart').focus();
 }
 function migrationNextRegion(){
  if(migrationCount(migrationRegion)<4)return inquiryNotice('이 지역의 인구 이동 경로 4개를 모두 완료해 줘.',true);
@@ -746,10 +759,10 @@ function migrationInit(){
  $('migrationNextRegion').onclick=migrationNextRegion;
  if($('migrationBack'))$('migrationBack').onclick=()=>migrationSwitchTab('migration');
  $('migrationCheck').onclick=migrationCheckReason;
- document.querySelectorAll('[data-migration-region]').forEach(b=>b.onclick=()=>migrationSetRegion(b.dataset.migrationRegion));
+ document.querySelectorAll('[data-migration-region]').forEach(b=>b.onclick=()=>migrationShowChapter(b.dataset.migrationRegion));
  const scene=me?.inquiry?.teacherSubscene||'anglo';
  migrationSetRegion(scene==='latin'?'latin':'anglo');migrationUpdate();migrationMapInit();migrationSwitchTab(scene==='graph'?'graph':'migration');
- if(scene==='anglo'&&!PREVIEW_ONLY&&!Number(me?.classControlRevision))migrationShowChapter('anglo');
+ if(scene!=='graph')migrationShowChapter(scene==='latin'?'latin':'anglo');
 }
 const INQUIRY_CULTURES=[
  {name:'과달루페 성모상',country:'멕시코',query:'Our Lady of Guadalupe Mexico'},
