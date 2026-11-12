@@ -542,6 +542,35 @@ body.inquiryView .inquiryStep3 .cultureCanvasTools button:not(.cultureColor){min
 body.inquiryView .inquiryStep3 .cultureChoiceInstruction{font-size:clamp(15px,1.5vw,18px)!important;line-height:1.35!important;font-weight:750!important}
 body.inquiryView .inquiryStep3 .inquiryRoots{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
 body.inquiryView .inquiryStep3 .inquiryRootChip{min-height:46px!important;padding:8px 9px!important;font-size:clamp(14px,1.35vw,17px)!important;line-height:1.3!important}
+
+/* Prevent the culture-choice controls from being compressed into each other.
+   The teacher mirror uses this same student screen in a slightly shorter iframe. */
+@media (orientation:landscape) and (min-width:850px) and (max-height:1000px){
+ .teacherMirrorFrame{height:min(94vh,980px)!important;min-height:560px!important}
+ body.inquiryView .inquiryStep3 .inquiryQuestion{min-height:0!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;scrollbar-width:thin!important}
+ body.inquiryView .inquiryStep3 .cultureChoiceInstruction,
+ body.inquiryView .inquiryStep3 .inquiryRoots,
+ body.inquiryView .inquiryStep3 .inquiryEquationPanel,
+ body.inquiryView .inquiryStep3 #cultureCheckInstruction,
+ body.inquiryView .inquiryStep3 #cultureQuizCheck,
+ body.inquiryView .inquiryStep3 #cultureQuizFeedback,
+ body.inquiryView .inquiryStep3 .inquiryQuestion label[for="inqCultureReason"],
+ body.inquiryView .inquiryStep3 #inqCultureReason,
+ body.inquiryView .inquiryStep3 #cultureSaveReason,
+ body.inquiryView .inquiryStep3 #inquirySubmit{flex-shrink:0!important}
+ body.inquiryView .inquiryStep3 .inquiryRoots{grid-auto-rows:minmax(36px,auto)!important}
+ body.inquiryView .inquiryStep3 .inquiryRootChip{min-height:36px!important;padding:5px 7px!important;font-size:clamp(12px,1.15vw,15px)!important;line-height:1.2!important}
+ body.inquiryView .inquiryStep3 .inquiryEquationPanel{margin:3px 0!important;padding:7px 9px!important}
+ body.inquiryView .inquiryStep3 #cultureCheckInstruction{margin:0!important}
+ body.inquiryView .inquiryStep3 #cultureQuizCheck{min-height:40px!important;margin:0!important;font-size:clamp(13px,1.35vw,17px)!important}
+ body.inquiryView .inquiryStep3 #cultureQuizFeedback{margin:0!important;padding:4px 7px!important;font-size:12px!important;line-height:1.25!important}
+ body.inquiryView .inquiryStep3 #inqCultureReason{height:42px!important;flex-basis:42px!important}
+ body.inquiryView .inquiryStep3 #cultureSaveReason,
+ body.inquiryView .inquiryStep3 #inquirySubmit{min-height:34px!important}
+}
+@media (orientation:landscape) and (min-width:1100px) and (max-height:1000px){
+ body.inquiryView .inquiryStep3 .inquiryRoots{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
 .teacherCultureGallery{margin:12px 0!important}
 .teacherCultureGallery>summary{cursor:pointer;font-size:20px;font-weight:900;color:#284f6c}
 .teacherCultureCase{margin:12px 0;padding:12px;border:1px solid #d8e2e8;border-radius:14px;background:#f8fafb}
