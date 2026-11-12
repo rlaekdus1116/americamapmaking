@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta name="app-build" content="2026-11-12-migration-instructions-fit6">
+<meta name="app-build" content="2026-11-12-migration-instructions-fit7">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>아메리카 지도 만들기 · 20나라 + 랜드마크 8곳 + 자연환경 5곳</title>
@@ -401,7 +401,7 @@ body.inquiryView .inquiryStep2 .migrationRouteProgress{font-size:14px;font-weigh
 @media(prefers-reduced-motion:reduce){.inquiryStep3 #cultureQuizCheck{animation:none!important}}
 @media(orientation:landscape) and (max-height:800px){.inquiryStep3 #cultureQuizCheck{min-height:55px!important;margin:4px 0!important;padding:7px 12px!important}.inquiryStep3 #cultureQuizFeedback{padding:4px 7px!important;margin:3px 0 5px!important}.inquiryStep3 #cultureSaveReason{min-height:44px!important}}
 </style></head>
-<body data-app-build="2026-11-12-migration-instructions-fit6">
+<body data-app-build="2026-11-12-migration-instructions-fit7">
 <header>
   <div class="headIn">
     <h1>아메리카 지도 만들기 <span class="titleBadge">나라 20 · 랜드마크 8 · 자연 5</span></h1>
@@ -1306,6 +1306,7 @@ function getClassFirebaseKey(){
 function classJoinLink(){
  const link=new URL(location.origin+location.pathname);
  link.searchParams.set('room',ROOM);
+ link.searchParams.set('v',document.querySelector('meta[name="app-build"]')?.content||'current');
  return link.href;
 }
 async function copyClassJoinLink(){
