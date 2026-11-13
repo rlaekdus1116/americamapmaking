@@ -1137,7 +1137,10 @@ async function inquirySubmit(step){
      }
      throw Error('저장이 확인되지 않았어요. 다시 시도해 주세요.');
    }
-   me=norm(result.snapshot.val(),me.id);
+   const submitted=norm(result.snapshot.val(),me.id);
+   // A newer teacher command wins over a delayed submission callback.
+   if((Number(me.teacherRevision)||0)>submitted.teacherRevision)return;
+   me=submitted;
    inquiryRender();
  }catch(e){inquiryNotice('저장되지 않았어요: '+e.message,true);if(button)button.disabled=false;}
  finally{inquirySaving=false;}
