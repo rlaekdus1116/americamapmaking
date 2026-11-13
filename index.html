@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta name="app-build" content="2026-11-12-culture-layout-fit8">
+<meta name="app-build" content="2026-11-13-control-drawing-preservation">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>아메리카 지도 만들기 · 20나라 + 랜드마크 8곳 + 자연환경 5곳</title>
@@ -837,7 +837,7 @@ function saveInquiryProcessDraft(section,data){
 function cultureLocalKey(){return 'amap-culture-draft-v1-'+ROOM+'-'+(me?.id||'');}
 function cultureDraftSnapshot(includeStroke=false){
  const drawings={...cultureDrawings};
- if(includeStroke&&cultureCurrentStroke){drawings[cultureActive]=[...(drawings[cultureActive]||[]),cultureCurrentStroke].slice(-120);}
+ if(includeStroke&&cultureCurrentStroke){drawings[cultureActive]=[...(drawings[cultureActive]||[]),cultureCurrentStroke];}
  return {solved:{...cultureSolved},reasons:{...cultureReasons},reasonDrafts:{...cultureReasonDrafts},selections:{...cultureSelections},drawings,references:{...cultureReferences},searchQueries:{...cultureSearchQueries},active:cultureActive,updatedAt:Date.now()};
 }
 function cultureSaveLocal(snapshot=cultureDraftSnapshot(true)){
@@ -883,13 +883,13 @@ function cultureInitCanvas(){
  const canvas=$('cultureDrawCanvas');if(!canvas)return;if(cultureResizeObserver)cultureResizeObserver.disconnect();cultureResizeObserver=new ResizeObserver(cultureCanvasResize);cultureResizeObserver.observe(canvas);
  const point=e=>{const r=canvas.getBoundingClientRect();return [Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))];};
  canvas.onpointerdown=e=>{canvas.setPointerCapture(e.pointerId);cultureCurrentStroke={tool:cultureTool,color:culturePen,size:cultureTool==='eraser'?.045:.008,points:[point(e)]};cultureCanvasRedraw();};
- canvas.onpointermove=e=>{if(!cultureCurrentStroke)return;const p=point(e),last=cultureCurrentStroke.points.at(-1);if(last&&Math.hypot(p[0]-last[0],p[1]-last[1])<.003)return;if(cultureCurrentStroke.points.length<400)cultureCurrentStroke.points.push(p);cultureCanvasRedraw();if(cultureCurrentStroke.points.length%12===0)cultureSaveLocal(cultureDraftSnapshot(true));};
- const finish=()=>{if(!cultureCurrentStroke)return;cultureUndoHistory[cultureActive]=[...(cultureUndoHistory[cultureActive]||[]),[...(cultureDrawings[cultureActive]||[])].map(x=>({...x,points:[...(x.points||[])]}))].slice(-60);cultureRedoHistory[cultureActive]=[];cultureDrawings[cultureActive]=[...(cultureDrawings[cultureActive]||[]),cultureCurrentStroke].slice(-120);cultureCurrentStroke=null;cultureCanvasRedraw();culturePersist(true);};canvas.onpointerup=finish;canvas.onpointercancel=finish;
+ canvas.onpointermove=e=>{if(!cultureCurrentStroke)return;const p=point(e),last=cultureCurrentStroke.points.at(-1);if(last&&Math.hypot(p[0]-last[0],p[1]-last[1])<.003)return;cultureCurrentStroke.points.push(p);cultureCanvasRedraw();if(cultureCurrentStroke.points.length%12===0)cultureSaveLocal(cultureDraftSnapshot(true));};
+ const finish=()=>{if(!cultureCurrentStroke)return;cultureUndoHistory[cultureActive]=[...(cultureUndoHistory[cultureActive]||[]),[...(cultureDrawings[cultureActive]||[])]].slice(-60);cultureRedoHistory[cultureActive]=[];cultureDrawings[cultureActive]=[...(cultureDrawings[cultureActive]||[]),cultureCurrentStroke];cultureCurrentStroke=null;cultureCanvasRedraw();culturePersist(true);};canvas.onpointerup=finish;canvas.onpointercancel=finish;
  document.querySelectorAll('.cultureColor').forEach(b=>b.onclick=()=>{cultureTool='pen';culturePen=b.dataset.color;if($('cultureColorWheel'))$('cultureColorWheel').value=culturePen;document.querySelectorAll('.cultureColor').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));});
  if($('cultureColorWheel'))$('cultureColorWheel').oninput=e=>{cultureTool='pen';culturePen=e.target.value;document.querySelectorAll('.cultureColor').forEach(x=>x.setAttribute('aria-pressed','false'));if($('cultureEraser'))$('cultureEraser').setAttribute('aria-pressed','false');};
  if($('cultureEraser'))$('cultureEraser').onclick=()=>{cultureTool='eraser';document.querySelectorAll('.cultureColor').forEach(x=>x.setAttribute('aria-pressed','false'));};
- if($('cultureUndo'))$('cultureUndo').onclick=()=>{const i=cultureActive,current=[...(cultureDrawings[i]||[])];if(!current.length)return;cultureRedoHistory[i]=[...(cultureRedoHistory[i]||[]),current].slice(-60);cultureDrawings[i]=(cultureUndoHistory[i]||[]).pop()||current.slice(0,-1);cultureCanvasRedraw();culturePersist(true);};
- if($('cultureRedo'))$('cultureRedo').onclick=()=>{const i=cultureActive,next=(cultureRedoHistory[i]||[]).pop();if(!next)return;cultureUndoHistory[i]=[...(cultureUndoHistory[i]||[]),[...(cultureDrawings[i]||[])].map(x=>({...x,points:[...(x.points||[])]}))].slice(-60);cultureDrawings[i]=next;cultureCanvasRedraw();culturePersist(true);};
+ if($('cultureUndo'))$('cultureUndo').onclick=()=>{const i=cultureActive,current=[...(cultureDrawings[i]||[])];if(!current.length&&!(cultureUndoHistory[i]||[]).length)return;cultureRedoHistory[i]=[...(cultureRedoHistory[i]||[]),current].slice(-60);cultureDrawings[i]=(cultureUndoHistory[i]||[]).pop()||current.slice(0,-1);cultureCanvasRedraw();culturePersist(true);};
+ if($('cultureRedo'))$('cultureRedo').onclick=()=>{const i=cultureActive,next=(cultureRedoHistory[i]||[]).pop();if(!next)return;cultureUndoHistory[i]=[...(cultureUndoHistory[i]||[]),[...(cultureDrawings[i]||[])]].slice(-60);cultureDrawings[i]=next;cultureCanvasRedraw();culturePersist(true);};
  if($('cultureClear'))$('cultureClear').onclick=()=>{const i=cultureActive,current=[...(cultureDrawings[i]||[])];if(!current.length)return;cultureUndoHistory[i]=[...(cultureUndoHistory[i]||[]),current].slice(-60);cultureRedoHistory[i]=[];cultureDrawings[i]=[];cultureCanvasRedraw();culturePersist(true);};
  const workspace=$('cultureDrawWorkspace'),full=$('cultureFullscreen');
  const setFull=on=>{workspace?.classList.toggle('cultureDrawFullScreen',on);if(full){full.textContent=on?'닫기 ×':'전체 화면에서 그리기';full.setAttribute('aria-pressed',String(on));}requestAnimationFrame(()=>{cultureCanvasResize();cultureSaveLocal(cultureDraftSnapshot(true));});};
@@ -913,7 +913,7 @@ function cultureIntroPopup(){
 if(!window.cultureDraftRecoveryBound){
  window.cultureDraftRecoveryBound=true;
  const flush=()=>{
-  if(cultureCurrentStroke){cultureDrawings[cultureActive]=[...(cultureDrawings[cultureActive]||[]),cultureCurrentStroke].slice(-120);cultureCurrentStroke=null;}
+  if(cultureCurrentStroke){cultureDrawings[cultureActive]=[...(cultureDrawings[cultureActive]||[]),cultureCurrentStroke];cultureCurrentStroke=null;}
   cultureSaveLocal(cultureDraftSnapshot(false));
   if(!PREVIEW_ONLY&&playerRef&&serverVerified&&firebaseState==='online')culturePersist(true);
  };
@@ -1048,7 +1048,7 @@ function inquiryRender(){
     '<button class="btn mint inquirySubmit" type="button" id="inquirySubmit">역사 탐정 보고서 제출하기 ✓</button></div>';
  }else{
    title='모든 탐구 단계를 완료했어요!';
-   lead='지도 만들기와 인구·문화 자료 분석, 그리고 최종 판단까지 저장했어요.';
+   lead='지도 만들기와 인구·문화 자료 분석, 그리고 최종 판단까지 저장했어요. 선생님이 화면을 이동하면 다시 활동할 수 있어요.';
    body='<div class="inquiryData"><h3>내 탐구 기록</h3>'+
     '<p><strong>자료 분석</strong></p><p>'+esc(record.demography?.evidence||'')+'</p>'+
     '<p><strong>문화 혼종성 분석</strong></p><p>'+esc(record.culture?.formula||'')+'</p><p>'+esc(record.culture?.reason||'')+'</p>'+
@@ -1064,12 +1064,12 @@ function inquiryRender(){
  if(step===2){
    $('inqCountryA').value='미국';
    $('inqCountryB').value='멕시코';
-   const graphDraft=me?.inquiry?.processDraft?.graph||{};$('inqEvidence').value=graphDraft.evidence||'';
+   const graphDraft={...(me?.inquiry?.demography||{}),...(me?.inquiry?.processDraft?.graph||{})};$('inqEvidence').value=graphDraft.evidence||'';
    $('inqEvidence').addEventListener('input',()=>saveInquiryProcessDraft('graph',{a:'미국',b:'멕시코',evidence:$('inqEvidence').value}));
    migrationInit();
  }
  if(step===3){const draft=cultureLoadDraft(me?.inquiry?.cultureDraft||{});cultureSolved={...(draft.solved||{})};cultureReasons={...(draft.reasons||{})};cultureSelections={...(draft.selections||{})};cultureReasonDrafts={...(draft.reasonDrafts||draft.reasons||{})};cultureDrawings={...(draft.drawings||{})};cultureReferences={...(draft.references||{})};cultureSearchQueries={...(draft.searchQueries||{})};cultureActive=Math.max(0,Math.min(INQUIRY_CULTURES.length-1,Number(draft.active)||0));inquiryEnableMixer();cultureImageSearch();cultureInitCanvas();if(cultureRestorePending){culturePersist(true);cultureRestorePending=false;}cultureIntroPopup();}
- if(step===4){const d=me?.inquiry?.processDraft?.reflection||{};for(const [id,key] of [['inqClue','clue'],['inqMigrationHypothesis','hypothesis'],['inqCultureClue','cultureClue'],['inqFinal','final']]){if($(id)){ $(id).value=d[key]||'';$(id).addEventListener('input',()=>saveInquiryProcessDraft('reflection',{[key]:$(id).value}));}}}
+ if(step===4){const d={...(me?.inquiry?.reflection||{}),...(me?.inquiry?.processDraft?.reflection||{})};for(const [id,key] of [['inqClue','clue'],['inqMigrationHypothesis','hypothesis'],['inqCultureClue','cultureClue'],['inqFinal','final']]){if($(id)){ $(id).value=d[key]||'';$(id).addEventListener('input',()=>saveInquiryProcessDraft('reflection',{[key]:$(id).value}));}}}
  if($('inquirySubmit'))$('inquirySubmit').onclick=()=>inquirySubmit(step);
  showConn();
 }
@@ -1116,6 +1116,11 @@ async function inquirySubmit(step){
      if(Math.max(2,Number(current.step)||2)!==step)return;
      const now=serverNow();
      const next={...current,step:step+1,updatedAt:now};
+     const section=step===2?'demography':step===3?'culture':'reflection';
+     const history={...(current.submissionHistory||{})};
+     // Retain earlier submissions when the teacher reopens an activity.
+     if(current[section]?.submittedAt)history[section+'_'+current[section].submittedAt]=current[section];
+     next.submissionHistory=history;
      if(step===2)next.demography={...answer,submittedAt:now};
      if(step===3)next.culture={...answer,submittedAt:now};
      if(step===4)next.reflection={...answer,submittedAt:now};
@@ -1462,32 +1467,26 @@ function watchPlayers(cb){
   playersListener=s=>{lastAll=s.val()||{};cb(lastAll);};
   playersRef.on('value',playersListener,err=>{const node=$('rank')||$('tbl');if(node)node.textContent='Firebase 읽기 실패: '+err.message+' (데이터베이스 규칙을 확인해 주세요.)';});
 }
+// Shared by teacher delivery and student listeners; each class command applies once.
+function applyClassroomSceneToRecord(raw,command,key,now){
+ const revision=Number(command?.revision)||0,scene=Number(command?.scene);
+ if(!raw||!revision||Number(raw.classControlRevision)>=revision)return;
+ if(!Number.isInteger(scene)||scene<0||scene>49||(scene>36&&scene<43))return;
+ const x={...raw,...norm(migrateGameFormat(raw),key)};
+ teacherApplySceneToRecord(x,scene,now);
+ x.individualScene=null;x.individualControlAt=0;
+ x.classControlRevision=revision;
+ const adjustment=x.teacherAdjustments[x.teacherAdjustments.length-1];
+ delete adjustment.individual;adjustment.group=true;
+ return x;
+}
 function applyClassroomCommand(command){
  if(TEACHER||PREVIEW_ONLY||QUIZ_ONLY||!playerRef||!command||!Number.isInteger(Number(command.scene)))return;
  const revision=Number(command.revision)||0;
  if(!revision||classroomApplying||Number(me?.classControlRevision)>=revision)return;
  classroomApplying=true;
  playerRef.transaction(raw=>{
-  if(!raw||Number(raw.classControlRevision)>=revision)return;
-  const scene=Number(command.scene),now=serverNow();
-  if(scene<0||scene>49||(scene>36&&scene<43))return;
-  const x=norm(migrateGameFormat(raw),me?.id);
-  const old=x.cur;
-  const to=scene<PROBLEMS.length?scene:PROBLEMS.length;
-  x.cur=to;x.done=to;x.pending=null;x.tries=0;x.coolUntil=0;x.paused=false;x.pausedElapsed=0;x.startedAt=now;x.t=now;
-  teacherAlignQuestionOrder(x,scene);
-  x.teacherQuestionIndex=scene<PROBLEMS.length?scene:null;
-  x.activeQuestionUid=scene<PROBLEMS.length?(PROBLEMS[scene]?.uid||null):null;
-  x.individualScene=null;x.individualControlAt=0;
-  x.classControlRevision=revision;
-  x.teacherRevision=(Number(x.teacherRevision)||0)+1;
-  x.teacherAdjustments=[...(x.teacherAdjustments||[]),{from:old,to,scene,at:now,group:true}].slice(-30);
-  if(scene>=PROBLEMS.length){
-   const step=scene>=46?3:scene>=43?2:Math.max(2,Math.min(5,scene-PROBLEMS.length+2));
-   x.inquiry={...(x.inquiry||{}),step,teacherSubscene:scene===44?'latin':scene===45?'graph':'anglo',updatedAt:now};
-   if(scene>=46&&scene<=49){x.inquiry.cultureDraft={...(x.inquiry.cultureDraft||{}),active:scene-46};}
-  }
-  return x;
+  return applyClassroomSceneToRecord(raw,command,me?.id,serverNow());
  }).then(result=>{
    if(!result.committed&&Number(me?.classControlRevision)<revision)console.warn('Classroom navigation not committed');
  }).catch(e=>{console.warn('Classroom navigation failed',e);}).finally(()=>{
@@ -1521,7 +1520,8 @@ function watchMe(){
     const previous=me;
     const previousInquiryStep=previous?inquiryStep(previous):null;
     const next=norm(s.val(),me?.id);
-    const teacherMoved=!!me&&next.teacherRevision!==me.teacherRevision;
+    const teacherMoved=!!previous&&(next.teacherRevision!==previous.teacherRevision||
+       (!!renderedSig&&next.teacherRevision!==(Number(renderedSig.split('|')[8])||0)));
     const changed=(!me)||sig(next)!==renderedSig;
     me=next;renderHdr();
     if(classroomCommand)applyClassroomCommand(classroomCommand);
@@ -2729,7 +2729,7 @@ function teacherRenderControls(p){
  const opts=teacherMirrorSceneOptions().replace(/<option value="(37|38|39|40|41|42)"[^>]*>[^<]*<\/option>/g,'');
  const sceneLabel=teacherMirrorSceneOptions().match(new RegExp('<option value="'+desired+'">([^<]+)</option>'))?.[1]||'현재 화면';
  el.innerHTML='<h3>🎯 '+esc(p.name)+' 학생 · 개별 화면 강제 이동</h3>'+
- '<p class="muted">이 학생 한 명만 선택한 화면으로 즉시 이동합니다. 기존 점수·완료 기록·서술형 답변은 지우지 않습니다.</p>'+
+ '<p class="muted">최종 제출 후에도 이 학생을 원하는 화면으로 이동할 수 있어요. 이전 답변과 그림을 불러와 다시 제출할 수 있어요.</p>'+
  '<label for="teacherProgress" style="font-weight:800">이 학생에게 보여줄 화면</label>'+
  '<select id="teacherProgress" style="width:100%;min-height:48px;font-size:16px">'+opts+'</select>'+
  '<button type="button" class="btn mint" id="teacherProgressApply" data-student-key="'+esc(p.id)+'" style="width:100%;min-height:56px;font-size:18px;font-weight:900;margin:8px 0 3px">선택한 학생 화면 강제 이동 →</button>'+
@@ -2778,7 +2778,7 @@ async function teacherProgressApply(targetKey=selectedKey){
   const ref=db.ref(PLAYERS_PATH+'/'+key);
   const result=await ref.transaction(raw=>{
    if(!raw)return;
-   const x=norm(migrateGameFormat(raw),key);
+   const x={...raw,...norm(migrateGameFormat(raw),key)};
    teacherApplySceneToRecord(x,scene,serverNow());
    x.classControlRevision=Math.max(Number(x.classControlRevision)||0,Number(currentGroup.revision)||0);
    return x;
@@ -2994,7 +2994,7 @@ function teacherPopulationAnswerGuide(){
 function teacherClassControlHtml(){
  return '<section class="card" id="teacherClassControl" style="margin-bottom:14px;border:2px solid #9dcbbe">'+
   '<h2>📺 전체 학생 화면 · 실시간 진도 통제</h2>'+
-  '<p class="muted">실제 학생 화면을 모두 같은 단계로 이동해요. 개별 이동으로 지정한 화면도 이 명령을 누르면 전체 선택 화면으로 바뀌며, 답변과 점수는 보존돼요.</p>'+
+  '<p class="muted">실제 학생 화면을 모두 같은 단계로 이동해요. 최종 제출한 학생과 개별 이동한 학생도 모두 선택한 화면으로 이동해요. 제출한 답변과 그림은 보관돼요.</p>'+
   '<div class="teacherMirrorControls"><label class="teacherMirrorField">모두에게 보여줄 화면<select id="teacherClassScene">'+teacherMirrorSceneOptions().replace(/<option value="(37|38|39|40|41|42)"[^>]*>[^<]*<\/option>/g,'')+'</select></label>'+
   '<button type="button" class="btn mint" id="teacherClassApply">이 화면으로 전체 이동 →</button>'+
   '<button type="button" class="btn secondary" id="teacherClassPrevious">← 한 화면 이전</button>'+
@@ -3015,7 +3015,7 @@ function teacherClassControlRender(){
  select.value=String(command.scene);
  const total=Object.keys(lastAll||{}).length;
  const matched=Object.values(lastAll||{}).filter(p=>Number(p?.classControlRevision)>=Number(command.revision)).length;
- status.textContent='현재 지시: '+(select.selectedOptions[0]?.textContent||'')+' · 확인 '+matched+'/'+total+'명 · 전체 이동은 개별 지정을 덮어써요';
+ status.textContent='현재 지시: '+(select.selectedOptions[0]?.textContent||'')+' · 진도 저장 '+matched+'/'+total+'명 · 최종 제출 학생 포함';
 }
 async function teacherClassApply(scene){
  if(!TEACHER||!db||!serverVerified||firebaseState!=='online')return alert('Firebase 서버가 연결되어야 전체 진도를 이동할 수 있어요.');
@@ -3028,7 +3028,18 @@ async function teacherClassApply(scene){
    scene,revision:(Number(old?.revision)||0)+1,at:serverNow()
   }));
   if(!result.committed)throw Error('학급 이동 지시가 저장되지 않았어요.');
-  teacherClassControlState=result.snapshot.val();teacherClassControlRender();
+  const command=result.snapshot.val();
+   teacherClassControlState=command;teacherClassControlRender();
+   // Store the destination for every student, including completed/offline students.
+   const players=await playersRef.once('value');
+   const deliveries=await Promise.allSettled(Object.keys(players.val()||{}).map(key=>
+     db.ref(PLAYERS_PATH+'/'+key).transaction(raw=>
+       applyClassroomSceneToRecord(raw,command,key,serverNow()))
+   ));
+   const failed=deliveries.filter(x=>x.status==='rejected').length;
+   teacherClassControlRender();
+   const deliveryStatus=$('teacherClassStatus');
+   if(failed&&deliveryStatus)deliveryStatus.textContent+=' · '+failed+'명 서버 반영 지연: 전체 이동을 다시 눌러 주세요.';
  }catch(e){if(status)status.textContent='전체 이동 실패: '+e.message;}
  finally{if(button)button.disabled=false;}
 }
