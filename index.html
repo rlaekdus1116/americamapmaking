@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta name="app-build" content="2026-11-13-control-drawing-preservation">
+<meta name="app-build" content="2026-11-13-drawing-three-minutes">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>아메리카 지도 만들기 · 20나라 + 랜드마크 8곳 + 자연환경 5곳</title>
@@ -400,6 +400,19 @@ body.inquiryView .inquiryStep2 .migrationRouteProgress{font-size:14px;font-weigh
 @keyframes cultureCTAGlow{50%{filter:brightness(1.13)}}
 @media(prefers-reduced-motion:reduce){.inquiryStep3 #cultureQuizCheck{animation:none!important}}
 @media(orientation:landscape) and (max-height:800px){.inquiryStep3 #cultureQuizCheck{min-height:55px!important;margin:4px 0!important;padding:7px 12px!important}.inquiryStep3 #cultureQuizFeedback{padding:4px 7px!important;margin:3px 0 5px!important}.inquiryStep3 #cultureSaveReason{min-height:44px!important}}
+</style>
+<style id="culture-drawing-timer-style">
+body.inquiryView .inquiryStep3 .cultureDrawingHeading{display:flex;flex-wrap:wrap;align-items:center;gap:3px 10px;min-width:0;flex:1}
+body.inquiryView .inquiryStep3 .cultureDrawingHeading>b{flex:1 1 100%;font-size:14px}
+#cultureDrawTimer{display:inline-block;white-space:nowrap;font-size:20px!important;font-weight:950;font-variant-numeric:tabular-nums;color:#164e69;background:#e3f4fc;border-radius:8px;padding:3px 8px;line-height:1.2}
+#cultureDrawTimer[data-state="urgent"]{color:#923600;background:#fff0d6}
+#cultureDrawTimer[data-state="expired"]{color:#255d42;background:#e1f4e9}
+#cultureDrawTimerHint{font-size:12px;line-height:1.35;color:#486274}
+body.inquiryView .inquiryStep3 .cultureDrawWorkspace.cultureDrawFullScreen{grid-template-rows:auto minmax(0,1fr) auto!important}
+.cultureDrawFullScreen #cultureDrawTimer{font-size:24px!important}
+body.inquiryView .inquiryStep3 .cultureDrawFullScreen .cultureDrawingHeading>b{flex:0 1 auto;font-size:16px}
+#cultureDrawCanvas[aria-disabled="true"]{touch-action:pan-y!important}
+#cultureDrawWorkspace .cultureCanvasTools button:disabled,#cultureDrawWorkspace .cultureCanvasTools input:disabled{opacity:.45;cursor:default}
 </style></head>
 <body data-app-build="2026-11-12-culture-layout-fit8">
 <header>
@@ -828,6 +841,8 @@ function inquiryEnableMixer(){
 }
 let cultureSolved={},cultureReasons={},cultureSelections={},cultureReasonDrafts={},cultureDrawings={},cultureReferences={},cultureSearchQueries={},cultureLockUntil=0,cultureLockTimer=null,culturePersistTimer=null,cultureActive=0,culturePen='#e64b5d',cultureTool='pen',cultureCurrentStroke=null,cultureResizeObserver=null;
 let cultureUndoHistory={},cultureRedoHistory={},culturePersistQueue=Promise.resolve(),cultureRestorePending=false;
+const CULTURE_DRAWING_LIMIT_MS=3*60*1000;
+let cultureDrawingDeadlines={},cultureDrawingClock=null;
 let inquiryDraftTimer=null;
 function saveInquiryProcessDraft(section,data){
  if(!me)return;
@@ -838,7 +853,7 @@ function cultureLocalKey(){return 'amap-culture-draft-v1-'+ROOM+'-'+(me?.id||'')
 function cultureDraftSnapshot(includeStroke=false){
  const drawings={...cultureDrawings};
  if(includeStroke&&cultureCurrentStroke){drawings[cultureActive]=[...(drawings[cultureActive]||[]),cultureCurrentStroke];}
- return {solved:{...cultureSolved},reasons:{...cultureReasons},reasonDrafts:{...cultureReasonDrafts},selections:{...cultureSelections},drawings,references:{...cultureReferences},searchQueries:{...cultureSearchQueries},active:cultureActive,updatedAt:Date.now()};
+ return {solved:{...cultureSolved},reasons:{...cultureReasons},reasonDrafts:{...cultureReasonDrafts},selections:{...cultureSelections},drawings,drawingDeadlines:{...cultureDrawingDeadlines},references:{...cultureReferences},searchQueries:{...cultureSearchQueries},active:cultureActive,updatedAt:Date.now()};
 }
 function cultureSaveLocal(snapshot=cultureDraftSnapshot(true)){
  if(PREVIEW_ONLY||!me?.id)return;
@@ -879,30 +894,74 @@ function cultureCanvasRedraw(){
  for(const stroke of strokes){if(!stroke.points?.length)continue;ctx.save();ctx.globalCompositeOperation=stroke.tool==='eraser'?'destination-out':'source-over';ctx.strokeStyle=stroke.color||'#202b36';ctx.lineWidth=Math.max(3,(stroke.size||.008)*w);ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();stroke.points.forEach((p,i)=>{const x=p[0]*w,y=p[1]*h;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});if(stroke.points.length===1)ctx.lineTo(stroke.points[0][0]*w+.1,stroke.points[0][1]*h+.1);ctx.stroke();ctx.restore();}
 }
 function cultureCanvasResize(){cultureCanvasRedraw();}
+function cultureFinishStroke(){
+ if(!cultureCurrentStroke)return false;
+ cultureUndoHistory[cultureActive]=[...(cultureUndoHistory[cultureActive]||[]),[...(cultureDrawings[cultureActive]||[])]].slice(-60);
+ cultureRedoHistory[cultureActive]=[];
+ cultureDrawings[cultureActive]=[...(cultureDrawings[cultureActive]||[]),cultureCurrentStroke];
+ cultureCurrentStroke=null;cultureCanvasRedraw();culturePersist(true);return true;
+}
+function cultureDrawingExpired(){
+ const deadline=Number(cultureDrawingDeadlines[cultureActive])||0;
+ return deadline>0&&serverNow()>=deadline;
+}
+function cultureStopDrawingClock(){
+ clearInterval(cultureDrawingClock);cultureDrawingClock=null;
+}
+function cultureRefreshDrawingTimer(){
+ const timer=$('cultureDrawTimer'),hint=$('cultureDrawTimerHint');if(!timer)return;
+ const deadline=Number(cultureDrawingDeadlines[cultureActive])||0;
+ const seconds=deadline?Math.max(0,Math.min(180,Math.ceil((deadline-serverNow())/1000))):180;
+ const expired=deadline>0&&seconds===0;
+ const previous=timer.dataset.state,previousCase=timer.dataset.case;
+ timer.dataset.state=expired?'expired':deadline?(seconds<=30?'urgent':'running'):'ready';
+ timer.dataset.case=String(cultureActive);
+ timer.textContent=(expired?'그리기 종료 ':deadline?'남은 시간 ':'그리기 ')+String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
+ if(hint)hint.textContent=expired?'문화 요소 2개를 고르고 이유를 적어 봐.':deadline?'시간이 끝나면 그림을 보관해요.':'첫 획부터 3분 · 그림은 자동 저장';
+ document.querySelectorAll('#cultureDrawWorkspace .cultureCanvasTools button, #cultureDrawWorkspace .cultureCanvasTools input').forEach(el=>el.disabled=expired);
+ const canvas=$('cultureDrawCanvas');if(canvas){canvas.setAttribute('aria-disabled',String(expired));canvas.style.cursor=expired?'default':'crosshair';}
+ if(expired&&(previous!=='expired'||previousCase!==String(cultureActive))){
+  if(!cultureFinishStroke())culturePersist(true);
+  const workspace=$('cultureDrawWorkspace');
+  if(workspace?.classList.contains('cultureDrawFullScreen'))$('cultureFullscreen')?.click();
+  inquiryNotice('3분이 끝났어. 그림은 보관했으니 문화 요소 2개를 고르고 이유를 적어 봐.');
+ }
+}
+function cultureStartDrawingClock(){
+ cultureStopDrawingClock();cultureRefreshDrawingTimer();
+ const canvas=$('cultureDrawCanvas'),studentId=me?.id;
+ cultureDrawingClock=setInterval(()=>{
+  if($('cultureDrawCanvas')!==canvas||me?.id!==studentId){cultureStopDrawingClock();return;}
+  cultureRefreshDrawingTimer();
+ },250);
+}
 function cultureInitCanvas(){
  const canvas=$('cultureDrawCanvas');if(!canvas)return;if(cultureResizeObserver)cultureResizeObserver.disconnect();cultureResizeObserver=new ResizeObserver(cultureCanvasResize);cultureResizeObserver.observe(canvas);
  const point=e=>{const r=canvas.getBoundingClientRect();return [Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))];};
- canvas.onpointerdown=e=>{canvas.setPointerCapture(e.pointerId);cultureCurrentStroke={tool:cultureTool,color:culturePen,size:cultureTool==='eraser'?.045:.008,points:[point(e)]};cultureCanvasRedraw();};
- canvas.onpointermove=e=>{if(!cultureCurrentStroke)return;const p=point(e),last=cultureCurrentStroke.points.at(-1);if(last&&Math.hypot(p[0]-last[0],p[1]-last[1])<.003)return;cultureCurrentStroke.points.push(p);cultureCanvasRedraw();if(cultureCurrentStroke.points.length%12===0)cultureSaveLocal(cultureDraftSnapshot(true));};
- const finish=()=>{if(!cultureCurrentStroke)return;cultureUndoHistory[cultureActive]=[...(cultureUndoHistory[cultureActive]||[]),[...(cultureDrawings[cultureActive]||[])]].slice(-60);cultureRedoHistory[cultureActive]=[];cultureDrawings[cultureActive]=[...(cultureDrawings[cultureActive]||[]),cultureCurrentStroke];cultureCurrentStroke=null;cultureCanvasRedraw();culturePersist(true);};canvas.onpointerup=finish;canvas.onpointercancel=finish;
+ canvas.onpointerdown=e=>{
+  cultureRefreshDrawingTimer();if(cultureDrawingExpired()||cultureCurrentStroke)return;
+  if(!cultureDrawingDeadlines[cultureActive]){cultureDrawingDeadlines[cultureActive]=serverNow()+CULTURE_DRAWING_LIMIT_MS;culturePersist(true);cultureRefreshDrawingTimer();}
+  canvas.setPointerCapture(e.pointerId);cultureCurrentStroke={tool:cultureTool,color:culturePen,size:cultureTool==='eraser'?.045:.008,points:[point(e)]};cultureCanvasRedraw();};
+ canvas.onpointermove=e=>{if(cultureDrawingExpired()){cultureRefreshDrawingTimer();return;}if(!cultureCurrentStroke)return;const p=point(e),last=cultureCurrentStroke.points.at(-1);if(last&&Math.hypot(p[0]-last[0],p[1]-last[1])<.003)return;cultureCurrentStroke.points.push(p);cultureCanvasRedraw();if(cultureCurrentStroke.points.length%12===0)cultureSaveLocal(cultureDraftSnapshot(true));};
+ canvas.onpointerup=cultureFinishStroke;canvas.onpointercancel=cultureFinishStroke;
  document.querySelectorAll('.cultureColor').forEach(b=>b.onclick=()=>{cultureTool='pen';culturePen=b.dataset.color;if($('cultureColorWheel'))$('cultureColorWheel').value=culturePen;document.querySelectorAll('.cultureColor').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));});
  if($('cultureColorWheel'))$('cultureColorWheel').oninput=e=>{cultureTool='pen';culturePen=e.target.value;document.querySelectorAll('.cultureColor').forEach(x=>x.setAttribute('aria-pressed','false'));if($('cultureEraser'))$('cultureEraser').setAttribute('aria-pressed','false');};
  if($('cultureEraser'))$('cultureEraser').onclick=()=>{cultureTool='eraser';document.querySelectorAll('.cultureColor').forEach(x=>x.setAttribute('aria-pressed','false'));};
- if($('cultureUndo'))$('cultureUndo').onclick=()=>{const i=cultureActive,current=[...(cultureDrawings[i]||[])];if(!current.length&&!(cultureUndoHistory[i]||[]).length)return;cultureRedoHistory[i]=[...(cultureRedoHistory[i]||[]),current].slice(-60);cultureDrawings[i]=(cultureUndoHistory[i]||[]).pop()||current.slice(0,-1);cultureCanvasRedraw();culturePersist(true);};
- if($('cultureRedo'))$('cultureRedo').onclick=()=>{const i=cultureActive,next=(cultureRedoHistory[i]||[]).pop();if(!next)return;cultureUndoHistory[i]=[...(cultureUndoHistory[i]||[]),[...(cultureDrawings[i]||[])]].slice(-60);cultureDrawings[i]=next;cultureCanvasRedraw();culturePersist(true);};
- if($('cultureClear'))$('cultureClear').onclick=()=>{const i=cultureActive,current=[...(cultureDrawings[i]||[])];if(!current.length)return;cultureUndoHistory[i]=[...(cultureUndoHistory[i]||[]),current].slice(-60);cultureRedoHistory[i]=[];cultureDrawings[i]=[];cultureCanvasRedraw();culturePersist(true);};
+ if($('cultureUndo'))$('cultureUndo').onclick=()=>{if(cultureDrawingExpired()){cultureRefreshDrawingTimer();return;}const i=cultureActive,current=[...(cultureDrawings[i]||[])];if(!current.length&&!(cultureUndoHistory[i]||[]).length)return;cultureRedoHistory[i]=[...(cultureRedoHistory[i]||[]),current].slice(-60);cultureDrawings[i]=(cultureUndoHistory[i]||[]).pop()||current.slice(0,-1);cultureCanvasRedraw();culturePersist(true);};
+ if($('cultureRedo'))$('cultureRedo').onclick=()=>{if(cultureDrawingExpired()){cultureRefreshDrawingTimer();return;}const i=cultureActive,next=(cultureRedoHistory[i]||[]).pop();if(!next)return;cultureUndoHistory[i]=[...(cultureUndoHistory[i]||[]),[...(cultureDrawings[i]||[])]].slice(-60);cultureDrawings[i]=next;cultureCanvasRedraw();culturePersist(true);};
+ if($('cultureClear'))$('cultureClear').onclick=()=>{if(cultureDrawingExpired()){cultureRefreshDrawingTimer();return;}const i=cultureActive,current=[...(cultureDrawings[i]||[])];if(!current.length)return;cultureUndoHistory[i]=[...(cultureUndoHistory[i]||[]),current].slice(-60);cultureRedoHistory[i]=[];cultureDrawings[i]=[];cultureCanvasRedraw();culturePersist(true);};
  const workspace=$('cultureDrawWorkspace'),full=$('cultureFullscreen');
  const setFull=on=>{workspace?.classList.toggle('cultureDrawFullScreen',on);if(full){full.textContent=on?'닫기 ×':'전체 화면에서 그리기';full.setAttribute('aria-pressed',String(on));}requestAnimationFrame(()=>{cultureCanvasResize();cultureSaveLocal(cultureDraftSnapshot(true));});};
  if(full&&workspace)full.onclick=()=>setFull(!workspace.classList.contains('cultureDrawFullScreen'));
  if(!window.cultureFullscreenEscapeBound){window.cultureFullscreenEscapeBound=true;document.addEventListener('keydown',e=>{if(e.key==='Escape'){const node=$('cultureDrawWorkspace'),button=$('cultureFullscreen');if(node?.classList.contains('cultureDrawFullScreen')){node.classList.remove('cultureDrawFullScreen');if(button){button.textContent='전체 화면에서 그리기';button.setAttribute('aria-pressed','false');}requestAnimationFrame(cultureCanvasResize);}}});}
- cultureCanvasResize();
+ cultureCanvasResize();cultureStartDrawingClock();
 }
 function cultureIntroPopup(){
  if(PREVIEW_ONLY||!me)return;
  const key='amap-culture-intro-v1-'+ROOM+'-'+me.id;
  if(store.get(key)==='yes'||$('cultureIntroOverlay'))return;
  const overlay=document.createElement('div');overlay.id='cultureIntroOverlay';overlay.className='cultureIntroOverlay';
- overlay.innerHTML='<section class="cultureIntroCard" role="dialog" aria-modal="true" aria-labelledby="cultureIntroTitle"><div class="cultureIntroEyebrow">3단계 · 문화 혼종성</div><h2 id="cultureIntroTitle">서로 다른 문화가 만나면<br>무엇이 만들어질까?</h2><p>과달루페 성모상, 탱고, 햄버거, 리우 카니발 사례를 살펴봐요.</p><strong>그림을 참고해 어떤 문화 요소들이 섞였는지 찾아보세요.</strong><button type="button" id="cultureIntroStart">사례 살펴보기 →</button></section>';
+ overlay.innerHTML='<section class="cultureIntroCard" role="dialog" aria-modal="true" aria-labelledby="cultureIntroTitle"><div class="cultureIntroEyebrow">3단계 · 문화 혼종성</div><h2 id="cultureIntroTitle">서로 다른 문화가 만나면<br>무엇이 만들어질까?</h2><p>과달루페 성모상, 탱고, 햄버거, 리우 카니발 사례를 살펴봐요.</p><strong>그림을 참고해 어떤 문화 요소들이 섞였는지 찾아보세요.</strong><p>그림은 사례마다 첫 획부터 3분! 시간이 끝나면 문화 요소를 고르고 이유를 적어요.</p><button type="button" id="cultureIntroStart">사례 살펴보기 →</button></section>';
  document.body.appendChild(overlay);
  const close=()=>{store.set(key,'yes');overlay.remove();$('inqCultureCountry')?.focus();};
  $('cultureIntroStart').onclick=close;
@@ -920,7 +979,7 @@ if(!window.cultureDraftRecoveryBound){
  window.addEventListener('pagehide',flush);
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flush();});
 }
-function cultureSaveReason(){const n=cultureActive,reason=String($('inqCultureReason')?.value||'').trim();if(!cultureSolved[n])return inquiryNotice('문화 요소 정답을 먼저 확인해 줘.',true);if(reason.length<18)return inquiryNotice('이 문화가 결합한 이유를 18자 이상 적어 줘.',true);cultureReasons[n]=reason;cultureReasonDrafts[n]=reason;if(n<INQUIRY_CULTURES.length-1){cultureActive=n+1;const country=$('inqCultureCountry');country.value=String(cultureActive);country.dataset.previous=String(cultureActive);if($('inqCultureReason'))$('inqCultureReason').value=cultureReasonDrafts[cultureActive]||'';document.querySelectorAll('.inquiryRootChip').forEach(x=>x.setAttribute('aria-pressed',String((cultureSelections[cultureActive]||[]).includes(x.dataset.root))));inquiryUpdateEquation();if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent='문화 요소 두 개를 골라 봐.';cultureUpdatePicture();cultureImageSearch();cultureCanvasRedraw();inquiryNotice('이 사례 저장 완료. 다음 문화 사례를 살펴보자.');}else inquiryNotice('4개 사례 모두 완료! 역사 탐정 단계로 이동할 수 있어.');cultureUpdatePicture();culturePersist();}
+function cultureSaveReason(){const n=cultureActive,reason=String($('inqCultureReason')?.value||'').trim();if(!cultureSolved[n])return inquiryNotice('문화 요소 정답을 먼저 확인해 줘.',true);if(reason.length<18)return inquiryNotice('이 문화가 결합한 이유를 18자 이상 적어 줘.',true);cultureFinishStroke();cultureReasons[n]=reason;cultureReasonDrafts[n]=reason;if(n<INQUIRY_CULTURES.length-1){cultureActive=n+1;const country=$('inqCultureCountry');country.value=String(cultureActive);country.dataset.previous=String(cultureActive);if($('inqCultureReason'))$('inqCultureReason').value=cultureReasonDrafts[cultureActive]||'';document.querySelectorAll('.inquiryRootChip').forEach(x=>x.setAttribute('aria-pressed',String((cultureSelections[cultureActive]||[]).includes(x.dataset.root))));inquiryUpdateEquation();if($('cultureQuizFeedback'))$('cultureQuizFeedback').textContent='문화 요소 두 개를 골라 봐.';cultureUpdatePicture();cultureImageSearch();cultureCanvasRedraw();inquiryNotice('이 사례 저장 완료. 다음 문화 사례를 살펴보자.');}else inquiryNotice('4개 사례 모두 완료! 역사 탐정 단계로 이동할 수 있어.');cultureUpdatePicture();cultureRefreshDrawingTimer();culturePersist();}
 function cultureQuizCheck(){
  const index=Number($('inqCultureCountry')?.value)||0,chosen=inquiryPickedRoots().map(x=>x.id).sort(),expected=(CULTURE_ANSWERS[index]||[]).slice().sort();
  const notice=$('cultureQuizFeedback');if(!notice)return;
@@ -958,6 +1017,7 @@ function inquiryProgress(step){
 }
 function inquiryRender(){
  if(!me)return;
+ cultureFinishStroke();cultureStopDrawingClock();
  document.body.classList.add('inquiryView');document.body.classList.remove('mapLearningView');
  if(me.cur<PROBLEMS.length||me.pending){renderStudent();return;}
  destroyMap();
@@ -1014,7 +1074,7 @@ function inquiryRender(){
     '<div class="inquiryCultureResult">탐구 문화: <span id="inqCultureName"></span></div>'+
     '<div class="culturePicturePanel" aria-label="인터넷 사진 참고와 문화 사례 그림판">'+
     '<div class="cultureReferenceHelp"><b>① 사진을 인터넷에서 찾아 관찰해 보세요.</b><a id="cultureReferenceSearch" href="https://www.google.com/search?tbm=isch&q=Our%20Lady%20of%20Guadalupe%20Mexico%20image" target="_blank" rel="noopener">인터넷에서 사진 찾기 ↗</a><span>새 탭에서 사진을 본 뒤 이 화면으로 돌아와 그림으로 표현해요.</span></div>'+
-    '<div id="cultureDrawWorkspace" class="cultureDrawWorkspace"><div class="cultureWorkspaceHeader"><b>② 참고 사진을 보고 직접 그리기</b><button type="button" id="cultureFullscreen" aria-pressed="false">전체 화면에서 그리기</button></div><div class="cultureCanvasStage"><canvas id="cultureDrawCanvas" aria-label="손가락이나 펜으로 문화 사례 그리기"></canvas></div><div class="cultureCanvasTools"><label class="cultureColorWheelLabel" for="cultureColorWheel">색상 <input id="cultureColorWheel" type="color" value="#e64b5d" aria-label="원하는 색 고르기"></label>'+
+    '<div id="cultureDrawWorkspace" class="cultureDrawWorkspace"><div class="cultureWorkspaceHeader"><div class="cultureDrawingHeading"><b>② 참고 사진을 보고 직접 그리기</b><span id="cultureDrawTimer" role="timer" aria-live="off" data-state="ready">그리기 03:00</span><span id="cultureDrawTimerHint">첫 획부터 3분 · 그림은 자동 저장</span></div><button type="button" id="cultureFullscreen" aria-pressed="false">전체 화면에서 그리기</button></div><div class="cultureCanvasStage"><canvas id="cultureDrawCanvas" aria-label="손가락이나 펜으로 문화 사례 그리기"></canvas></div><div class="cultureCanvasTools"><label class="cultureColorWheelLabel" for="cultureColorWheel">색상 <input id="cultureColorWheel" type="color" value="#e64b5d" aria-label="원하는 색 고르기"></label>'+
     '<button class="cultureColor" type="button" data-color="#e64b5d" aria-label="빨강" style="background:#e64b5d" aria-pressed="true"></button><button class="cultureColor" type="button" data-color="#f07832" aria-label="주황" style="background:#f07832" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#f2c230" aria-label="노랑" style="background:#f2c230" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#8caf3f" aria-label="연두" style="background:#8caf3f" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#27885a" aria-label="초록" style="background:#27885a" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#29a6a5" aria-label="청록" style="background:#29a6a5" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#2878c8" aria-label="파랑" style="background:#2878c8" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#384b91" aria-label="남색" style="background:#384b91" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#874ab8" aria-label="보라" style="background:#874ab8" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#df70ad" aria-label="분홍" style="background:#df70ad" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#80573b" aria-label="갈색" style="background:#80573b" aria-pressed="false"></button><button class="cultureColor" type="button" data-color="#202b36" aria-label="검정" style="background:#202b36" aria-pressed="false"></button><button type="button" id="cultureEraser">지우개</button><button type="button" id="cultureUndo" aria-label="한 획 되돌리기">↶ 한 획 되돌리기</button><button type="button" id="cultureRedo" aria-label="한 획 다시 하기">↷ 다시 하기</button><button type="button" id="cultureClear">모두 지우기</button></div></div><span id="cultureCaseProgress">완료 0 / 4</span></div>'+
     '<p class="inquirySource">교과서 98~99쪽 사례에서 문화가 결합하는 과정을 찾아보자.</p></div>'+
     '<div class="inquiryQuestion"><h3>결합한 문화 요소 직접 고르기</h3>'+
@@ -1068,7 +1128,7 @@ function inquiryRender(){
    $('inqEvidence').addEventListener('input',()=>saveInquiryProcessDraft('graph',{a:'미국',b:'멕시코',evidence:$('inqEvidence').value}));
    migrationInit();
  }
- if(step===3){const draft=cultureLoadDraft(me?.inquiry?.cultureDraft||{});cultureSolved={...(draft.solved||{})};cultureReasons={...(draft.reasons||{})};cultureSelections={...(draft.selections||{})};cultureReasonDrafts={...(draft.reasonDrafts||draft.reasons||{})};cultureDrawings={...(draft.drawings||{})};cultureReferences={...(draft.references||{})};cultureSearchQueries={...(draft.searchQueries||{})};cultureActive=Math.max(0,Math.min(INQUIRY_CULTURES.length-1,Number(draft.active)||0));inquiryEnableMixer();cultureImageSearch();cultureInitCanvas();if(cultureRestorePending){culturePersist(true);cultureRestorePending=false;}cultureIntroPopup();}
+ if(step===3){const draft=cultureLoadDraft(me?.inquiry?.cultureDraft||{});cultureSolved={...(draft.solved||{})};cultureReasons={...(draft.reasons||{})};cultureSelections={...(draft.selections||{})};cultureReasonDrafts={...(draft.reasonDrafts||draft.reasons||{})};cultureDrawings={...(draft.drawings||{})};cultureDrawingDeadlines={...(draft.drawingDeadlines||{})};cultureReferences={...(draft.references||{})};cultureSearchQueries={...(draft.searchQueries||{})};cultureActive=Math.max(0,Math.min(INQUIRY_CULTURES.length-1,Number(draft.active)||0));inquiryEnableMixer();cultureImageSearch();cultureInitCanvas();if(cultureRestorePending){culturePersist(true);cultureRestorePending=false;}cultureIntroPopup();}
  if(step===4){const d={...(me?.inquiry?.reflection||{}),...(me?.inquiry?.processDraft?.reflection||{})};for(const [id,key] of [['inqClue','clue'],['inqMigrationHypothesis','hypothesis'],['inqCultureClue','cultureClue'],['inqFinal','final']]){if($(id)){ $(id).value=d[key]||'';$(id).addEventListener('input',()=>saveInquiryProcessDraft('reflection',{[key]:$(id).value}));}}}
  if($('inquirySubmit'))$('inquirySubmit').onclick=()=>inquirySubmit(step);
  showConn();
@@ -2532,6 +2592,7 @@ function finish(){
 }
 function destroyMap(){clearInterval(countdownTimer);clearInterval(questionClock);closeResultDialog();photoNonce++;if(map){map.remove();map=null;geo=null;labelLayer=null;pick=null;target=null;}}
 function renderStudent(){
+  cultureFinishStroke();cultureStopDrawingClock();
   document.body.classList.add('mapLearningView');document.body.classList.remove('inquiryView');
   destroyMap();
   app.innerHTML=`<main><section class="card">
