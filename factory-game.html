@@ -146,9 +146,9 @@ function showCompany(){
   const selectedFactors=()=>[...document.querySelectorAll('.factorChoice.selected')].map(x=>x.dataset.factor);
   updatePredictionText=()=>{
    const ids=selectedFactors(),labels=ids.map(id=>factors.find(x=>x[0]===id)?.[1]).filter(Boolean),why=$('predictWhy').value.trim(),r=regions.find(x=>x.id===$('prediction').value);
-   $('sentenceRegion').textContent=r?.name||'지역 선택';$('sentenceFactors').textContent=labels.length?labels.slice(0,2).join('과 ')+(labels.length>2?' 등':''):'[조건 1]과 [조건 2]';
+   $('sentenceRegion').textContent=r?.name||'지역 선택';$('sentenceFactors').textContent=labels.length?labels.join('과 ')+(labels.length>2?' 등':''):'[조건 1]과 [조건 2]';
    $('predictCount').textContent='이유 '+why.length+' / 25자 · 선택 조건 '+ids.length+'개';
-   $('sentencePreview').textContent='완성 문장: 나는 '+(r?.name||'[지역]')+'에 '+c.name+' 공장이 들어서면 유리할 것이라고 예상한다. '+(labels.length?labels.slice(0,2).join('과 '):'[조건 1]과 [조건 2]')+'를 활용하면 '+(why||'[내 생각]')+' 수 있기 때문이다.';
+   $('sentencePreview').textContent='완성 문장: 나는 '+(r?.name||'[지역]')+'에 '+c.name+' 공장이 들어서면 유리할 것이라고 예상한다. '+(labels.length?labels.join('과 '):'[조건 1]과 [조건 2]')+'를 활용하면 '+(why||'[내 생각]')+' 수 있기 때문이다.';
    $('lockPrediction').disabled=!r||ids.length<2||why.length<25;
    $('lockPrediction').textContent=ids.length<2?'조건 단어를 두 개 이상 골라 줘':why.length<25?'빈칸에 25자 이상 적어 줘':!r?'후보 지역을 골라 줘':'예측 저장하고 자료 공개 →';
   };
