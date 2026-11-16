@@ -84,7 +84,7 @@ function renderCases(){
   $('studyInfo').querySelector('.studyQuestion').textContent=p[0]+' · '+p[1];
   document.querySelectorAll('.studyLocation').forEach((row,n)=>row.classList.toggle('selected',n===i));
   if(isPoint){studyLeaflet.setView([p[2],p[3]],Math.max(studyLeaflet.getZoom(),4));studyMarkers.find(m=>m.getLatLng().lat===p[2]&&m.getLatLng().lng===p[3])?.openPopup();}
-  else $('studyInfo').querySelector('.note').textContent='여러 나라·지역에 걸친 활동이야. 한 도시의 위치인 것처럼 점 하나로 표시하지 않았어.';
+  else{studyLeaflet.setView([22,0],2);$('studyInfo').querySelector('.note').textContent='여러 나라·지역에 걸친 활동이야. 한 도시의 위치인 것처럼 점 하나로 표시하지 않았어.';}
  };
  $('studyLocations').querySelectorAll('.studyLocation').forEach(g=>g.onclick=()=>showLocation(Number(g.dataset.location)));
  setTimeout(()=>studyLeaflet&&studyLeaflet.invalidateSize(),100);
