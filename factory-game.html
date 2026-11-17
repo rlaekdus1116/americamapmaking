@@ -84,7 +84,7 @@ const regions=[
  {id:'ontario',name:'캐나다 · 온타리오주(토론토)',lat:43.6532,lng:-79.3832,scores:{labor:4,material:4,market:4,transport:4,skill:5,resource:4},why:'숙련 인력과 북미 산업망이 강점이에요. 인건비와 기후 조건을 살펴야 해요.'}
 ];
 const REGION_IMPACTS={
- mexico:{good:[['물류 일자리','미국 시장과 가까워 제품 운송과 물류 일이 늘 수 있어.'],['도로 이용','육상 운송이 늘면 도로와 운송 시설을 정비할 수 있어.']],risk:[['물 사용','공장에서 물을 많이 쓰면 주민 생활용 물과 이용이 겹칠 수 있어.'],['교통 혼잡','화물차가 늘면 공장 주변 도로가 혼잡해질 수 있어.']]},
+ mexico:{good:[['물류 일자리','미국 시장과 가까워 제품 운송과 물류 일이 늘 수 있어.'],['도로 이용','육상 운송이 늘면 도로와 운송 시설을 정비할 수 있어.']],risk:[['물 사용','공장에서 물을 많이 쓰면 주민이 쓰는 물과 수요가 겹칠 수 있어.'],['교통 혼잡','화물차가 늘면 공장 주변 도로가 혼잡해질 수 있어.']]},
  brazil:{good:[['원료 구매','지역의 원료·부품을 사면 연관 업체의 일이 늘 수 있어.'],['판매 시장','큰 내수 시장에서 제품 판매와 유통 일이 늘 수 있어.']],risk:[['토지 이용','공장과 도로를 만들며 기존 토지 이용이 달라질 수 있어.'],['운송 배출','항구까지 먼 거리를 운송하면 연료 사용과 배출이 늘 수 있어.']]},
  chile:{good:[['항만 일자리','항만과 연결된 생산·운송 일이 늘 수 있어.'],['기술 인력','기술 인력을 채용하고 훈련할 기회가 생길 수 있어.']],risk:[['물 부족','물이 부족한 지역에서 공장과 주민의 물 수요가 겹칠 수 있어.'],['운송 부담','시장이 멀면 장거리 운송에 시간과 에너지가 더 들 수 있어.']]},
  texas:{good:[['지역 일자리','산업 기반을 활용해 생산·정비 일이 늘 수 있어.'],['시장 접근','큰 시장에 가까워 판매와 유통 일이 늘 수 있어.']],risk:[['에너지 사용','공장 운영에 필요한 전력이 늘며 지역의 에너지 수요가 커질 수 있어.'],['물 사용','공장의 물 사용이 늘면 지역의 물 관리가 중요해져.']]},
@@ -252,7 +252,7 @@ function showCompany(){
  if(factoryMapInstance){factoryMapInstance.remove();factoryMapInstance=null;factoryTokenMarker=null;}
  if(predictionMapInstance){predictionMapInstance.remove();predictionMapInstance=null;}
  const c=companies[idx],d=draft[c.id]||{},phase=d.location&&d.storyOpen&&Number.isInteger(d.impactGood)&&Number.isInteger(d.impactRisk)?'story':d.location&&(d.impactOpen||d.storyOpen)?'impact':d.predictionLocked?'analysis':'predict';
- $('title').textContent=(phase==='predict'?'입지 예측':'입지 자료 분석')+' · '+(idx+1)+' / 3 · '+c.name;$('subtitle').textContent=c.product;
+ $('title').textContent=({predict:'입지 예측',analysis:'후보 지역 비교',impact:'지역 변화 예상',story:'4컷 만화'}[phase]||'입지 탐구')+' · '+(idx+1)+' / 3 · '+c.name;$('subtitle').textContent=c.product;
  const stars=companies.reduce((n,x)=>n+Number((draft[x.id]||{}).predictionStar||0),0);
  $('progress').innerHTML=companies.map((x,i)=>'<span class="pill">'+(i<idx?'✓':i===idx?'진행':'대기')+' '+(i+1)+'</span>').join('')+'<span class="pill">내 예측 별 '+stars+' / 3</span>';
  if(phase==='predict'){
