@@ -413,8 +413,73 @@ body.inquiryView .inquiryStep3 .cultureDrawWorkspace.cultureDrawFullScreen{grid-
 body.inquiryView .inquiryStep3 .cultureDrawFullScreen .cultureDrawingHeading>b{flex:0 1 auto;font-size:16px}
 #cultureDrawCanvas[aria-disabled="true"]{touch-action:pan-y!important}
 #cultureDrawWorkspace .cultureCanvasTools button:disabled,#cultureDrawWorkspace .cultureCanvasTools input:disabled{opacity:.45;cursor:default}
+</style><style id="culture-drawing-fullscreen-fix">
+body.cultureDrawFullscreenOpen{overflow:hidden!important;touch-action:none}
+body.inquiryView #cultureDrawWorkspace.cultureDrawFullScreen{
+ position:fixed!important;inset:0!important;z-index:20000!important;
+ display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+ grid-template-rows:auto minmax(0,1fr) auto!important;gap:8px!important;
+ width:100vw!important;height:100vh!important;height:100dvh!important;
+ max-width:none!important;max-height:100vh!important;max-height:100dvh!important;
+ margin:0!important;padding:calc(env(safe-area-inset-top,0px) + 10px) max(12px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 10px) max(12px,env(safe-area-inset-left,0px))!important;
+ overflow:hidden!important;border:0!important;border-radius:0!important;
+ background:#fffafc!important;box-shadow:0 0 0 9999px #182738b8!important;
+}
+body.inquiryView #cultureDrawWorkspace.cultureDrawFullScreen .cultureWorkspaceHeader{
+ display:flex!important;align-items:center!important;justify-content:space-between!important;
+ gap:10px!important;min-width:0!important;min-height:50px!important;margin:0!important;
+ position:relative!important;z-index:2!important;background:#fffaf3!important;
+ border-bottom:1px solid #eadff1!important;padding:4px 2px 8px!important;
+}
+#cultureDrawWorkspace.cultureDrawFullScreen .cultureDrawingHeading{
+ display:flex!important;flex:1 1 auto!important;flex-direction:row!important;flex-wrap:wrap!important;
+ align-items:center!important;gap:4px 12px!important;min-width:0!important;
+}
+#cultureDrawWorkspace.cultureDrawFullScreen .cultureDrawingHeading>b{flex:1 1 100%!important;font-size:clamp(15px,2.1vw,22px)!important}
+#cultureDrawWorkspace.cultureDrawFullScreen #cultureFullscreen{
+ display:inline-flex!important;align-items:center!important;justify-content:center!important;
+ flex:0 0 auto!important;position:relative!important;z-index:3!important;
+ min-width:88px!important;min-height:48px!important;padding:8px 14px!important;
+ border:2px solid #b94e67!important;border-radius:14px!important;
+ background:#d85a72!important;color:#fff!important;font-size:16px!important;font-weight:900!important;
+ box-shadow:0 3px 0 #a83f58!important;visibility:visible!important;opacity:1!important;
+}
+#cultureDrawWorkspace.cultureDrawFullScreen .cultureCanvasStage{
+ display:flex!important;min-width:0!important;min-height:0!important;width:100%!important;height:auto!important;
+ overflow:hidden!important;align-items:stretch!important;justify-content:center!important;
+}
+#cultureDrawWorkspace.cultureDrawFullScreen #cultureDrawCanvas{
+ display:block!important;flex:1 1 auto!important;width:100%!important;height:100%!important;
+ min-width:0!important;min-height:0!important;max-height:none!important;object-fit:contain!important;
+ background:#fff!important;touch-action:none!important;
+}
+#cultureDrawWorkspace.cultureDrawFullScreen .cultureCanvasTools{
+ display:flex!important;visibility:visible!important;opacity:1!important;
+ position:relative!important;z-index:2!important;flex:0 0 auto!important;
+ align-items:center!important;align-content:center!important;justify-content:center!important;
+ flex-wrap:wrap!important;gap:7px!important;width:100%!important;
+ max-height:28dvh!important;overflow-x:hidden!important;overflow-y:auto!important;
+ margin:0!important;padding:9px!important;border:1px solid #d7e3eb!important;
+ border-radius:14px!important;background:#f3f8fc!important;box-shadow:0 -3px 12px #26374c12!important;
+}
+#cultureDrawWorkspace.cultureDrawFullScreen .cultureCanvasTools button,
+#cultureDrawWorkspace.cultureDrawFullScreen .cultureColorWheelLabel{
+ display:inline-flex!important;visibility:visible!important;align-items:center!important;justify-content:center!important;
+ flex:0 0 auto!important;min-height:42px!important;opacity:1!important;
+}
+#cultureDrawWorkspace.cultureDrawFullScreen .cultureCanvasTools .cultureColor{
+ width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important;
+}
+#cultureDrawWorkspace.cultureDrawFullScreen .cultureColorWheelLabel{min-height:42px!important}
+#cultureDrawWorkspace.cultureDrawFullScreen #cultureDrawTimer{font-size:clamp(20px,3vw,28px)!important}
+body.inquiryView .inquiryStep3 .cultureDrawWorkspace.cultureDrawFullScreen{grid-template-rows:auto minmax(0,1fr) auto!important}
+@media(max-height:520px){
+ #cultureDrawWorkspace.cultureDrawFullScreen{gap:4px!important;padding-top:calc(env(safe-area-inset-top,0px) + 5px)!important;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 5px)!important}
+ #cultureDrawWorkspace.cultureDrawFullScreen .cultureCanvasTools{max-height:30dvh!important;gap:4px!important;padding:5px!important}
+ #cultureDrawWorkspace.cultureDrawFullScreen .cultureCanvasTools button{min-height:34px!important}
+}
 </style></head>
-<body data-app-build="2026-11-12-culture-layout-fit8">
+<body data-app-build="2026-11-17-culture-fullscreen-tools">
 <header>
   <div class="headIn">
     <h1>아메리카 지도 만들기 <span class="titleBadge">나라 20 · 랜드마크 8 · 자연 5</span></h1>
@@ -951,9 +1016,9 @@ function cultureInitCanvas(){
  if($('cultureRedo'))$('cultureRedo').onclick=()=>{if(cultureDrawingExpired()){cultureRefreshDrawingTimer();return;}const i=cultureActive,next=(cultureRedoHistory[i]||[]).pop();if(!next)return;cultureUndoHistory[i]=[...(cultureUndoHistory[i]||[]),[...(cultureDrawings[i]||[])]].slice(-60);cultureDrawings[i]=next;cultureCanvasRedraw();culturePersist(true);};
  if($('cultureClear'))$('cultureClear').onclick=()=>{if(cultureDrawingExpired()){cultureRefreshDrawingTimer();return;}const i=cultureActive,current=[...(cultureDrawings[i]||[])];if(!current.length)return;cultureUndoHistory[i]=[...(cultureUndoHistory[i]||[]),current].slice(-60);cultureRedoHistory[i]=[];cultureDrawings[i]=[];cultureCanvasRedraw();culturePersist(true);};
  const workspace=$('cultureDrawWorkspace'),full=$('cultureFullscreen');
- const setFull=on=>{workspace?.classList.toggle('cultureDrawFullScreen',on);if(full){full.textContent=on?'닫기 ×':'전체 화면에서 그리기';full.setAttribute('aria-pressed',String(on));}requestAnimationFrame(()=>{cultureCanvasResize();cultureSaveLocal(cultureDraftSnapshot(true));});};
+ const setFull=on=>{workspace?.classList.toggle('cultureDrawFullScreen',on);document.body.classList.toggle('cultureDrawFullscreenOpen',on);if(full){full.textContent=on?'닫기 ×':'전체 화면에서 그리기';full.setAttribute('aria-pressed',String(on));}requestAnimationFrame(()=>{cultureCanvasResize();cultureSaveLocal(cultureDraftSnapshot(true));});};
  if(full&&workspace)full.onclick=()=>setFull(!workspace.classList.contains('cultureDrawFullScreen'));
- if(!window.cultureFullscreenEscapeBound){window.cultureFullscreenEscapeBound=true;document.addEventListener('keydown',e=>{if(e.key==='Escape'){const node=$('cultureDrawWorkspace'),button=$('cultureFullscreen');if(node?.classList.contains('cultureDrawFullScreen')){node.classList.remove('cultureDrawFullScreen');if(button){button.textContent='전체 화면에서 그리기';button.setAttribute('aria-pressed','false');}requestAnimationFrame(cultureCanvasResize);}}});}
+ if(!window.cultureFullscreenEscapeBound){window.cultureFullscreenEscapeBound=true;document.addEventListener('keydown',e=>{if(e.key==='Escape'){const node=$('cultureDrawWorkspace'),button=$('cultureFullscreen');if(node?.classList.contains('cultureDrawFullScreen')){node.classList.remove('cultureDrawFullScreen');document.body.classList.remove('cultureDrawFullscreenOpen');if(button){button.textContent='전체 화면에서 그리기';button.setAttribute('aria-pressed','false');}requestAnimationFrame(()=>{cultureCanvasResize();cultureSaveLocal(cultureDraftSnapshot(true));});}}});}
  cultureCanvasResize();cultureStartDrawingClock();
 }
 function cultureIntroPopup(){
