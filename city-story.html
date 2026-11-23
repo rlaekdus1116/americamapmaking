@@ -32,7 +32,7 @@ header{height:64px;padding:10px 24px;border-bottom:1px solid var(--border);displ
 .sceneTop{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;background:#ffffff8c;flex-shrink:0}
 .badge{display:inline-block;background:#fff;padding:5px 12px;border-radius:99px;font-size:14px}
 .sceneArt{flex:1;min-height:0;position:relative;display:grid;place-items:center;overflow:hidden}
-.sceneArt>svg{width:100%;height:100%;display:block}
+.sceneArt>svg{width:100%;height:100%;display:block;overflow:hidden}
 .sceneBottom{background:#ffffffc4;padding:9px 16px;font-size:14px;line-height:1.5;flex-shrink:0;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .panel{border:1px solid var(--border);border-radius:24px;background:#fffefa;padding:18px 20px;overflow:auto;min-height:0}
 .eyebrow{font-size:13px;font-weight:700;letter-spacing:.04em;color:#6b806c}
@@ -87,7 +87,7 @@ header{height:64px;padding:10px 24px;border-bottom:1px solid var(--border);displ
 .townSvg text{font-family:'Noto Sans KR',sans-serif;fill:#34445a}
 .rise{animation:rise 1.2s cubic-bezier(.2,.8,.3,1) both;transform-box:fill-box;transform-origin:center bottom}
 .enterWorker{animation:enterFactory 5s linear both}
-.resPin{cursor:pointer}.resPin .tag{fill:#fffdf1;stroke:#516c59;stroke-width:1.5}.resPin.on .tag{fill:#d9f2e6;stroke-width:3}
+.resPin{cursor:pointer;-webkit-tap-highlight-color:transparent}.resPin *{pointer-events:none}.resPin>rect:first-child{pointer-events:all}.resPin .tag{fill:#fffdf1;stroke:#516c59;stroke-width:1.5}.resPin.on .tag{fill:#d9f2e6;stroke-width:3}
 .resPin:hover .tag{fill:#eef7ef}
 .resPin .ring{fill:none}.resPin.on .ring{fill:#ffffffb0;stroke:#6e9b83;stroke-width:3;stroke-dasharray:6 5}
 .wiggle{animation:wiggle 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center bottom}
@@ -135,6 +135,7 @@ dialog::backdrop{background:#263643aa}
 .doneBanner{background:var(--mint);border:2px solid #6e9b83;border-radius:16px;padding:12px 14px;margin:0 0 10px;font-weight:600}
 
 /* teacher */
+.classBar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:10px 0}.classBar .chip{padding:6px 12px}.classBar .chip small{font-weight:500}.classBar form{margin-left:auto}.classBar form button{min-height:44px}
 .teacher{max-width:1450px;padding:20px;margin:auto}
 .teacherGrid{display:grid;grid-template-columns:280px 1fr;gap:16px;align-items:start}
 .roster{display:grid;gap:8px;align-content:start;max-height:80vh;overflow:auto;padding:2px}
@@ -222,6 +223,11 @@ const policies=[
  {id:'monitor',title:'환경 감시·정보 공개',cost:1,desc:'주민이 물·대기 상태를 확인할 수 있게 한다.',effect:'문제를 발견하고 대응하기 쉬워져. 공개만으로 오염이 줄어드는 것은 아니야.'},
  {id:'housing',title:'주민 주거 지원',cost:3,desc:'주거비 부담이 큰 주민의 거주를 지원한다.',effect:'주거비 부담을 덜 수 있어. 지원 범위 밖 주민의 부담도 남아 있어.'}
 ];
+/* 반 구분은 아메리카 지도 만들기(1~4단계)와 같은 방 코드를 쓴다. */
+const CLASS_ROOMS=Array.from({length:12},(_,i)=>({id:'class-'+(i+1),label:(i+1)+'반'}));
+const roomTitle=id=>CLASS_ROOMS.find(r=>r.id===id)?.label||(id==='demo'?'기존 전체 기록 (demo)':id);
+const DB_URL='https://americamapmaking-default-rtdb.firebaseio.com';
+const roomPath=id=>'rooms/'+encodeURIComponent(id).replace(/\./g,'%2E')+'/v8/factoryGame/cityStoryV2';
 const BUDGET=6,won=n=>(n*100)+'억 원';
 const people=[
  ['worker','공장 직원','민서','일자리를 얻어서 매달 소득이 생겼어요. 안전하게 일하고 기술도 더 배우고 싶어요.'],
@@ -288,8 +294,8 @@ async function reconcile(){if(syncReady||reconciling||!studentRef)return;reconci
  reconciling=false}
 let started=false;
 function connect(){try{if(!window.firebase)throw Error('firebase unavailable');
- const app=firebase.apps[0]||firebase.initializeApp({databaseURL:'https://americamapmaking-default-rtdb.firebaseio.com',projectId:'americamapmaking',appId:'1:260167025585:web:6cc4c97234bbd5a04f7390'});
- db=app.database();base=db.ref('rooms/'+encodeURIComponent(room).replace(/\./g,'%2E')+'/v8/factoryGame/cityStoryV2');
+ const app=firebase.apps[0]||firebase.initializeApp({databaseURL:DB_URL,projectId:'americamapmaking',appId:'1:260167025585:web:6cc4c97234bbd5a04f7390'});
+ db=app.database();base=db.ref(roomPath(room));
  if(!teacher)studentRef=base.child('students/'+studentId);
  db.ref('.info/connected').on('value',snap=>{connected=!!snap.val();
   if(teacher){status(connected?'서버 연결됨':'서버 연결 대기');return}
@@ -339,33 +345,34 @@ function sneaker(x,y,color='#7192c1',s=1){return `<g transform="translate(${x} $
 function label(x,y,text,w){w=w||text.length*14+18;return `<g><rect x="${x-w/2}" y="${y-15}" width="${w}" height="22" rx="8" fill="#fffdf1" stroke="${INK}" stroke-width="1.2"/><text x="${x}" y="${y+1}" text-anchor="middle" font-size="13" font-weight="700">${text}</text></g>`}
 /* 도시 장면. level: 0 빈 땅 · 1 공장 · 2 가게와 주택 · 3 운송
    concern: 도시별 걱정거리 표시 · pol: 고른 대책 반영 · people: 주민 표시 */
-function town({level=0,concern=false,pol=false,people:showPeople=false,site=false}={}){
+function town({level=0,concern=false,pol=false,people:showPeople=false,site=false,fresh=0,freshPol=''}={}){
+ const R=n=>fresh===n?'rise':'',RP=id=>freshPol===id?'rise':'';
  const c=city(),has=id=>pol&&checked(id),k=concern?c.concern:'';
  const waterBad=k==='water'&&!has('water'),roadBad=k==='road'&&!has('road'),rentBad=k==='housing'&&!has('housing');
  const solved=concern&&pol&&has(c.concern);
- let o=`<svg class="townSvg" viewBox="0 0 800 500" role="img" aria-label="${level?'공장이 들어선':'공장이 들어오기 전'} ${esc(c.name)} 주변 마을을 그린 손그림"><defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#d8efff"/><stop offset="1" stop-color="#f1f6e4"/></linearGradient><linearGradient id="ground" x2="0" y2="1"><stop stop-color="#cce6bb"/><stop offset="1" stop-color="#9bcba8"/></linearGradient></defs>`;
- o+=`<rect width="800" height="500" fill="url(#sky)"/><circle cx="690" cy="65" r="34" fill="#ffdf86" stroke="${INK}" stroke-width="1.6"/><path d="M0 180L120 80 240 175 400 65 600 180 800 100V500H0" fill="#b9d8cc"/><path d="M0 240Q350 120 800 235V500H0" fill="url(#ground)"/>`;
+ let o=`<svg class="townSvg" viewBox="0 0 800 500" role="img" aria-label="${level?'공장이 들어선':'공장이 들어오기 전'} ${esc(c.name)} 주변 마을을 그린 손그림">`;
+ o+=`<rect width="800" height="500" fill="#dff1fb"/><circle cx="690" cy="65" r="34" fill="#ffdf86" stroke="${INK}" stroke-width="2"/><path d="M-10 185L120 80 240 175 400 65 600 180 810 95V900H-10Z" fill="#b9d8cc" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/><path d="M-10 243Q350 120 810 236V900H-10Z" fill="#c3e2bd" stroke="${INK}" stroke-width="2"/>${[[40,452],[300,470],[420,300],[700,160],[130,330],[640,470]].map(([x,y])=>`<path d="M${x} ${y}l5-9 5 9M${x+16} ${y+3}l4-7 4 7" fill="none" stroke="#8fb793" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}`;
  // 강
- o+=waterBad?`<path d="M700 220Q580 310 710 500" stroke="#e6dfc3" stroke-width="66" fill="none"/><path d="M700 220Q580 310 710 500" stroke="#b9b78f" stroke-width="26" fill="none"/>`:`<path d="M700 220Q580 310 710 500" stroke="#81c8e2" stroke-width="66" fill="none"/><path d="M690 250Q610 310 690 440" stroke="#c4e8f3" stroke-width="4" fill="none" stroke-dasharray="14 18"/>`;
+ o+=waterBad?`<path d="M700 220Q580 310 710 500" stroke="${INK}" stroke-width="70" fill="none"/><path d="M700 220Q580 310 710 500" stroke="#e6dfc3" stroke-width="66" fill="none"/><path d="M700 220Q580 310 710 500" stroke="#b9b78f" stroke-width="26" fill="none"/>`:`<path d="M700 220Q580 310 710 500" stroke="${INK}" stroke-width="70" fill="none"/><path d="M700 220Q580 310 710 500" stroke="#81c8e2" stroke-width="66" fill="none"/><path d="M690 250Q610 310 690 440" stroke="#c4e8f3" stroke-width="4" fill="none" stroke-dasharray="14 18"/>`;
  // 화물 전용 도로(대책)
- if(has('road'))o+=`<g class="rise"><path d="M0 492L800 462" stroke="#f9f4df" stroke-width="34"/><path d="M0 492L800 462" stroke="#9aa7ab" stroke-width="26"/><path d="M0 492L800 462" stroke="#fff" stroke-width="2" stroke-dasharray="16 14"/>${truck(330,446)}${label(560,455,'화물 전용 도로',112)}</g>`;
+ if(has('road'))o+=`<g class="${RP('road')}"><path d="M0 492L800 462" stroke="#f9f4df" stroke-width="34"/><path d="M0 492L800 462" stroke="#9aa7ab" stroke-width="26"/><path d="M0 492L800 462" stroke="#fff" stroke-width="2" stroke-dasharray="16 14"/>${truck(330,446)}${label(560,455,'화물 전용 도로',112)}</g>`;
  // 큰길
- o+=`<path d="M0 400L800 330" stroke="#f9f4df" stroke-width="65"/><path d="M0 400L800 330" stroke="#83959d" stroke-width="48"/><path d="M0 400L800 330" stroke="#fff" stroke-width="3" stroke-dasharray="24 18"/>`;
+ o+=`<path d="M-10 401L810 329" stroke="${INK}" stroke-width="69"/><path d="M-10 401L810 329" stroke="#f9f4df" stroke-width="65"/><path d="M0 400L800 330" stroke="#83959d" stroke-width="48"/><path d="M0 400L800 330" stroke="#fff" stroke-width="3" stroke-dasharray="24 18"/>`;
  o+=[0,1,2,3,4].map(j=>`<path d="M${52+j*11} ${374-j} V${417-j}" stroke="#fff" stroke-width="6"/>`).join('');
  // 학교와 집
  o+=`<g transform="translate(14 286)" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"><rect width="104" height="60" rx="3" fill="#f9e5b4"/><path d="M-6 0L52-30 110 0Z" fill="#c4a87d"/><rect x="12" y="14" width="20" height="17" fill="#a9cbd3"/><rect x="72" y="14" width="20" height="17" fill="#a9cbd3"/><rect x="43" y="30" width="18" height="30" fill="#b69878"/><path d="M52-30V-48H68V-38H52" fill="#e79a8c"/></g><text x="66" y="279" text-anchor="middle" font-size="13" font-weight="700">학교</text>`;
  o+=house(165,268,'#dfd1a4')+house(535,246,'#c2c5eb');
  if(level===0&&site)o+=`<rect x="250" y="210" width="260" height="130" rx="18" fill="#e8f0df" stroke="#8ca98a" stroke-dasharray="9 8" stroke-width="2.5"/><text x="380" y="282" text-anchor="middle" font-size="21" fill="#628060" font-weight="700">새 공장 예정지</text>`;
- if(level>=1)o+=`<g class="rise" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"><rect x="390" y="118" width="28" height="70" rx="4" fill="#b7c6d5"/><path d="M245 185L425 165 520 220 340 244Z" fill="#647c96"/><path d="M245 185V320L340 355V244Z" fill="#e6edf5"/><path d="M340 244L520 220V325L340 355Z" fill="#b2cbdc"/><path d="M260 204L320 225V253L260 232Z" fill="#7abbd0"/><path d="M360 260L495 240V264L360 284Z" fill="#7abbd0"/><path d="M405 282L456 275V338L405 346Z" fill="#718aa2"/><text x="350" y="316" font-size="16" font-weight="700" stroke="none">STEP 공장</text></g>`;
- if(level>=2)o+=`<g class="rise">${house(96,198,'#f5cd89')}${label(124,256,'가게',44)}${house(578,292,'#d1c2ed')}${label(606,350,'새 주택',60)}</g>`;
- if(level>=3&&!has('road'))o+=`<g class="rise">${truck(showPeople?252:215,showPeople?365:368)}</g>`;
- if(roadBad)o+=`<g class="rise">${showPeople?'':truck(92,380,'#c9a9a0')}${truck(showPeople?445:470,showPeople?348:346,'#a9c0a8')}<g class="wiggle"><path d="M146 262L166 298H126Z" fill="#ffe08a" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/><text x="146" y="293" text-anchor="middle" font-size="19" font-weight="700">!</text></g></g>`;
+ if(level>=1)o+=`<g class="${R(1)}" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"><rect x="390" y="118" width="28" height="70" rx="4" fill="#b7c6d5"/><path d="M245 185L425 165 520 220 340 244Z" fill="#647c96"/><path d="M245 185V320L340 355V244Z" fill="#e6edf5"/><path d="M340 244L520 220V325L340 355Z" fill="#b2cbdc"/><path d="M260 204L320 225V253L260 232Z" fill="#7abbd0"/><path d="M360 260L495 240V264L360 284Z" fill="#7abbd0"/><path d="M405 282L456 275V338L405 346Z" fill="#718aa2"/><text x="350" y="316" font-size="16" font-weight="700" stroke="none">STEP 공장</text></g>`;
+ if(level>=2)o+=`<g class="${R(2)}">${house(96,198,'#f5cd89')}${label(124,256,'가게',44)}${house(578,292,'#d1c2ed')}${label(606,350,'새 주택',60)}</g>`;
+ if(level>=3&&!has('road'))o+=`<g class="${R(3)}">${truck(showPeople?252:215,showPeople?365:368)}</g>`;
+ if(roadBad)o+=`<g>${showPeople?'':truck(92,380,'#c9a9a0')}${truck(showPeople?445:470,showPeople?348:346,'#a9c0a8')}<g class="wiggle"><path d="M146 262L166 298H126Z" fill="#ffe08a" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/><text x="146" y="293" text-anchor="middle" font-size="19" font-weight="700">!</text></g></g>`;
  if(has('road'))o+=`<g transform="translate(58 356) scale(.42)">${personShape(4)}</g><g transform="translate(80 352) scale(.42)">${personShape(1)}</g>`;
  if(rentBad)o+=[[192,246],[562,224],[605,270]].map(([x,y])=>`<g class="wiggle"><rect x="${x-34}" y="${y-22}" width="68" height="22" rx="6" fill="#ffe9e2" stroke="#a65a4b" stroke-width="1.5"/><text x="${x-6}" y="${y-6}" text-anchor="middle" font-size="12" font-weight="700" style="fill:#8a4b37">임대료</text><path d="M${x+20} ${y-6}V${y-17}M${x+15} ${y-12}L${x+20} ${y-18}L${x+25} ${y-12}" fill="none" stroke="#a65a4b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>`).join('');
- if(has('housing'))o+=`<g class="rise" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"><rect x="628" y="150" width="70" height="92" rx="4" fill="#f3d9c9"/>${[0,1,2].map(r=>[0,1].map(q=>`<rect x="${638+q*28}" y="${160+r*25}" width="18" height="15" rx="2" fill="#dff0f5"/>`).join('')).join('')}</g>${label(663,257,'주민 주택',72)}`;
- if(has('water'))o+=`<g class="rise" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"><path d="M520 300Q560 300 566 392" fill="none" stroke="#7aa5b5" stroke-width="7"/><ellipse cx="572" cy="408" rx="34" ry="13" fill="#8ec7cc"/><path d="M538 408V392Q572 376 606 392V408" fill="#cfe7ea"/><ellipse cx="572" cy="392" rx="34" ry="12" fill="#a7d8de"/></g>${label(572,437,'물 재이용 시설',112)}`;
- if(has('training'))o+=`<g class="rise" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"><rect x="176" y="424" width="108" height="${has('road')?40:52}" rx="4" fill="#e6d7f0"/><path d="M170 424L230 404 290 424Z" fill="#9c8bb8"/><rect x="188" y="434" width="18" height="14" fill="#fff"/><rect x="254" y="434" width="18" height="14" fill="#fff"/></g>${label(230,440,'직업교육센터',98)}`;
- if(has('monitor'))o+=`<g class="rise" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"><path d="M452 452V420" stroke-width="5"/><rect x="418" y="396" width="68" height="34" rx="5" fill="#fff"/><path d="M428 422V412M440 422V406M452 422V415M464 422V409M476 422V413" stroke="#6e9b83" stroke-width="5" stroke-linecap="round"/></g>${label(452,has('road')?388:466,'환경 정보판',88)}`;
+ if(has('housing'))o+=`<g class="${RP('housing')}" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"><rect x="628" y="150" width="70" height="92" rx="4" fill="#f3d9c9"/>${[0,1,2].map(r=>[0,1].map(q=>`<rect x="${638+q*28}" y="${160+r*25}" width="18" height="15" rx="2" fill="#dff0f5"/>`).join('')).join('')}</g>${label(663,257,'주민 주택',72)}`;
+ if(has('water'))o+=`<g class="${RP('water')}" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"><path d="M520 300Q560 300 566 392" fill="none" stroke="#7aa5b5" stroke-width="7"/><ellipse cx="572" cy="408" rx="34" ry="13" fill="#8ec7cc"/><path d="M538 408V392Q572 376 606 392V408" fill="#cfe7ea"/><ellipse cx="572" cy="392" rx="34" ry="12" fill="#a7d8de"/></g>${label(572,437,'물 재이용 시설',112)}`;
+ if(has('training'))o+=`<g class="${RP('training')}" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"><rect x="176" y="424" width="108" height="${has('road')?40:52}" rx="4" fill="#e6d7f0"/><path d="M170 424L230 404 290 424Z" fill="#9c8bb8"/><rect x="188" y="434" width="18" height="14" fill="#fff"/><rect x="254" y="434" width="18" height="14" fill="#fff"/></g>${label(230,440,'직업교육센터',98)}`;
+ if(has('monitor'))o+=`<g class="${RP('monitor')}" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"><path d="M452 452V420" stroke-width="5"/><rect x="418" y="396" width="68" height="34" rx="5" fill="#fff"/><path d="M428 422V412M440 422V406M452 422V415M464 422V409M476 422V413" stroke="#6e9b83" stroke-width="5" stroke-linecap="round"/></g>${label(452,has('road')?388:466,'환경 정보판',88)}`;
  if(showPeople)o+=people.map(([id,role,n],i)=>{const [x,y]=[[150,388],[372,372],[560,362]][i];return `<g class="resPin ${s.resident===id?'on':''}" role="button" tabindex="0" data-person="${id}" aria-label="${n} ${role} 이야기 듣기"><rect x="${x-38}" y="${y-6}" width="120" height="112" fill="#fff" fill-opacity="0"/><ellipse class="ring" cx="${x+22}" cy="${y+68}" rx="36" ry="10"/><g transform="translate(${x} ${y}) scale(.85)">${personShape(i)}</g><rect class="tag" x="${x-38}" y="${y+78}" width="120" height="26" rx="10"/><text x="${x+22}" y="${y+96}" text-anchor="middle" font-size="13.5" font-weight="700">${n} · ${role}</text></g>`}).join('');
  if(concern)o+=`<g><rect x="18" y="16" width="${solved?250:232}" height="40" rx="14" fill="${solved?'#e3f3e6':'#fff7e2'}" stroke="${solved?'#6e9b83':'#c79a55'}" stroke-width="2"/><text x="${solved?143:134}" y="42" text-anchor="middle" font-size="18" font-weight="700" style="fill:${solved?'#3f6b4c':'#8a4b37'}">${solved?'걱정을 덜어 낸 도시':c.question}</text></g>`;
  return o+'</svg>'}
@@ -379,11 +386,13 @@ function officeDrawing(){return `<svg viewBox="0 0 800 520" role="img" aria-labe
 
 /* ───────── 입장 ───────── */
 function join(){let last=null;try{last=JSON.parse(localStorage.getItem('city-story-last')||'null')}catch(e){}
+ const cur=room||last?.room||'',custom=!!cur&&!CLASS_ROOMS.some(r=>r.id===cur);
  document.body.dataset.step='join';
- $('root').innerHTML=`<div class="join"><section class="hero"><span class="badge">아메리카 탐구 5단계 · 초국적 기업과 공장 입지</span><h2>공장 하나가<br>도시를 바꿨다</h2>${town({level:0,site:true})}<p>기업의 입장에서 선택하고,<br>주민의 입장에서 다시 생각해 보자.</p></section><section class="panel"><span class="eyebrow">${teacher?'TEACHER · 교실 열기':'YOUR CITY STORY · 나의 도시 이야기'}</span><h2>${teacher?'함께 살펴볼 준비':'도시의 변화 속으로'}</h2><p>${teacher?'같은 방 코드로 입장한 학생의 생각과 네 컷을 확인할 수 있어.':'입지를 정하고, 주민을 만나고, 네 컷으로 도시의 변화를 기록해.'}</p><form id="joinForm"><label for="room">방 코드</label><input id="room" maxlength="30" autocomplete="off" placeholder="선생님이 알려준 방 코드" value="${esc(room||last?.room||'')}">${teacher?'':`<label for="name">학번과 이름</label><input id="name" maxlength="40" autocomplete="off" placeholder="예: 20101 김다연" value="${esc(last?.name||'')}">`}<button id="join" class="primary" style="width:100%;margin-top:18px">${teacher?'교사 화면 열기':'시작 / 이어하기'}</button></form><p><small><a href="index.html${room?'?room='+encodeURIComponent(room)+(teacher?'&mode=teacher':''):''}">1~4단계 · 아메리카 지도 만들기로 가기</a></small></p><p><small>${teacher?'학생 기록은 실시간으로 모이고, 전체 기록을 파일로 내려받을 수 있어.':'같은 방 코드와 이름으로 다시 들어오면 다른 기기에서도 저장한 곳부터 이어져.'}</small></p></section></div>`;
+ $('root').innerHTML=`<div class="join"><section class="hero"><span class="badge">아메리카 탐구 5단계 · 초국적 기업과 공장 입지</span><h2>공장 하나가<br>도시를 바꿨다</h2>${town({level:0,site:true})}<p>기업의 입장에서 선택하고,<br>주민의 입장에서 다시 생각해 보자.</p></section><section class="panel"><span class="eyebrow">${teacher?'TEACHER · 교실 열기':'YOUR CITY STORY · 나의 도시 이야기'}</span><h2>${teacher?'함께 살펴볼 준비':'도시의 변화 속으로'}</h2><p>${teacher?'반별로 학생의 생각과 네 컷을 확인할 수 있어.':'입지를 정하고, 주민을 만나고, 네 컷으로 도시의 변화를 기록해.'}</p><form id="joinForm"><label for="roomSel">우리 반</label><select id="roomSel"><option value="">반을 골라 줘</option>${CLASS_ROOMS.map(r=>`<option value="${r.id}" ${r.id===cur?'selected':''}>${r.label}</option>`).join('')}<option value="__custom" ${custom?'selected':''}>직접 입력</option></select><input id="room" class="${custom?'':'hidden'}" style="margin-top:8px" maxlength="36" autocomplete="off" aria-label="방 코드 직접 입력" placeholder="선생님이 알려준 방 코드" value="${esc(cur)}">${teacher?'':`<label for="name">학번과 이름</label><input id="name" maxlength="40" autocomplete="off" placeholder="예: 20101 김다연" value="${esc(last?.name||'')}">`}<button id="join" class="primary" style="width:100%;margin-top:18px">${teacher?'교사 화면 열기':'시작 / 이어하기'}</button></form><p><small><a href="index.html${room?'?room='+encodeURIComponent(room)+(teacher?'&mode=teacher':''):''}">1~4단계 · 아메리카 지도 만들기로 가기</a></small></p><p><small>${teacher?'학생 기록은 실시간으로 모이고, 전체 기록을 파일로 내려받을 수 있어.':'같은 반과 이름으로 다시 들어오면 다른 기기에서도 저장한 곳부터 이어져.'}</small></p></section></div>`;
+ $('roomSel').onchange=e=>{const v=e.target.value,c=v==='__custom';$('room').classList.toggle('hidden',!c);$('room').value=c?'':v;if(c)$('room').focus()};
  $('joinForm').onsubmit=e=>{e.preventDefault();start()}}
 async function start(){room=$('room').value.trim();name=teacher?'':$('name').value.trim().replace(/\s+/g,' ');
- if(!room||(!teacher&&!name))return toast('방 코드와 학번·이름을 입력해 줘.');
+ if(!room||(!teacher&&!name))return toast(teacher?'반을 골라 줘.':'반을 고르고 학번·이름을 입력해 줘.');
  $('join').disabled=true;studentId=encodeURIComponent(name).replace(/\./g,'%2E');
  if(teacher){connect();renderTeacher();return}
  try{localStorage.setItem('city-story-last',JSON.stringify({room,name}))}catch(e){}
@@ -400,7 +409,7 @@ function baseView(){
  $('back').onclick=()=>setStep(STEPS[STEPS.indexOf(s.step)-1],true);
  if(preview)$('exitPreview').onclick=()=>{preview=false;s=savedPreview;renderTeacher()};
  $('next').onclick=next}
-const BG={town:'linear-gradient(#d8efff 0 50%,#9bcba8 50%)',office:'linear-gradient(#eef3ee 0 50%,#dcd3c2 50%)',map:'#e5f1f5',plain:'#eef2f6'};
+const BG={town:'linear-gradient(#dff1fb 0 50%,#c3e2bd 50%)',office:'linear-gradient(#eef3ee 0 50%,#dcd3c2 50%)',map:'#e5f1f5',plain:'#eef2f6'};
 function setArt(html,bg){$('art').innerHTML=html;$('art').style.background=BG[bg]||''}
 function renderSteps(){const nav=document.querySelector('.steps');if(!nav)return;const reach=preview?7:firstMissing();
  nav.innerHTML=STEPS.map((st,i)=>{const open=STEPS.indexOf(st)<=STEPS.indexOf(reach)||st===s.step;return `<button class="step ${st===s.step?'active':validAt(st)&&st!==7?'done':''}" data-step="${st}" ${open?'':'disabled'} ${st===s.step?'aria-current="step"':''}>${i+1} ${titles[st]}</button>`}).join('');
@@ -480,7 +489,7 @@ function renderChanges(){const run=sceneRun,c=city();let phase=0;
   $('playTown').onclick=()=>{phase=0;beep('build');advance()};$('skipScene').onclick=()=>{clearTimeout(sceneTimer);advance()}}
  function advance(){if(run!==sceneRun||s.step!==2)return;clearTimeout(sceneTimer);phase++;
   if(phase>4){s.built=true;s.year=1;history('공장 건설과 도시 변화 관찰');after();updateNext();return}
-  setArt(town({level:phase<=2?1:phase===3?2:3}),'town');$('storyCaption').textContent=captions[phase-1];$('townProgress').textContent=phase+' / 4 장면';
+  setArt(town({level:phase<=2?1:phase===3?2:3,fresh:phase===1?1:phase===3?2:phase===4?3:0}),'town');$('storyCaption').textContent=captions[phase-1];$('townProgress').textContent=phase+' / 4 장면';
   $('playTown').classList.add('hidden');$('skipScene').classList.remove('hidden');$('skipScene').textContent=phase===4?'1년 후 보기':'다음 장면';
   if(phase===2){const svg=$('art').querySelector('svg');for(let i=0;i<4;i++)svg.insertAdjacentHTML('beforeend',`<g class="enterWorker" style="animation-delay:${i*1.1}s"><g transform="scale(.55)">${personShape(i)}</g></g>`)}
   beep('build');sceneTimer=setTimeout(advance,phase===2?9000:6500)}
@@ -492,8 +501,10 @@ function renderResidents(){const c=city();
  $('sceneBottom').textContent='같은 공장도 사람에 따라 다르게 느껴질 수 있어. 주민을 눌러 봐.';
  const cur=people.find(p=>p[0]===s.resident);
  $('panel').innerHTML=`<span class="eyebrow">이제 주민의 입장에서</span><h2>내가 이 도시에 산다면?</h2><p class="instruction">도시 속 주민을 눌러 이야기를 듣고, 처음 결정할 때 놓쳤던 점을 찾아봐.</p><div class="chips row">${people.map(([id,role,n])=>`<button class="chip ${s.resident===id?'selected':''}" data-person="${id}">${n} · ${role}</button>`).join('')}</div><div id="speech" class="residentSpeech" aria-live="polite">${cur?`<b>${cur[2]} · ${cur[1]}</b><br>“${cur[3]||c.voice}”`:'아직 이야기를 들은 주민이 없어.'}</div><label for="missed">이 이야기를 듣고 새롭게 생각한 점은?</label><textarea id="missed" maxlength="300" placeholder="처음에는 ___만 생각했는데, 주민에게는 ___도 중요하다는 것을 알았다.">${esc(s.missed)}</textarea>`;
- const pick=id=>{s.resident=id;history('주민 이야기 듣기');beep();const keep=$('missed').value;s.missed=keep;renderResidents();updateNext()};
- document.querySelectorAll('[data-person]').forEach(b=>{b.onclick=()=>pick(b.dataset.person);b.onkeydown=e=>{if(b.tagName!=='BUTTON'&&(e.key==='Enter'||e.key===' ')){e.preventDefault();pick(b.dataset.person)}}});
+ const pick=id=>{const p=people.find(x=>x[0]===id);if(!p)return;if(s.resident!==id){s.resident=id;history('주민 이야기 듣기');beep()}
+  document.querySelectorAll('[data-person]').forEach(el=>{const on=el.dataset.person===id;el.classList.toggle(el.tagName==='BUTTON'?'selected':'on',on)});
+  $('speech').innerHTML=`<b>${p[2]} · ${p[1]}</b><br>“${p[3]||c.voice}”`;updateNext()};
+ document.querySelectorAll('[data-person]').forEach(b=>{b.onclick=()=>pick(b.dataset.person);if(b.tagName!=='BUTTON')b.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(b.dataset.person)}}});
  bindInput('missed','missed')}
 
 /* ───────── 5. 대책 선택 ───────── */
@@ -501,13 +512,13 @@ function reactions(){const c=city();return [
  {n:'민서',role:'공장 직원',ok:checked('training'),text:checked('training')?'직업교육으로 새 기술을 배워서 더 나은 일을 맡을 수 있게 됐어요.':'일자리는 좋지만, 기술을 배울 기회가 더 있으면 좋겠어요.'},
  {n:'준호',role:'가게 주인',ok:checked('housing'),text:checked('housing')?'주거 지원으로 이웃들이 동네를 떠나지 않아서 단골이 그대로예요.':'손님은 늘었지만, 임대료가 계속 오르면 가게를 지키기 어려워요.'},
  {n:'하린',role:'이웃 주민',ok:checked(c.concern),text:checked(c.concern)?c.solved:c.voice+(checked('monitor')?' 그래도 정보가 공개되니 상황을 지켜볼 수는 있어요.':'')}]}
-function renderPolicy(){const c=city(),left=budget();
- $('sceneTitle').textContent=c.name+' · 공장 확장 제안과 우리 도시의 대책';setArt(town({level:3,concern:true,pol:true}),'town');
+function renderPolicy(freshPol=''){const c=city(),left=budget();
+ $('sceneTitle').textContent=c.name+' · 공장 확장 제안과 우리 도시의 대책';setArt(town({level:3,concern:true,pol:true,freshPol}),'town');
  $('sceneBottom').innerHTML=s.policies.length?'<b>대책을 고르면 도시의 모습이 달라져.</b> 그림에서 달라진 곳을 찾아봐.':`<b>걱정되는 변화</b> ${c.problem}`;
  $('panel').innerHTML=`<span class="eyebrow">새 사건 · 공장을 더 크게 짓는다면</span><h2>무엇부터 해결할까?</h2><p>공장을 확장하면 일자리가 늘 수 있지만, 걱정되는 변화도 커질 수 있어. 주민 대표로서 예산 안에서 대책을 골라.</p><div class="hint"><div class="budget"><b>남은 예산 ${won(left)}</b><div class="budgetBar" aria-hidden="true"><i style="width:${left/BUDGET*100}%"></i></div><small>총 ${won(BUDGET)}</small></div><small>이 활동에서만 사용하는 수업용 가상 사업비야.</small></div><div class="cards policyGrid">${policies.map(p=>`<button class="choice ${checked(p.id)?'selected':''}" data-policy="${p.id}" aria-pressed="${checked(p.id)}" ${!checked(p.id)&&p.cost>left?'disabled':''}><span class="cost">${won(p.cost)}</span><b>${p.title}</b><small>${p.desc}</small></button>`).join('')}</div>${s.policies.length?`<div class="report"><b>주민들의 반응</b>${reactions().map((r,i)=>`<div class="reaction">${face(i,r.ok)}<p><b>${r.n} · ${r.role}</b><br>${r.text}</p></div>`).join('')}</div><div class="report"><b>기대 효과와 남은 과제</b>${policies.filter(p=>checked(p.id)).map(p=>`<p><b>${p.title}</b> · ${p.effect}</p>`).join('')}</div>`:'<p class="muted">대책을 고르면 주민들의 반응과 남은 과제를 볼 수 있어.</p>'}<label for="policyWhy">이 대책을 먼저 고른 이유는?</label><textarea id="policyWhy" maxlength="300" placeholder="___의 어려움을 줄이기 위해 ___을 선택했다.">${esc(s.policyWhy)}</textarea>`;
  $('panel').querySelectorAll('[data-policy]').forEach(b=>b.onclick=()=>{const p=policies.find(x=>x.id===b.dataset.policy);
   if(checked(p.id))s.policies=s.policies.filter(x=>x!==p.id);else if(p.cost<=budget())s.policies.push(p.id);else return;
-  history('대책 선택');beep('build');const top=$('panel').scrollTop;renderPolicy();$('panel').scrollTop=top;updateNext()});
+  history('대책 선택');beep('build');const top=$('panel').scrollTop;renderPolicy(checked(p.id)?p.id:'');$('panel').scrollTop=top;updateNext()});
  bindInput('policyWhy','policyWhy')}
 
 /* ───────── 6. 네 컷 기록 ───────── */
@@ -567,17 +578,25 @@ const stepLabel=v=>v.submitted?'제출 완료':(STEPS.indexOf(v.step===5?6:v.ste
 function reportHTML(v){return `<div class="report"><p><b>입지 선택:</b> ${esc(cities.find(c=>c.id===v.city)?.name||'미선택')} · ${toArr(v.evidence).map(i=>factors[i]).join(' / ')}</p><p><b>처음 근거:</b> ${esc(v.reason)}</p><p><b>새롭게 생각한 점:</b> ${esc(v.missed)}</p><p><b>대책:</b> ${toArr(v.policies).map(id=>policies.find(p=>p.id===id)?.title||'').join(' · ')}</p><p><b>대책 이유:</b> ${esc(v.policyWhy)}</p><p><b>최종 결정:</b> ${esc(v.decision)}</p><p>${esc(v.finalWhy)}</p></div>`}
 function sortedStudents(){return Object.entries(students).filter(([,v])=>v&&typeof v==='object').sort((a,b)=>String(a[1].name||'').localeCompare(String(b[1].name||''),'ko',{numeric:true}))}
 function renderTeacher(){document.body.dataset.step='teacher';detailKey='';const link=location.origin+location.pathname+'?room='+encodeURIComponent(room);
- $('root').innerHTML=`<main class="teacher"><div class="row between"><div><span class="eyebrow">TEACHER DESK · ${esc(room)}</span><h2>아이들이 바꾼 도시의 미래</h2></div><div class="row"><button id="preview">학생 화면 미리 보기</button><button id="backup">전체 기록 내려받기</button><a href="factory-game-legacy-20261123.html?mode=teacher&room=${encodeURIComponent(room)}" target="_blank" rel="noopener">이전 활동 기록</a><a href="index.html?mode=teacher&room=${encodeURIComponent(room)}">1~4단계 교사 화면</a></div></div><div class="hint"><div class="linkBox"><b>학생 입장 주소</b><code id="studentLink">${esc(link)}</code><button id="copyLink">주소 복사</button><a href="${esc(link)}" target="_blank" rel="noopener">새 창으로 열기</a></div></div><div class="hint"><div class="row"><b>함께 볼 화면</b><select id="targetStep" style="width:auto">${STEPS.map((st,i)=>`<option value="${st}" ${teacherStep===st?'selected':''}>${i+1}. ${titles[st]}</option>`).join('')}</select><button id="moveAll" class="primary">모두 이동</button><button id="moveOne">선택 학생 이동</button></div><small>제출한 학생도 이동할 수 있어. 그림과 응답은 보관돼. 이동 명령은 지금 접속해 있는 학생에게만 적용돼.</small></div><details><summary>자료 안내</summary><p>지도 경계: Natural Earth / datasets geo-countries. 도시 위치는 실제 좌표를 사용했습니다. 스텝(STEP)은 가상의 기업이며, 비교 지표·예산·주민 이야기와 변화는 비교·토론용 가상 자료로 실제 도시의 임금·물·주거 수준을 나타내지 않습니다.</p></details><div id="tCount" class="row" style="margin:12px 0"></div><div id="tSummary" class="summary"></div><div class="teacherGrid"><aside id="tRoster" class="roster"></aside><section id="tDetail" class="panel"></section></div></main>`;
+ $('root').innerHTML=`<main class="teacher"><div class="row between"><div><span class="eyebrow">TEACHER DESK · ${esc(roomTitle(room))}</span><h2>아이들이 바꾼 도시의 미래</h2></div><div class="row"><button id="preview">학생 화면 미리 보기</button><button id="backup">전체 기록 내려받기</button><a href="factory-game-legacy-20261123.html?mode=teacher&room=${encodeURIComponent(room)}" target="_blank" rel="noopener">이전 활동 기록</a><a href="index.html?mode=teacher&room=${encodeURIComponent(room)}">1~4단계 교사 화면</a></div></div><div class="classBar" id="classBar" role="group" aria-label="확인할 반">${[...CLASS_ROOMS,{id:'demo',label:'demo'},...(CLASS_ROOMS.some(r=>r.id===room)||room==='demo'?[]:[{id:room,label:room}])].map(r=>`<button class="chip ${r.id===room?'selected':''}" data-room="${esc(r.id)}" ${r.id===room?'aria-current="true"':''}>${esc(r.label)}<small data-count="${esc(r.id)}"></small></button>`).join('')}<form id="customRoom" class="row"><input id="customRoomInput" maxlength="36" placeholder="다른 학년·반 (예: 2-3)" aria-label="다른 학년·반" style="width:190px"><button>열기</button></form></div><div class="hint"><div class="linkBox"><b>${esc(roomTitle(room))} 학생 입장 주소</b><code id="studentLink">${esc(link)}</code><button id="copyLink">주소 복사</button><a href="${esc(link)}" target="_blank" rel="noopener">새 창으로 열기</a></div></div><div class="hint"><div class="row"><b>함께 볼 화면</b><select id="targetStep" style="width:auto">${STEPS.map((st,i)=>`<option value="${st}" ${teacherStep===st?'selected':''}>${i+1}. ${titles[st]}</option>`).join('')}</select><button id="moveAll" class="primary">모두 이동</button><button id="moveOne">선택 학생 이동</button></div><small>제출한 학생도 이동할 수 있어. 그림과 응답은 보관돼. 이동 명령은 지금 접속해 있는 학생에게만 적용돼.</small></div><details><summary>자료 안내</summary><p>지도 경계: Natural Earth / datasets geo-countries. 도시 위치는 실제 좌표를 사용했습니다. 스텝(STEP)은 가상의 기업이며, 비교 지표·예산·주민 이야기와 변화는 비교·토론용 가상 자료로 실제 도시의 임금·물·주거 수준을 나타내지 않습니다.</p></details><div id="tCount" class="row" style="margin:12px 0"></div><div id="tSummary" class="summary"></div><div class="teacherGrid"><aside id="tRoster" class="roster"></aside><section id="tDetail" class="panel"></section></div></main>`;
  $('preview').onclick=()=>{savedPreview=s;preview=true;s=fresh();s.city='monterrey';render()};
- $('backup').onclick=()=>download(JSON.stringify({room,exportedAt:new Date().toISOString(),students},null,2),'도시이야기-'+room+'.json','application/json');
+ $('backup').onclick=()=>download(JSON.stringify({room,exportedAt:new Date().toISOString(),students},null,2),'도시이야기-'+roomTitle(room)+'.json','application/json');
  $('copyLink').onclick=async()=>{try{await navigator.clipboard.writeText(link);toast('학생 입장 주소를 복사했어.')}catch(e){toast('주소를 길게 눌러 복사해 줘.')}};
  $('targetStep').onchange=e=>{teacherStep=+e.target.value};$('moveAll').onclick=()=>sendCommand('all');$('moveOne').onclick=()=>teacherSelected?sendCommand(teacherSelected):toast('학생을 먼저 골라 줘.');
+ const go=id=>{location.href=location.pathname+'?role=teacher&room='+encodeURIComponent(id)};
+ $('classBar').querySelectorAll('[data-room]').forEach(b=>b.onclick=()=>{if(b.dataset.room!==room)go(b.dataset.room)});
+ $('customRoom').onsubmit=e=>{e.preventDefault();const id=$('customRoomInput').value.trim().replace(/\s+/g,'-');if(!id||!/^[\p{L}\p{N}_-]+$/u.test(id))return toast('한글·영문·숫자·하이픈(-)으로 입력해 줘.');go(id)};
+ classCounts();
  updateTeacher()}
+/* 반별 참여 인원: 이름 목록만 가볍게 읽는다(그림 데이터는 받지 않음). */
+async function classCounts(){document.querySelectorAll('[data-count]').forEach(async el=>{const id=el.dataset.count;if(id===room)return;
+ try{const r=await fetch(DB_URL+'/'+roomPath(id).split('/').map(encodeURIComponent).join('/')+'/students.json?shallow=true');if(!r.ok)return;const v=await r.json();const n=v?Object.keys(v).length:0;if(n)el.textContent=' · '+n+'명'}catch(e){}})}
 function scheduleTeacher(){if(!teacher||preview||teacherTimer)return;teacherTimer=setTimeout(()=>{teacherTimer=null;if(!preview)updateTeacher()},800)}
 function barList(rows,total){return rows.map(([label,n])=>`<div class="bar"><span title="${esc(label)}">${esc(label)}</span><div><i style="width:${total?n/total*100:0}%"></i></div><b>${n}</b></div>`).join('')}
 function updateTeacher(){if(!$('tRoster'))return;const entries=sortedStudents();if(!students[teacherSelected])teacherSelected=entries[0]?.[0]||'';
  const vals=entries.map(e=>e[1]),n=vals.length;
- $('tCount').innerHTML=`<b>${n}명 참여 · ${vals.filter(v=>v.submitted).length}명 제출</b>`;
+ const cc=document.querySelector('[data-count="'+CSS.escape(room)+'"]');if(cc)cc.textContent=n?' · '+n+'명':'';
+ $('tCount').innerHTML=`<b>${esc(roomTitle(room))} · ${n}명 참여 · ${vals.filter(v=>v.submitted).length}명 제출</b>`;
  $('tSummary').innerHTML=`<section><h3>어느 도시를 골랐을까?</h3>${barList(cities.map(c=>[c.name,vals.filter(v=>v.city===c.id).length]),n)}</section><section><h3>어떤 대책을 골랐을까?</h3>${barList(policies.map(p=>[p.title,vals.filter(v=>toArr(v.policies).includes(p.id)).length]),n)}</section><section><h3>최종 결정은?</h3>${barList(decisions.map(d=>[d,vals.filter(v=>v.decision===d).length]),n)}</section>`;
  const top=$('tRoster').scrollTop;
  $('tRoster').innerHTML=entries.map(([k,v])=>`<button class="choice ${k===teacherSelected?'selected':''}" data-student="${esc(k)}"><b>${esc(v.name||decodeURIComponent(k))}</b><small>${stepLabel(v)}</small></button>`).join('')||'<p>학생이 입장하면 여기에 나타나.</p>';
