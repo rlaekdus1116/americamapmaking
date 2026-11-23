@@ -1206,7 +1206,11 @@ function inquiryRender(){
  }else{
    title='모든 탐구 단계를 완료했어요!';
    lead='지도 만들기와 인구·문화 자료 분석, 그리고 최종 판단까지 저장했어요. 선생님이 화면을 이동하면 다시 활동할 수 있어요.';
-   body='<div class="inquiryData"><h3>내 탐구 기록</h3>'+
+   body='<div class="inquiryData" style="border:2px solid #9fd3bd;background:#eefaf4"><h3>다음 활동 · 5단계 초국적 기업과 공장 입지</h3>'+
+    '<p>아메리카의 도시 세 곳 가운데 한 곳에 운동화 공장을 세우고, 공장이 들어온 뒤 도시와 주민에게 생기는 변화를 살펴보자.</p>'+
+    '<a class="btn mint" style="display:inline-block;text-decoration:none;box-shadow:none" href="'+cityStoryLink()+'">공장 하나가 도시를 바꿨다 · 시작하기 →</a>'+
+    '<p class="inquirySource">같은 반·같은 이름으로 바로 이어져요. 여기까지의 탐구 기록은 그대로 보관돼요.</p></div>'+
+    '<div class="inquiryData"><h3>내 탐구 기록</h3>'+
     '<p><strong>자료 분석</strong></p><p>'+esc(record.demography?.evidence||'')+'</p>'+
     '<p><strong>문화 혼종성 분석</strong></p><p>'+esc(record.culture?.formula||'')+'</p><p>'+esc(record.culture?.reason||'')+'</p>'+
     '<p><strong>최종 판단</strong></p><p>'+esc(record.reflection?.final||'')+'</p>'+
@@ -1596,6 +1600,7 @@ async function verifyServerConnection(){
  if(firebaseState!=='online')throw Error('Firebase 실시간 연결이 끊겼어요.');
  serverVerified=true;showConn();
 }
+function cityStoryLink(teacherView){const u=new URL('./city-story.html',location.href);u.searchParams.set('room',ROOM);if(teacherView)u.searchParams.set('role','teacher');else{const n=(typeof me!=='undefined'&&me&&me.name)||'';if(n)u.searchParams.set('name',n);}return u.href;}
 function soloLink(){return './solo.html?room='+encodeURIComponent(ROOM);}
 function soloFallbackButton(){return '<a class="btn mint" style="display:inline-block;text-decoration:none;margin-top:12px;box-shadow:none" href="'+soloLink()+'">개별 예비 게임 시작 · 15초 4지선다</a>';}
 function renderServerGate(reason){
@@ -3247,7 +3252,7 @@ function teacherMirrorHtml(){
 function renderTeacher(){
   document.body.classList.remove('inquiryView','mapLearningView');
   renderHdr();
-  app.innerHTML=`${teacherClassControlHtml()}${teacherPopulationAnswerGuide()}${teacherMirrorHtml()}<details class="card teacherCultureGallery" id="teacherCultureGallery"><summary>🖼 문화 혼종성 그림 모아보기</summary><p class="muted">학생이 앱 그림판에 저장한 그림을 사례별로 모아 보여요.</p><div id="teacherCultureGalleryGrid"></div></details><details class="teacherOptionalQuiz"><summary>별도 활동 · 기억력 대결 운영 (열어서 사용)</summary><section id="liveTeacherPanel" class="liveTeacherPanel teacherProjector"></section></details><main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
+  app.innerHTML=`${teacherClassControlHtml()}${teacherPopulationAnswerGuide()}${teacherMirrorHtml()}<section class="card" style="margin-bottom:12px"><div class="smallPill">5단계 · 초국적 기업과 공장 입지</div><h2 style="margin:8px 0">공장 하나가 도시를 바꿨다</h2><p class="muted">학생이 4단계까지 최종 제출하면 완료 화면에 5단계 시작 버튼이 나타나요. 같은 반·같은 이름으로 바로 이어지고, 기록은 5단계 교사 화면에서 확인해요.</p><a class="btn mint" style="display:inline-block;text-decoration:none;box-shadow:none;margin-right:8px" href="${cityStoryLink(true)}" target="_blank" rel="noopener">5단계 교사 화면 열기</a><a class="btn secondary" style="display:inline-block;text-decoration:none;box-shadow:none" href="${cityStoryLink(false)}" target="_blank" rel="noopener">5단계 학생 화면 열기</a></section><details class="card teacherCultureGallery" id="teacherCultureGallery"><summary>🖼 문화 혼종성 그림 모아보기</summary><p class="muted">학생이 앱 그림판에 저장한 그림을 사례별로 모아 보여요.</p><div id="teacherCultureGalleryGrid"></div></details><details class="teacherOptionalQuiz"><summary>별도 활동 · 기억력 대결 운영 (열어서 사용)</summary><section id="liveTeacherPanel" class="liveTeacherPanel teacherProjector"></section></details><main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
     <section class="card"><div class="smallPill">${iconArt("book")} 교사용 관리</div><h2>${esc(roomTitle(ROOM))} 탐험 현황</h2>
       <p class="muted">학생 이름을 누르면 문제별 결과를 확인할 수 있어요.</p>
       <div class="teacherShare">
