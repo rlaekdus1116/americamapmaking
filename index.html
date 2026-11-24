@@ -570,6 +570,11 @@ html body .amapHelper .helperQuick{display:flex;gap:6px;flex-wrap:wrap}
 html body .amapHelper .helperQuick button{flex:1;background:#50634e;border-color:#50634e;color:#fff}
 html body .amapHelper form{display:flex;gap:6px}html body .amapHelper form input{flex:1;min-width:0;padding:8px 10px;border-radius:12px}
 html body .amapHelper small{color:#66758a;font-size:12px}
+html body #inquiryRoot#inquiryRoot .cultureHintBtn{display:inline-block;margin:8px 0 0;min-height:42px;padding:8px 16px;border-radius:14px;background:#ffdf86!important;border:2px solid #46536a!important;color:#34445a!important;font-weight:700;cursor:pointer}
+html body #inquiryRoot#inquiryRoot .cultureHintBtn[hidden],html body #inquiryRoot#inquiryRoot .cultureHintBox[hidden]{display:none!important}
+html body #inquiryRoot#inquiryRoot .cultureHintBox{margin:8px 0;padding:10px 14px;border:2px dashed #c79a55;border-radius:16px;background:#fff9e9;line-height:1.6;text-align:left}
+html body #inquiryRoot#inquiryRoot .cultureHintBox p{margin:4px 0}
+html body #inquiryRoot#inquiryRoot .cultureHintCount{font-weight:700;color:#8a4b37}
 </style></head>
 <body data-app-build="2026-11-17-culture-fullscreen-tools">
 <header>
@@ -1133,7 +1138,7 @@ function missionPopup(step){
  $('cultureIntroStart').focus();
 }
 function cultureIntroPopup(){missionPopup(3)}
-/* 길잡이(도우미 챗봇): "지금 뭐 해야 돼?"와 "사진 찾기"는 화면 상태를 보고 바로 답하고, 직접 쓴 질문만 AI 서버로 보낸다. 학생 기록은 건드리지 않는다. */
+/* 선생님 챗봇(도우미): "지금 뭐 해야 돼?"와 "사진 찾기"는 화면 상태를 보고 바로 답하고, 직접 쓴 질문만 AI 서버로 보낸다. 학생 기록은 건드리지 않는다. */
 const HELPER_URL='https://script.google.com/macros/s/AKfycbx5IXuc9ql5dMBwMqUDkxyPuPRVTEBSen9uYpsJTyekL_OImA5va_ZR3Hu61IbvJY8XkQ/exec',HELPER_MAX=10;
 const INQUIRY_HELP={
  2:'인구 자료 분석 화면이야. 지구본에서 보라색 점(출발지)을 누르고 분홍색 점(도착지)을 누른 다음, 오른쪽에서 이동한 이유를 하나 골라 [선택한 이유 확인하기]를 눌러. 경로 4개를 끝내면 라틴아메리카도 똑같이 하고, 마지막에 원그래프를 보고 두 나라의 차이를 25자 이상 써서 제출해. 점이 안 보이면 지구본을 손가락으로 돌려.',
@@ -1164,9 +1169,9 @@ function helperNow(){
 }
 function helperRender(){
  const el=$('amapHelperLog');if(!el)return;
- el.innerHTML='<p class="helperA">안녕! 나는 길잡이야. 뭘 해야 할지 모르겠으면 아래 버튼을 누르거나 물어봐.</p>'+helperChat.map(m=>'<p class="'+(m.me?'helperQ':'helperA')+'">'+esc(m.t).replace(/\n/g,'<br>')+'</p>').join('');
+ el.innerHTML='<p class="helperA">안녕! 나는 선생님 챗봇이야. 뭘 해야 할지 모르겠으면 아래 버튼을 누르거나 물어봐.</p>'+helperChat.map(m=>'<p class="'+(m.me?'helperQ':'helperA')+'">'+esc(m.t).replace(/\n/g,'<br>')+'</p>').join('');
  el.scrollTop=el.scrollHeight;
- if($('amapHelperSearch'))$('amapHelperSearch').hidden=inquiryStep()!==3;
+ if($('amapHelperSearch'))$('amapHelperSearch').hidden=inquiryStep()!==3;if($('amapHelperHint'))$('amapHelperHint').hidden=inquiryStep()!==3;
 }
 function helperSay(t,mine){helperChat.push({t,me:mine});if(helperChat.length>30)helperChat.shift();helperRender();}
 async function helperAsk(){
@@ -1175,7 +1180,7 @@ async function helperAsk(){
  $('amapHelperQ').value='';helperSay(q,true);
  if(q.length<=14&&/뭐\s*해|뭘\s*해|무엇을\s*해|어떻게\s*해|다음/.test(q))return helperSay(helperNow());
  const st=inquiryStep(),key='amap-helper-count-'+ROOM+'-'+me.id,used=Number(store.get(key))||0;
- if(used>=HELPER_MAX)return helperSay('길잡이에게 쓸 수 있는 질문을 다 썼어. 아래 버튼들은 계속 쓸 수 있어. 더 궁금하면 선생님께 물어봐.');
+ if(used>=HELPER_MAX)return helperSay('선생님 챗봇에게 쓸 수 있는 질문을 다 썼어. 아래 버튼들은 계속 쓸 수 있어. 더 궁금하면 선생님께 물어봐.');
  helperBusy=true;$('amapHelperSend').disabled=true;helperSay('…');
  let a='';
  try{
@@ -1188,13 +1193,44 @@ async function helperAsk(){
 }
 function helperMount(){
  if(PREVIEW_ONLY||$('amapHelperBtn'))return;
- document.body.insertAdjacentHTML('beforeend','<button type="button" id="amapHelperBtn" class="amapHelperBtn" aria-controls="amapHelper">길잡이 ?</button><aside id="amapHelper" class="amapHelper" hidden aria-label="길잡이 도우미"><div class="helperHead"><b>길잡이</b><button type="button" id="amapHelperClose">닫기</button></div><div id="amapHelperLog" class="helperLog" aria-live="polite"></div><div class="helperQuick"><button type="button" id="amapHelperNow">지금 뭐 해야 돼?</button><button type="button" id="amapHelperSearch">사진 어떻게 찾아?</button></div><form id="amapHelperForm"><input id="amapHelperQ" maxlength="80" autocomplete="off" aria-label="길잡이에게 질문" placeholder="궁금한 걸 써 봐"><button id="amapHelperSend">보내기</button></form><small>길잡이는 AI라서 틀릴 수 있어. 정답은 알려 주지 않아.</small></aside>');
+ document.body.insertAdjacentHTML('beforeend','<button type="button" id="amapHelperBtn" class="amapHelperBtn" aria-controls="amapHelper">선생님 챗봇</button><aside id="amapHelper" class="amapHelper" hidden aria-label="선생님 챗봇"><div class="helperHead"><b>선생님 챗봇</b><button type="button" id="amapHelperClose">닫기</button></div><div id="amapHelperLog" class="helperLog" aria-live="polite"></div><div class="helperQuick"><button type="button" id="amapHelperNow">지금 뭐 해야 돼?</button><button type="button" id="amapHelperSearch">사진 어떻게 찾아?</button><button type="button" id="amapHelperHint">뭐가 섞였는지 힌트 줘</button></div><form id="amapHelperForm"><input id="amapHelperQ" maxlength="80" autocomplete="off" aria-label="선생님 챗봇에게 질문" placeholder="궁금한 걸 써 봐"><button id="amapHelperSend">보내기</button></form><small>선생님 챗봇은 AI라서 틀릴 수 있어. 정답은 알려 주지 않아.</small></aside>');
  $('amapHelperBtn').onclick=()=>{const p=$('amapHelper');p.hidden=!p.hidden;if(!p.hidden){helperRender();if(!helperChat.length)helperSay(helperNow());}};
  $('amapHelperClose').onclick=()=>{$('amapHelper').hidden=true;};
  $('amapHelperNow').onclick=()=>{helperSay('지금 뭐 해야 돼?',true);helperSay(helperNow());};
  $('amapHelperSearch').onclick=()=>{helperSay('사진 어떻게 찾아?',true);helperSay(helperSearchTip());};
+ $('amapHelperHint').onclick=()=>{helperSay('뭐가 섞였는지 힌트 줘',true);helperSay(cultureSolved[cultureActive]?'이 사례는 이미 정답을 맞혔어!':cultureHintNext()+'\n(오른쪽 화면에도 힌트를 띄워 놨어.)');};
  $('amapHelperForm').onsubmit=e=>{e.preventDefault();helperAsk();};
 }
+/* 문화 요소 힌트: 미리 써 둔 2단계 힌트. 틀리면 자동으로 다음 힌트와 "몇 개 맞았는지"를 보여 준다. 정답 자체는 말하지 않는다. */
+const CULTURE_HINTS=[
+ ['이 그림 속 인물은 어느 대륙에서 건너온 종교의 인물일까? 그리고 얼굴빛과 옷의 무늬는 누구를 닮았는지 사진에서 찾아봐.','하나는 에스파냐 사람들이 가져온 "믿음"과 관계있어. 다른 하나는 이 땅에 원래 살던 사람들이 그림과 무늬로 나타내던 방식이야.'],
+ ['탱고에는 아코디언처럼 생긴 악기와 바이올린이 나와. 이 악기들은 어디에서 왔을까? 그리고 발을 구르는 강한 박자는 누구에게서 왔을까?','하나는 배를 타고 항구 도시로 건너온 이민자들의 "음악과 악기"야. 다른 하나는 "춤과 리듬"이라는 말이 들어 있어.'],
+ ['"햄버거"라는 이름은 어느 나라 도시 이름과 닮았을까? 그리고 빵 사이에 끼워 빨리 먹는 방식은 어떤 생활과 어울릴까?','하나는 다진 고기 요리를 가져온 유럽 한 나라의 "음식 문화"야. 다른 하나는 이 음식이 널리 퍼진 나라의 바쁜 "생활 방식"이야.'],
+ ['카니발은 원래 어느 대륙에서 하던 축제였을까? 그리고 삼바의 북소리와 춤은 누구에게서 왔을까?','하나는 "축제 전통"이라는 말이 들어 있어. 다른 하나는 북 같은 "타악기와 춤"이야.']
+];
+let cultureHintLevel={};
+function cultureHintShow(extra){
+ const box=$('cultureHintBox'),btn=$('cultureHintBtn');if(!box||!btn)return;
+ const n=cultureActive,lv=cultureHintLevel[n]||0,hints=CULTURE_HINTS[n]||[];
+ if(cultureSolved[n]){box.hidden=true;btn.hidden=true;return;}
+ btn.hidden=false;btn.textContent=lv>=hints.length?'힌트를 모두 봤어':lv?'힌트 하나 더 보기 ('+lv+'/'+hints.length+')':'힌트 보기';btn.disabled=lv>=hints.length;
+ box.hidden=!lv&&!extra;
+ box.innerHTML=(extra?'<p class="cultureHintCount">'+esc(extra)+'</p>':'')+hints.slice(0,lv).map((h,i)=>'<p><b>힌트 '+(i+1)+'</b> '+esc(h)+'</p>').join('');
+}
+function cultureHintNext(extra){const n=cultureActive,max=(CULTURE_HINTS[n]||[]).length;cultureHintLevel[n]=Math.min(max,(cultureHintLevel[n]||0)+1);cultureHintShow(extra);return (CULTURE_HINTS[n]||[]).slice(0,cultureHintLevel[n]).map((h,i)=>'힌트 '+(i+1)+': '+h).join('\n');}
+function cultureHintMount(){
+ const fb=$('cultureQuizFeedback');if(!fb||$('cultureHintBtn'))return;
+ fb.insertAdjacentHTML('afterend','<button type="button" id="cultureHintBtn" class="cultureHintBtn">힌트 보기</button><div id="cultureHintBox" class="cultureHintBox" hidden aria-live="polite"></div>');
+ $('cultureHintBtn').onclick=()=>cultureHintNext();cultureHintShow();
+}
+{const baseCheck=cultureQuizCheck;cultureQuizCheck=function(){
+ const index=Number($('inqCultureCountry')?.value)||0,before=cultureLockUntil,chosen=inquiryPickedRoots().map(x=>x.id),expected=CULTURE_ANSWERS[index]||[];
+ baseCheck.apply(this,arguments);
+ if(cultureSolved[index])return cultureHintShow();
+ if(cultureLockUntil>before&&chosen.length===2){const right=chosen.filter(x=>expected.includes(x)).length;
+  cultureHintNext(right===1?'아깝다! 고른 두 개 중 하나는 맞았어. 나머지 하나만 바꿔 봐.':'고른 두 개가 모두 아니야. 아래 힌트를 읽고 다시 골라 봐.');}
+};
+const baseGo=cultureGoToCase;cultureGoToCase=function(){baseGo.apply(this,arguments);cultureHintShow();};}
 /* 앞 단계로 돌아가기: 제출한 답과 그림은 그대로 두고 단계 번호만 하나 내린다. 다시 제출하면 원래 단계로 이어진다. */
 let inquiryGoingBack=false;
 async function inquiryGoBack(step){
@@ -1216,7 +1252,7 @@ async function inquiryGoBack(step){
  finally{inquiryGoingBack=false;}
 }
 {const baseInquiryRender=inquiryRender;inquiryRender=function(){baseInquiryRender.apply(this,arguments);try{const st=inquiryStep();if(!me||me.pending||me.cur<PROBLEMS.length)return;
- helperMount();
+ helperMount();if(st===3)cultureHintMount();
  if((st===4||st===5)&&!PREVIEW_ONLY&&$('inqNotice')&&!$('inquiryBackStep')){$('inqNotice').insertAdjacentHTML('beforebegin','<button type="button" class="btn secondary inquiryBackStep" id="inquiryBackStep">'+(st===4?'← 문화 혼종성으로 돌아가기 (그림 다시 그리기)':'← 역사 탐정 단계로 돌아가기')+'</button>');$('inquiryBackStep').onclick=()=>inquiryGoBack(st);}
  if(st===4)missionPopup(st)}catch(e){}}}
 if(!window.cultureDraftRecoveryBound){
