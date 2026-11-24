@@ -554,6 +554,22 @@ html body .migrationStepNumber{background:#d9f2e6!important;color:#34445a!import
 html body .stage-panel,html body .photo-panel,html body .result-panel{background:#fffefa!important;background-image:none!important;border:3px solid #46536a!important;box-shadow:6px 6px 0 #46536a33!important}
 html body .stage-modal,html body .photo-modal{background:#263643aa!important}
 html body .puzzle-tile{box-shadow:none!important}
+html body .inquiryBackStep{display:inline-block;margin:10px 0 0!important;padding:9px 14px!important;font-size:14px!important}
+body:not(.inquiryView) #amapHelperBtn,body:not(.inquiryView) #amapHelper{display:none!important}
+html body .amapHelperBtn{position:fixed;right:16px;bottom:16px;z-index:9000;min-height:52px;padding:10px 18px;border-radius:999px!important;background:#ffdf86!important;border:2.5px solid #46536a!important;color:#34445a!important;font-family:Jua,sans-serif;font-size:19px;box-shadow:4px 4px 0 #46536a33!important;cursor:pointer}
+html body .amapHelper{position:fixed;right:16px;bottom:80px;z-index:9000;width:min(350px,calc(100vw - 24px));max-height:min(540px,calc(100dvh - 110px));display:flex;flex-direction:column;gap:8px;padding:12px;background:#fffefa;border:3px solid #46536a;border-radius:22px;box-shadow:6px 6px 0 #46536a33;color:#34445a}
+html body .amapHelper[hidden]{display:none}
+html body .amapHelper .helperHead{display:flex;justify-content:space-between;align-items:center}
+html body .amapHelper .helperHead b{font-family:Jua,sans-serif;font-size:20px;font-weight:400}
+html body .amapHelper button{min-height:40px;padding:6px 12px;border-radius:12px;border:1.5px solid #46536a;background:#fff;color:#34445a;font-weight:700;cursor:pointer}
+html body .amapHelper .helperLog{flex:1;min-height:130px;overflow:auto;display:flex;flex-direction:column;gap:6px;padding:4px}
+html body .amapHelper .helperLog p{margin:0;padding:8px 11px;border-radius:14px;line-height:1.5;max-width:94%;font-size:15px;word-break:keep-all;overflow-wrap:anywhere}
+html body .amapHelper .helperA{background:#d9f2e6;align-self:flex-start;border-bottom-left-radius:4px}
+html body .amapHelper .helperQ{background:#e9e3fa;align-self:flex-end;border-bottom-right-radius:4px}
+html body .amapHelper .helperQuick{display:flex;gap:6px;flex-wrap:wrap}
+html body .amapHelper .helperQuick button{flex:1;background:#50634e;border-color:#50634e;color:#fff}
+html body .amapHelper form{display:flex;gap:6px}html body .amapHelper form input{flex:1;min-width:0;padding:8px 10px;border-radius:12px}
+html body .amapHelper small{color:#66758a;font-size:12px}
 </style></head>
 <body data-app-build="2026-11-17-culture-fullscreen-tools">
 <header>
@@ -1117,7 +1133,92 @@ function missionPopup(step){
  $('cultureIntroStart').focus();
 }
 function cultureIntroPopup(){missionPopup(3)}
-{const baseInquiryRender=inquiryRender;inquiryRender=function(){baseInquiryRender.apply(this,arguments);try{const st=inquiryStep();if(me&&!me.pending&&me.cur>=PROBLEMS.length&&st===4)missionPopup(st)}catch(e){}}}
+/* 길잡이(도우미 챗봇): "지금 뭐 해야 돼?"와 "사진 찾기"는 화면 상태를 보고 바로 답하고, 직접 쓴 질문만 AI 서버로 보낸다. 학생 기록은 건드리지 않는다. */
+const HELPER_URL='https://script.google.com/macros/s/AKfycbx5IXuc9ql5dMBwMqUDkxyPuPRVTEBSen9uYpsJTyekL_OImA5va_ZR3Hu61IbvJY8XkQ/exec',HELPER_MAX=10;
+const INQUIRY_HELP={
+ 2:'인구 자료 분석 화면이야. 지구본에서 보라색 점(출발지)을 누르고 분홍색 점(도착지)을 누른 다음, 오른쪽에서 이동한 이유를 하나 골라 [선택한 이유 확인하기]를 눌러. 경로 4개를 끝내면 라틴아메리카도 똑같이 하고, 마지막에 원그래프를 보고 두 나라의 차이를 25자 이상 써서 제출해. 점이 안 보이면 지구본을 손가락으로 돌려.',
+ 3:'문화 혼종성 화면이야. 왼쪽의 파란 [인터넷에서 사진 찾기] 버튼을 누르면 새 탭에 사진이 나와. 사진을 본 뒤 이 탭으로 돌아와 그림판에 그려. [전체 화면에서 그리기]를 누르면 크게 그릴 수 있고 색은 그림판 아래 동그라미에서 골라. 오른쪽에서 섞인 문화 요소 2개를 고르고 가운데 큰 버튼으로 정답을 확인한 뒤, 이유를 18자 이상 쓰고 [이 사례의 이유 저장하기]를 눌러. 사례는 4개(과달루페 성모상, 탱고, 햄버거, 리우 카니발)이고 그림판 아래 [← 이전 사례] [다음 사례 →]로 옮겨 다녀.',
+ 4:'역사 탐정 화면이야. 왼쪽의 역사 자료 카드(꽃 장식, 추모 제단, 해골 장식, 가족의 기억)와 역사 단서를 읽고, 오른쪽 질문 ①~④에 답을 써. ④는 30자 이상이야. 다 쓰면 [역사 탐정 보고서 제출하기]를 눌러. 그림을 다시 그리고 싶으면 아래 [← 문화 혼종성으로 돌아가기]를 눌러.',
+ 5:'모든 탐구 단계를 끝낸 화면이야. [공장 하나가 도시를 바꿨다 · 시작하기 →]를 누르면 다음 활동(5단계)으로 가.'
+};
+let helperChat=[],helperBusy=false;
+function helperTasks(st){
+ if(st!==3)return [];
+ const n=cultureActive,r=String(cultureReasons[n]||'');
+ return [{label:'사진 찾아보고 그림 그리기',done:(cultureDrawings[n]||[]).length>0},{label:'섞인 문화 요소 2개 고르고 정답 확인',done:!!cultureSolved[n]},{label:'이유 18자 이상 쓰고 저장',done:r.length>=18}];
+}
+function helperSearchTip(){
+ const c=INQUIRY_CULTURES[cultureActive]||{};
+ return '「'+(c.name||'이 사례')+'」 사진 찾는 법이야.\n① 왼쪽 파란 [인터넷에서 … 사진 찾기] 버튼을 눌러. 검색어는 이미 들어 있어서 따로 칠 필요가 없어.\n② 새 탭에 사진이 여러 장 나오면 한 장을 눌러서 크게 봐.\n③ 모양, 색, 사람의 옷과 동작을 눈여겨봐.\n④ 화면 위쪽 탭에서 이 활동 탭을 눌러 돌아와서 그려. 똑같이 안 그려도 돼!';
+}
+function helperNow(){
+ const st=inquiryStep();
+ if(st===3){
+  const n=cultureActive,c=INQUIRY_CULTURES[n]||{},t=helperTasks(3),last=n>=INQUIRY_CULTURES.length-1;
+  if(!t[0].done)return '지금은 「'+c.name+'」 그림을 그릴 차례야.\n'+helperSearchTip();
+  if(!t[1].done)return '그림은 그렸네! 이제 오른쪽에서 「'+c.name+'」에 섞인 문화 요소 2개를 고르고, 가운데 큰 버튼을 눌러 정답을 확인해.';
+  if(!t[2].done)return '정답 확인 완료! 이제 두 문화가 어떻게 만나서 만들어졌는지 18자 이상 쓰고 [이 사례의 이유 저장하기]를 눌러.';
+  return last?'4개 사례를 다 했어! 맨 아래 [4개 사례 탐구 완료 · 역사 탐정으로 →]를 눌러.':'이 사례는 끝! 그림판 아래 [다음 사례 →]를 눌러.';
+ }
+ return INQUIRY_HELP[st]||'지금 화면에서 궁금한 걸 물어봐.';
+}
+function helperRender(){
+ const el=$('amapHelperLog');if(!el)return;
+ el.innerHTML='<p class="helperA">안녕! 나는 길잡이야. 뭘 해야 할지 모르겠으면 아래 버튼을 누르거나 물어봐.</p>'+helperChat.map(m=>'<p class="'+(m.me?'helperQ':'helperA')+'">'+esc(m.t).replace(/\n/g,'<br>')+'</p>').join('');
+ el.scrollTop=el.scrollHeight;
+ if($('amapHelperSearch'))$('amapHelperSearch').hidden=inquiryStep()!==3;
+}
+function helperSay(t,mine){helperChat.push({t,me:mine});if(helperChat.length>30)helperChat.shift();helperRender();}
+async function helperAsk(){
+ if(helperBusy||!me)return;
+ const q=String($('amapHelperQ').value||'').trim().replace(/\s+/g,' ');if(q.length<2)return;
+ $('amapHelperQ').value='';helperSay(q,true);
+ if(q.length<=14&&/뭐\s*해|뭘\s*해|무엇을\s*해|어떻게\s*해|다음/.test(q))return helperSay(helperNow());
+ const st=inquiryStep(),key='amap-helper-count-'+ROOM+'-'+me.id,used=Number(store.get(key))||0;
+ if(used>=HELPER_MAX)return helperSay('길잡이에게 쓸 수 있는 질문을 다 썼어. 아래 버튼들은 계속 쓸 수 있어. 더 궁금하면 선생님께 물어봐.');
+ helperBusy=true;$('amapHelperSend').disabled=true;helperSay('…');
+ let a='';
+ try{
+  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),25000),c=INQUIRY_CULTURES[cultureActive]||{};
+  const res=await fetch(HELPER_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},signal:ctl.signal,body:JSON.stringify({mode:'help',app:'아메리카 지도 만들기 탐구 (인구·문화 혼종성)',screen:inquiryLabel(st),topic:st===3?(c.name+' ('+c.country+')'):'',guide:INQUIRY_HELP[st]||'',tasks:helperTasks(st),question:q.slice(0,80)})});
+  clearTimeout(tm);const j=await res.json();if(!j.reply)throw Error(j.error||'empty');
+  a=String(j.reply).replace(/\*\*/g,'').trim().slice(0,400);store.set(key,String(used+1));
+ }catch(e){a='지금은 연결이 안 돼.\n'+helperNow();}
+ helperChat.pop();helperSay(a);helperBusy=false;$('amapHelperSend').disabled=false;
+}
+function helperMount(){
+ if(PREVIEW_ONLY||$('amapHelperBtn'))return;
+ document.body.insertAdjacentHTML('beforeend','<button type="button" id="amapHelperBtn" class="amapHelperBtn" aria-controls="amapHelper">길잡이 ?</button><aside id="amapHelper" class="amapHelper" hidden aria-label="길잡이 도우미"><div class="helperHead"><b>길잡이</b><button type="button" id="amapHelperClose">닫기</button></div><div id="amapHelperLog" class="helperLog" aria-live="polite"></div><div class="helperQuick"><button type="button" id="amapHelperNow">지금 뭐 해야 돼?</button><button type="button" id="amapHelperSearch">사진 어떻게 찾아?</button></div><form id="amapHelperForm"><input id="amapHelperQ" maxlength="80" autocomplete="off" aria-label="길잡이에게 질문" placeholder="궁금한 걸 써 봐"><button id="amapHelperSend">보내기</button></form><small>길잡이는 AI라서 틀릴 수 있어. 정답은 알려 주지 않아.</small></aside>');
+ $('amapHelperBtn').onclick=()=>{const p=$('amapHelper');p.hidden=!p.hidden;if(!p.hidden){helperRender();if(!helperChat.length)helperSay(helperNow());}};
+ $('amapHelperClose').onclick=()=>{$('amapHelper').hidden=true;};
+ $('amapHelperNow').onclick=()=>{helperSay('지금 뭐 해야 돼?',true);helperSay(helperNow());};
+ $('amapHelperSearch').onclick=()=>{helperSay('사진 어떻게 찾아?',true);helperSay(helperSearchTip());};
+ $('amapHelperForm').onsubmit=e=>{e.preventDefault();helperAsk();};
+}
+/* 앞 단계로 돌아가기: 제출한 답과 그림은 그대로 두고 단계 번호만 하나 내린다. 다시 제출하면 원래 단계로 이어진다. */
+let inquiryGoingBack=false;
+async function inquiryGoBack(step){
+ if(PREVIEW_ONLY||inquiryGoingBack||inquirySaving||!me||!playerRef||step<3)return;
+ if(!serverVerified||firebaseState!=='online')return inquiryNotice('서버에 연결한 뒤 돌아갈 수 있어요.',true);
+ inquiryGoingBack=true;const b=$('inquiryBackStep');if(b)b.disabled=true;
+ try{
+  const result=await playerRef.transaction(raw=>{
+   if(!raw||raw.pending||Number(raw.cur)<PROBLEMS.length)return;
+   const current=raw.inquiry&&typeof raw.inquiry==='object'?raw.inquiry:{};
+   if(Math.max(2,Number(current.step)||2)!==step)return;
+   const now=serverNow();
+   return {...raw,inquiry:{...current,step:step-1,updatedAt:now},t:now};
+  });
+  if(!result.committed||!result.snapshot.exists())throw Error('다시 시도해 주세요.');
+  me=norm(result.snapshot.val(),me.id);inquiryRender();
+  inquiryNotice(step===4?'문화 혼종성 단계로 돌아왔어. 그림을 그리고 다시 제출하면 역사 탐정으로 이어져. 쓴 답은 그대로 있어.':'앞 단계로 돌아왔어. 쓴 답은 그대로 있어.');
+ }catch(e){inquiryNotice('돌아가지 못했어요: '+e.message,true);if(b)b.disabled=false;}
+ finally{inquiryGoingBack=false;}
+}
+{const baseInquiryRender=inquiryRender;inquiryRender=function(){baseInquiryRender.apply(this,arguments);try{const st=inquiryStep();if(!me||me.pending||me.cur<PROBLEMS.length)return;
+ helperMount();
+ if((st===4||st===5)&&!PREVIEW_ONLY&&$('inqNotice')&&!$('inquiryBackStep')){$('inqNotice').insertAdjacentHTML('beforebegin','<button type="button" class="btn secondary inquiryBackStep" id="inquiryBackStep">'+(st===4?'← 문화 혼종성으로 돌아가기 (그림 다시 그리기)':'← 역사 탐정 단계로 돌아가기')+'</button>');$('inquiryBackStep').onclick=()=>inquiryGoBack(st);}
+ if(st===4)missionPopup(st)}catch(e){}}}
 if(!window.cultureDraftRecoveryBound){
  window.cultureDraftRecoveryBound=true;
  const flush=()=>{
@@ -1154,7 +1255,7 @@ function cultureRestartDrawing(){
  cultureRefreshDrawingTimer();culturePersist(true);
  inquiryNotice('기존 그림은 보관했어. 5분 동안 다시 그릴 수 있어.');
 }
-function cultureSaveReason(){const n=cultureActive,reason=String($('inqCultureReason')?.value||'').trim();if(!cultureSolved[n])return inquiryNotice('문화 요소 정답을 먼저 확인해 줘.',true);if(reason.length<18)return inquiryNotice('이 문화가 결합한 이유를 18자 이상 적어 줘.',true);cultureFinishStroke();cultureReasons[n]=reason;cultureReasonDrafts[n]=reason;if(n<INQUIRY_CULTURES.length-1){cultureGoToCase(n+1);inquiryNotice('이 사례 저장 완료. 다음 문화 사례를 살펴보자.');}else{cultureUpdatePicture();cultureUpdateCaseNav();cultureRefreshDrawingTimer();culturePersist();inquiryNotice('4개 사례 모두 완료! 역사 탐정 단계로 이동할 수 있어.');}}
+function cultureSaveReason(){const n=cultureActive,reason=String($('inqCultureReason')?.value||'').trim();if(!cultureSolved[n])return inquiryNotice('문화 요소 정답을 먼저 확인해 줘.',true);if(reason.length<18)return inquiryNotice('이 문화가 결합한 이유를 18자 이상 적어 줘.',true);cultureFinishStroke();cultureReasons[n]=reason;cultureReasonDrafts[n]=reason;if(n<INQUIRY_CULTURES.length-1){const drew=(cultureDrawings[n]||[]).length>0;cultureGoToCase(n+1);inquiryNotice(drew?'이 사례 저장 완료. 다음 문화 사례를 살펴보자.':'저장 완료. 방금 사례는 그림을 안 그렸어. 그림판 아래 [← 이전 사례]를 누르면 돌아가서 그릴 수 있어.',!drew);}else{cultureUpdatePicture();cultureUpdateCaseNav();cultureRefreshDrawingTimer();culturePersist();inquiryNotice('4개 사례 모두 완료! 역사 탐정 단계로 이동할 수 있어.');}}
 function cultureQuizCheck(){
  const index=Number($('inqCultureCountry')?.value)||0,chosen=inquiryPickedRoots().map(x=>x.id).sort(),expected=(CULTURE_ANSWERS[index]||[]).slice().sort();
  const notice=$('cultureQuizFeedback');if(!notice)return;
