@@ -575,6 +575,72 @@ html body #inquiryRoot#inquiryRoot .cultureHintBtn[hidden],html body #inquiryRoo
 html body #inquiryRoot#inquiryRoot .cultureHintBox{margin:8px 0;padding:10px 14px;border:2px dashed #c79a55;border-radius:16px;background:#fff9e9;line-height:1.6;text-align:left}
 html body #inquiryRoot#inquiryRoot .cultureHintBox p{margin:4px 0}
 html body #inquiryRoot#inquiryRoot .cultureHintCount{font-weight:700;color:#8a4b37}
+/* ───── 교사 화면(단계 탭) ───── */
+html body .tDesk{max-width:1320px;margin:14px auto;padding:0 14px;display:flex;flex-direction:column;gap:12px}
+html body .tTop{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:14px 18px}
+html body .tTopTitle{display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0}
+html body .tTopTitle h2{margin:0;font-size:26px}
+html body .tRoom{display:flex;align-items:center;gap:8px;margin:0}
+html body .tRoom label{font-weight:700;margin:0}
+html body .tRoom select{min-height:40px;padding:6px 10px;border-radius:12px}
+html body .tTopBtns{display:flex;gap:8px;flex-wrap:wrap}
+html body .tTopBtns .btn,html body .tRoom .btn{min-height:40px;padding:8px 14px;font-size:14px}
+html body .tTabs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+html body .tTab{display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap;min-height:62px;padding:8px 10px;border:2px solid #c3cfcf;border-radius:18px;background:#fff;color:#34445a;font-weight:700;font-size:16px;cursor:pointer}
+html body .tTab small{font-weight:600;color:#66758a;font-size:13px}
+html body .tTabNo{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:10px;border:2px solid #46536a;background:#eef1ea;font-family:Jua,sans-serif;font-size:18px;font-weight:400}
+html body .tTab.on{background:#50634e;border-color:#50634e;color:#fff}
+html body .tTab.on small{color:#e4f0e6}
+html body .tTab.on .tTabNo{background:#ffdf86;color:#34445a}
+html body .tAccess{display:flex;gap:16px;align-items:center;padding:12px 16px}
+html body .tAccess[hidden]{display:none}
+html body .tQrSmall{flex:none;width:120px;height:120px;border:2px solid #46536a;border-radius:12px;background:#fff}
+html body .tAccessText{flex:1;min-width:0}
+html body .tAccessText p{margin:4px 0}
+html body .tAccessRow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+html body .tAccessRow input{flex:1 1 260px;min-width:0;min-height:40px;padding:6px 10px;border-radius:12px;font-size:13px}
+html body .tAccessRow .btn{min-height:40px;padding:8px 14px;font-size:14px}
+html body .tMain{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px;align-items:start;margin:0;padding:0;max-width:none}
+html body [data-tpanel][hidden]{display:none!important}
+html body .tList{display:flex;flex-direction:column;gap:6px;max-height:62vh;overflow:auto;padding-right:4px}
+html body .tRow{display:grid;grid-template-columns:110px 96px minmax(0,1fr);align-items:center;gap:8px;text-align:left;padding:9px 12px;border:1.5px solid #dce3e3;border-radius:14px;background:#fff;color:#34445a;cursor:pointer}
+html body .tRow.here{border-color:#9db8a4;background:#f4faf3}
+html body .tRow.on{border:2.5px solid #46536a;background:#fff9e9}
+html body .tWhere{font-size:12.5px;color:#66758a}
+html body .tChips{display:flex;flex-wrap:wrap;gap:4px}
+html body .tChip{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #c3cfcf;background:#fff;font-size:12.5px;white-space:nowrap}
+html body .tChip.ok{background:#d9f2e6;border-color:#9db8a4}
+html body .tChip.here{background:#ffdf86;border-color:#46536a}
+html body .tDetailHead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+html body .tDetailHead h2{margin:0}
+html body .tAns{border:1px solid #dce3e3;border-radius:12px;padding:8px 12px;margin:8px 0;background:#fff}
+html body .tAns p{margin:4px 0 0;white-space:pre-wrap}
+html body .tTable{width:100%;border-collapse:collapse;font-size:14px}
+html body .tTable th,html body .tTable td{padding:7px 8px;border-bottom:1px solid #dce3e3;text-align:left}
+html body .tCase{border:1px solid #dce3e3;border-radius:14px;padding:10px;margin:8px 0;background:#fff}
+html body .tCaseHead{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+html body .tCaseBody{display:grid;grid-template-columns:200px minmax(0,1fr);gap:10px;align-items:start}
+html body .tCaseBody svg{width:100%;height:auto}
+html body .tCaseBody p{margin:2px 0 6px}
+html body .tNoArt{aspect-ratio:4/3;display:grid;place-items:center;border:1.5px dashed #c3cfcf;border-radius:12px;color:#8a96a6;font-size:13px}
+html body .tToManage{margin-top:10px}
+html body .tCases{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}
+html body .tCaseBtn{min-height:44px;padding:8px 16px;border-radius:14px;border:2px solid #c3cfcf;background:#fff;color:#34445a;font-weight:700;cursor:pointer}
+html body .tCaseBtn.on{background:#50634e;border-color:#50634e;color:#fff}
+html body .teacherCultureCase[hidden]{display:none!important}
+html body .tLinkBtn{display:inline-block;text-decoration:none;margin:6px 8px 0 0}
+html body .tDlg{width:min(1100px,96vw);max-height:92vh;border:3px solid #46536a;border-radius:22px;padding:14px;background:#fffefa}
+html body .tDlg::backdrop,html body .tQrDlg::backdrop{background:#263643bb}
+html body .tDlgHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+html body .tDlgHead b{font-family:Jua,sans-serif;font-size:22px;font-weight:400}
+html body .tDlg #teacherClassControl,html body .tDlg #teacherMirrorConsole{margin:0!important;border:0!important}
+html body .tQrDlg{border:0;border-radius:26px;padding:28px 34px;text-align:center;background:#fff;max-width:96vw}
+html body .tQrDlg h2{margin:0 0 10px;font-size:30px}
+html body .tQrDlg img{width:min(560px,70vh,86vw);height:auto;aspect-ratio:1;display:block;margin:0 auto}
+html body .tQrUrl{margin:10px 0 0;font-size:14px;color:#66758a;word-break:break-all}
+html body .tQrClose{position:absolute;right:16px;top:16px}
+@media(max-width:1000px){html body .tTabs{grid-template-columns:repeat(3,minmax(0,1fr))}html body .tMain{grid-template-columns:1fr}html body .tCaseBody{grid-template-columns:1fr}}
+html body .tDlg #teacherClassControl>h2,html body .tDlg .teacherMirrorHeader h2+*{} html body .tDlg #teacherClassControl>h2{display:none}
 </style></head>
 <body data-app-build="2026-11-17-culture-fullscreen-tools">
 <header>
@@ -3464,38 +3530,175 @@ function teacherMirrorHtml(){
   '</div></section>';
 }
 
+/* ───────── 교사 화면(단계별 탭) ─────────
+   기존 기능(진도 통제·학생 시점·학생 상세·그림 모아보기·기억력 대결)은 그대로 쓰고 배치만 바꾼다.
+   진도 통제와 학생 시점은 작은 버튼으로 여는 팝업, 메인은 단계 탭 + 학생 목록 + 선택한 학생 기록. */
+const T_TABS=[
+ {id:'s1',n:'1',label:'지도 만들기'},
+ {id:'s2',n:'2',label:'인구 분석'},
+ {id:'s3',n:'3',label:'문화 혼종성'},
+ {id:'s4',n:'4',label:'역사 탐정'},
+ {id:'s5',n:'5',label:'공장 입지'},
+ {id:'quiz',n:'+',label:'기억력 대결'}
+];
+const CITY_TITLES=['시작','입지 조사','도시의 변화','주민의 시선','대책 선택','','네 컷 기록','최종 결정'];
+const CITY_NAMES={monterrey:'몬테레이',saopaulo:'상파울루',toronto:'토론토'};
+let tTab=null,tTabChosen=false,tStageKey='',tCityAll={},tCityRef=null,tGalleryCase=0;
+function tStageOf(p){if(p.pending||p.cur<PROBLEMS.length)return 1;return Math.min(5,inquiryStep(p));}
+function tQrImg(url,size){return 'https://api.qrserver.com/v1/create-qr-code/?size='+size+'x'+size+'&margin=10&data='+encodeURIComponent(url);}
+function tQrBackup(img,url,size){img.onerror=()=>{img.onerror=null;img.src='https://quickchart.io/qr?size='+size+'&text='+encodeURIComponent(url);};}
+const CULTURE_SHORT=['과달루페','탱고','햄버거','카니발'];
+function tAccessFor(tab){
+ if(tab==='s5')return {url:cityStoryLink(false),title:'5단계 · 공장 하나가 도시를 바꿨다',note:'학생은 같은 반을 고르고 학번·이름을 쓰면 들어와요. 4단계까지 마친 학생은 완료 화면의 버튼으로도 들어와요.'};
+ return {url:classJoinLink(),title:'아메리카 지도 만들기 (1~4단계)',note:'1~4단계는 같은 주소예요. 학생은 저장된 곳부터 이어서 해요. 모두 같은 화면으로 옮기려면 위의 [진도 통제]를 눌러요.'};
+}
+function tAccessRender(){
+ const box=$('tAccess');if(!box)return;
+ if(tTab==='quiz'){box.hidden=true;return;}
+ box.hidden=false;const a=tAccessFor(tTab);
+ box.innerHTML='<img class="tQrSmall" id="tQrSmall" src="'+esc(tQrImg(a.url,240))+'" alt="학생 입장 QR코드" width="120" height="120">'+
+  '<div class="tAccessText"><b>학생 입장 · '+esc(a.title)+'</b><p class="muted">'+esc(a.note)+'</p>'+
+  '<div class="tAccessRow"><input type="text" id="tAccessLink" readonly value="'+esc(a.url)+'" aria-label="학생 입장 주소">'+
+  '<button type="button" class="btn mint" id="tQrBigBtn">QR 크게 보여주기</button><button type="button" class="btn secondary" id="tCopyBtn">주소 복사</button></div>'+
+  '<p class="muted" id="tAccessMsg" aria-live="polite"></p></div>';
+ tQrBackup($('tQrSmall'),a.url,240);
+ $('tQrBigBtn').onclick=()=>{tQrBackup($('tQrBigImg'),a.url,640);$('tQrBigImg').src=tQrImg(a.url,640);$('tQrBigTitle').textContent=roomTitle(ROOM)+' · '+a.title;$('tQrBigUrl').textContent=a.url;$('tQrDlg').showModal();};
+ $('tCopyBtn').onclick=async()=>{try{await navigator.clipboard.writeText(a.url);$('tAccessMsg').textContent='주소를 복사했어요.';}catch(e){const i=$('tAccessLink');i.focus();i.select();$('tAccessMsg').textContent='주소를 선택해 두었어요. Ctrl+C로 복사해 주세요.';}};
+}
+function tCounts(list){
+ const c={s1:0,s2:0,s3:0,s4:0,s5:0,quiz:0};
+ list.forEach(p=>{const st=tStageOf(p);if(st<5)c['s'+st]++;});
+ c.s5=Object.keys(tCityAll||{}).length;
+ return c;
+}
+function tTabsRender(list){
+ const nav=$('tTabs');if(!nav)return;const c=tCounts(list);
+ nav.innerHTML=T_TABS.map(t=>'<button type="button" role="tab" class="tTab'+(t.id===tTab?' on':'')+'" data-tab="'+t.id+'" aria-selected="'+(t.id===tTab)+'"><span class="tTabNo">'+t.n+'</span>'+esc(t.label)+(t.id==='quiz'?'':'<small>'+c[t.id]+'명</small>')+'</button>').join('');
+}
+function tSetTab(id,chosen){
+ tTab=id;if(chosen){tTabChosen=true;store.set('amap-teacher-tab-'+ROOM,id);}
+ document.querySelectorAll('[data-tpanel]').forEach(el=>{el.hidden=!el.dataset.tpanel.split(' ').includes(id);});
+ const list=ranked(lastAll);tTabsRender(list);tAccessRender();
+ if(['s2','s3','s4'].includes(id))tStageRender(list);
+ if(id==='s5')tCityRender();
+ if(id==='s3')tGalleryFilter();
+}
+/* 2~4단계 학생 목록과 선택한 학생 기록 */
+function tRouteAnswer(i,r){const tap=i.routeProcessDraft?.[r.id]||{};return i.routeDraft?.[r.id]||i.demography?.migration?.[r.id]||tap.answer||'';}
+function tCaseInfo(p,n){
+ const i=p.inquiry||{},culture=i.cultureDraft||{},saved=i.culture?.completedCases?.[n]||{};
+ const strokes=(culture.drawings?.[n]?.length?culture.drawings[n]:saved.drawing)||[];
+ const reason=culture.reasonDrafts?.[n]||culture.reasons?.[n]||saved.reason||'';
+ const solved=!!(culture.solved?.[n]||saved.elements);
+ return {strokes,reason,solved,saved:String(culture.reasons?.[n]||saved.reason||'').length>=18};
+}
+function tStageSummary(p,st){
+ const i=p.inquiry||{};
+ if(st===2){const a=MIGRATION_ROUTES.filter(r=>r.region==='anglo'&&tRouteAnswer(i,r)).length,l=MIGRATION_ROUTES.filter(r=>r.region==='latin'&&tRouteAnswer(i,r)).length,g=i.processDraft?.graph?.evidence||i.demography?.evidence;
+  return '<span class="tChip'+(a>=4?' ok':'')+'">앵글로 '+a+'/4</span><span class="tChip'+(l>=4?' ok':'')+'">라틴 '+l+'/4</span><span class="tChip'+(g?' ok':'')+'">그래프 글'+(g?' ✓':'')+'</span>'+(i.demography?.submittedAt?'<span class="tChip ok">제출</span>':'');}
+ if(st===3)return INQUIRY_CULTURES.map((c,n)=>{const x=tCaseInfo(p,n);return '<span class="tChip'+(x.saved?' ok':'')+'" title="'+esc(c.name)+'">'+esc(CULTURE_SHORT[n]||c.name)+(x.strokes.length?' 🖌':'')+(x.solved?' ✓':'')+'</span>';}).join('')+(i.culture?.submittedAt?'<span class="tChip ok">제출</span>':'');
+ if(st===4){const r={...(i.reflection||{}),...(i.processDraft?.reflection||{})};return ['clue','hypothesis','cultureClue','final'].map((k,n)=>'<span class="tChip'+(r[k]?' ok':'')+'">'+'①②③④'[n]+(r[k]?' ✓':'')+'</span>').join('')+(i.reflection?.submittedAt?'<span class="tChip ok">제출</span>':'');}
+ return '';
+}
+function tStageDetail(p,st){
+ const i=p.inquiry||{},show=(label,v)=>'<div class="tAns"><b>'+esc(label)+'</b><p>'+esc(v||'아직 쓰지 않음')+'</p></div>';
+ const labels={settlement:'정착·식민 지배',forced:'강제 이주',economic:'경제적 이주',hispanic:'미국 내 히스패닉 인구 증가'};
+ let body='';
+ if(st===2){
+  body='<table class="tTable"><thead><tr><th>이동 경로</th><th>고른 이유</th></tr></thead><tbody>'+MIGRATION_ROUTES.map(r=>{const a=tRouteAnswer(i,r);return '<tr><td>'+esc(r.name)+' → '+esc(r.destination)+'</td><td>'+(a?esc(labels[a]||a)+(a===r.reason?' ✓':' ✗'):'<span class="muted">아직</span>')+'</td></tr>';}).join('')+'</tbody></table>'+
+   show('원그래프 비교 글',i.processDraft?.graph?.evidence||i.demography?.evidence);
+ }else if(st===3){
+  body=INQUIRY_CULTURES.map((c,n)=>{const x=tCaseInfo(p,n),culture=i.cultureDraft||{},ids=culture.selections?.[n]||culture.solved?.[n]||i.culture?.completedCases?.[n]?.elements||[];
+   return '<div class="tCase"><div class="tCaseHead"><b>'+esc(c.name)+'</b>'+(x.solved?'<span class="tChip ok">정답 확인</span>':'<span class="tChip">정답 전</span>')+'</div>'+
+    '<div class="tCaseBody">'+(x.strokes.length?teacherDrawingSvg(x.strokes):'<div class="tNoArt">아직 그림 없음</div>')+
+    '<div><p><b>고른 요소</b> '+esc(ids.map(id=>INQUIRY_ROOTS.find(a=>a.id===id)?.text||id).join(' + ')||'아직')+'</p><p><b>결합 이유</b> '+esc(x.reason||'아직 쓰지 않음')+'</p></div></div></div>';}).join('');
+ }else if(st===4){
+  const r={...(i.reflection||{}),...(i.processDraft?.reflection||{})};
+  body=show('① 축제에서 찾은 단서',r.clue)+show('② 에스파냐에서 전해진 문화',r.hypothesis)+show('③ 두 문화가 만난 모습',r.cultureClue)+show('④ 최종 결론',r.final)+(i.reflection?.submittedAt?'<p class="muted">최종 제출 · '+new Date(i.reflection.submittedAt).toLocaleString('ko-KR')+'</p>':'');
+ }
+ const now=tStageOf(p);
+ return '<div class="tDetailHead"><h2>'+esc(p.name)+'</h2><span class="tChip'+(now===st?' here':'')+'">지금: '+esc(now===1?'1단계 · '+(p.pending?'결과 확인 중':(p.cur+1)+'번 문제'):inquiryLabel(now))+'</span></div>'+body+
+  '<button type="button" class="btn secondary tToManage" data-manage="'+esc(p.id)+'">이 학생 전체 기록 · 진도 옮기기 →</button>';
+}
+function tStageRender(list){
+ const st=Number(String(tTab).slice(1));if(!(st>=2&&st<=4))return;
+ const box=$('tStageList'),det=$('tStageDetail');if(!box||!det)return;
+ $('tStageTitle').textContent=T_TABS[st-1].label+' · 학생 '+list.length+'명';
+ const order=[...list].sort((a,b)=>(tStageOf(b)===st)-(tStageOf(a)===st));
+ box.innerHTML=order.length?order.map(p=>{const here=tStageOf(p)===st,before=tStageOf(p)<st;
+  return '<button type="button" class="tRow'+(p.id===tStageKey?' on':'')+(here?' here':'')+'" data-stage-key="'+esc(p.id)+'"><b>'+esc(p.name)+'</b><span class="tWhere">'+(here?'이 단계 진행 중':before?'아직 앞 단계':'이 단계 끝냄')+'</span><span class="tChips">'+(before?'':tStageSummary(p,st))+'</span></button>';}).join(''):'<p class="muted">아직 참여한 학생이 없어요.</p>';
+ const p=order.find(x=>x.id===tStageKey);
+ det.innerHTML=p?tStageDetail(p,st):'<h2>학생 기록</h2><p class="muted">왼쪽에서 학생을 누르면 이 단계에서 한 활동이 여기에 나와요.</p>';
+}
+/* 3단계 그림 모아보기: 사례를 골라서 본다 */
+function tGalleryFilter(){
+ const bar=$('tGalleryCases'),root=$('teacherCultureGalleryGrid');if(!bar||!root)return;
+ const counts=(teacherCultureGalleryCases||[]).map(g=>g.length);
+ bar.innerHTML=INQUIRY_CULTURES.map((c,n)=>'<button type="button" class="tCaseBtn'+(n===tGalleryCase?' on':'')+'" data-gcase="'+n+'">'+esc(c.name)+' <small>'+(counts[n]||0)+'</small></button>').join('');
+ root.querySelectorAll('.teacherCultureCase').forEach((el,n)=>{el.hidden=n!==tGalleryCase;});
+}
+/* 5단계: 공장 하나가 도시를 바꿨다 기록(같은 반) */
+function tCityWatch(){
+ if(!db||tCityRef)return;
+ tCityRef=db.ref('rooms/'+roomKey+'/v8/factoryGame/cityStoryV2/students');
+ tCityRef.on('value',s=>{tCityAll=s.val()||{};tTabsRender(ranked(lastAll));if(tTab==='s5')tCityRender();},()=>{});
+}
+function tCityRender(){
+ const box=$('tCityList');if(!box)return;
+ const rows=Object.entries(tCityAll||{}).map(([k,v])=>({k,name:v?.name||decodeURIComponent(k),step:Number(v?.step)||0,city:CITY_NAMES[v?.city]||'',decision:v?.decision||'',sub:!!v?.submitted,t:Number(v?.updatedAt)||0})).sort((a,b)=>b.step-a.step||b.t-a.t);
+ box.innerHTML=rows.length?'<table class="tTable"><thead><tr><th>이름</th><th>지금 화면</th><th>고른 도시</th><th>최종 결정</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.name)+'</td><td>'+esc(r.sub?'제출 완료':(CITY_TITLES[r.step]||''))+'</td><td>'+esc(r.city||'-')+'</td><td>'+esc(r.decision||'-')+'</td></tr>').join('')+'</tbody></table>':'<p class="muted">아직 5단계에 들어온 학생이 없어요.</p>';
+}
 function renderTeacher(){
   document.body.classList.remove('inquiryView','mapLearningView');
   renderHdr();
-  app.innerHTML=`${teacherClassControlHtml()}${teacherPopulationAnswerGuide()}${teacherMirrorHtml()}<section class="card" style="margin-bottom:12px"><div class="smallPill">5단계 · 초국적 기업과 공장 입지</div><h2 style="margin:8px 0">공장 하나가 도시를 바꿨다</h2><p class="muted">학생이 4단계까지 최종 제출하면 완료 화면에 5단계 시작 버튼이 나타나요. 같은 반·같은 이름으로 바로 이어지고, 기록은 5단계 교사 화면에서 확인해요.</p><a class="btn mint" style="display:inline-block;text-decoration:none;box-shadow:none;margin-right:8px" href="${cityStoryLink(true)}" target="_blank" rel="noopener">5단계 교사 화면 열기</a><a class="btn secondary" style="display:inline-block;text-decoration:none;box-shadow:none" href="${cityStoryLink(false)}" target="_blank" rel="noopener">5단계 학생 화면 열기</a></section><details class="card teacherCultureGallery" id="teacherCultureGallery"><summary>🖼 문화 혼종성 그림 모아보기</summary><p class="muted">학생이 앱 그림판에 저장한 그림을 사례별로 모아 보여요.</p><div id="teacherCultureGalleryGrid"></div></details><details class="teacherOptionalQuiz"><summary>별도 활동 · 기억력 대결 운영 (열어서 사용)</summary><section id="liveTeacherPanel" class="liveTeacherPanel teacherProjector"></section></details><main style="grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr)">
-    <section class="card"><div class="smallPill">${iconArt("book")} 교사용 관리</div><h2>${esc(roomTitle(ROOM))} 탐험 현황</h2>
-      <p class="muted">학생 이름을 누르면 문제별 결과를 확인할 수 있어요.</p>
-      <div class="teacherShare">
-        <div class="smallPill">학생 실시간 연결 링크</div>
-        <p class="muted">선택한 반의 학생만 표시돼요. 예전 전체 기록은 <b>demo</b>에서 확인할 수 있고, 학생별로 해당 반으로 옮길 수 있어요.</p>
-        <div class="classRoomControls"><label for="teacherClassRoom">확인할 반</label>
-          <div class="classRoomRow"><select id="teacherClassRoom">${classRoomOptions(ROOM)}</select>
-          <button type="button" class="btn secondary" id="customClassRoom">다른 학년·반</button></div></div>
-        <p class="muted" id="classRoomMessage">현재 ${esc(roomTitle(ROOM))} 학생 기록을 보고 있어요.</p>
-        <input type="text" id="shareLink" aria-label="학생 실시간 연결 링크" readonly>
-        <button class="btn mint" id="shareCopy" type="button">학생 연결 링크 복사</button>
-        <p id="shareLinkMsg" class="muted" aria-live="polite"></p>
-      </div>
-      <div style="margin:14px 0"><button class="btn mint" id="csvBtn">CSV 내보내기</button><span class="smallPill" id="studentTotal">참여 0명</span></div>
+  tCityRef=null;tCityAll={};
+  const saved=store.get('amap-teacher-tab-'+ROOM);tTab=T_TABS.some(t=>t.id===saved)?saved:'s1';tTabChosen=!!saved;
+  app.innerHTML=`<div class="tDesk">
+  <section class="card tTop"><div class="tTopTitle"><span class="smallPill">교사 화면</span><h2>${esc(roomTitle(ROOM))} 수업</h2><span class="smallPill" id="studentTotal">참여 0명</span></div>
+   <div class="classRoomControls tRoom"><label for="teacherClassRoom">반</label><select id="teacherClassRoom">${classRoomOptions(ROOM)}</select><button type="button" class="btn secondary" id="customClassRoom">다른 학년·반</button></div>
+   <div class="tTopBtns"><button type="button" class="btn secondary" id="tOpenControl">진도 통제</button><button type="button" class="btn secondary" id="tOpenMirror">학생 화면 미리보기</button><button type="button" class="btn secondary" id="csvBtn">CSV 내보내기</button></div>
+   <p class="muted" id="classRoomMessage" hidden>현재 ${esc(roomTitle(ROOM))} 학생 기록을 보고 있어요.</p>
+  </section>
+  <nav class="tTabs" id="tTabs" role="tablist" aria-label="수업 단계"></nav>
+  <section class="card tAccess" id="tAccess"></section>
+  <div data-tpanel="s1"><main class="tMain">
+    <section class="card"><h2>1단계 · 지도 만들기</h2><p class="muted">학생 이름을 누르면 오른쪽에 그 학생 기록이 나와요.</p>
       <div class="tableWrap"><table><thead><tr><th>순위</th><th>이름</th><th>점수</th><th>진도</th><th>현재 상태</th></tr></thead><tbody id="tbl"></tbody></table></div>
     </section><section class="card" id="detail"><h2>학생 상세</h2><p class="muted">학생을 선택해 주세요.</p></section>
-  </main>`;
+  </main></div>
+  <div data-tpanel="s2 s3 s4"><main class="tMain">
+    <section class="card"><h2 id="tStageTitle">학생 목록</h2><p class="muted">지금 이 단계에 있는 학생이 위에 나와요. 이름을 누르면 오른쪽에서 볼 수 있어요.</p><div id="tStageList" class="tList"></div></section>
+    <section class="card" id="tStageDetail"></section>
+  </main></div>
+  <div data-tpanel="s2">${teacherPopulationAnswerGuide()}</div>
+  <div data-tpanel="s3"><section class="card teacherCultureGallery" id="teacherCultureGallery"><h2>그림 모아보기</h2><p class="muted">사례를 고르면 그 사례 그림만 모아서 보여요. 그림을 누르면 크게 보여요.</p><div id="tGalleryCases" class="tCases"></div><div id="teacherCultureGalleryGrid"></div></section></div>
+  <div data-tpanel="s5"><main class="tMain">
+    <section class="card"><h2>5단계 · 공장 하나가 도시를 바꿨다</h2><p class="muted">발표 화면, 네 컷 모아보기, 학생별 기록은 5단계 교사 화면에서 볼 수 있어요.</p>
+     <a class="btn mint tLinkBtn" href="${cityStoryLink(true)}" target="_blank" rel="noopener">5단계 교사 화면 열기</a>
+     <a class="btn secondary tLinkBtn" href="${cityStoryLink(false)}" target="_blank" rel="noopener">5단계 학생 화면 열어 보기</a></section>
+    <section class="card"><h2>5단계 학생 현황</h2><div id="tCityList"><p class="muted">불러오는 중…</p></div></section>
+  </main></div>
+  <div data-tpanel="quiz"><section id="liveTeacherPanel" class="card liveTeacherPanel teacherProjector"></section></div>
+  </div>
+  <dialog id="tControlDlg" class="tDlg"><div class="tDlgHead"><b>실시간 진도 통제</b><button type="button" class="btn secondary" data-close-dlg>닫기</button></div>${teacherClassControlHtml()}</dialog>
+  <dialog id="tMirrorDlg" class="tDlg tDlgWide"><div class="tDlgHead"><b>학생 화면 미리보기</b><button type="button" class="btn secondary" data-close-dlg>닫기</button></div>${teacherMirrorHtml()}</dialog>
+  <dialog id="tQrDlg" class="tQrDlg"><button type="button" class="btn secondary tQrClose" data-close-dlg>닫기</button><h2 id="tQrBigTitle"></h2><img id="tQrBigImg" alt="학생 입장 QR코드" width="560" height="560"><p id="tQrBigUrl" class="tQrUrl"></p></dialog>`;
   teacherMirrorAttach();teacherClassControlAttach();
   $('csvBtn').onclick=exportCSV;
+  $('tOpenControl').onclick=()=>$('tControlDlg').showModal();
+  $('tOpenMirror').onclick=()=>{$('tMirrorDlg').showModal();try{teacherMirrorRenderControls();teacherMirrorSend();}catch(e){}};
+  document.querySelectorAll('[data-close-dlg]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
+  document.querySelectorAll('.tDlg,.tQrDlg').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.close();}));
+  $('tTabs').onclick=e=>{const b=e.target.closest('[data-tab]');if(b)tSetTab(b.dataset.tab,true);};
+  $('tStageList').onclick=e=>{const b=e.target.closest('[data-stage-key]');if(b){tStageKey=b.dataset.stageKey;tStageRender(ranked(lastAll));}};
+  $('tStageDetail').onclick=e=>{const b=e.target.closest('[data-manage]');if(b){tSetTab('s1',true);teacherMirrorSelectStudent(b.dataset.manage);$('detail').scrollIntoView({block:'start'});}};
+  $('tGalleryCases').onclick=e=>{const b=e.target.closest('[data-gcase]');if(b){tGalleryCase=Number(b.dataset.gcase);tGalleryFilter();}};
   $('liveTeacherPanel').onclick=e=>{
     const student=e.target.closest('[data-live-member]');
     if(student){teacherSelectedQuizMember=student.dataset.liveMember;liveRenderTeacher();}
   };
   $('teacherClassRoom').onchange=e=>changeClassRoom(e.target.value);
   $('customClassRoom').onclick=customClassRoom;
-  const joinLink=classJoinLink();
-  $('shareLink').value=joinLink;
-  $('shareCopy').onclick=copyClassJoinLink;
   $('tbl').onclick=e=>{const button=e.target.closest('[data-key]');if(button){teacherDraftProgress=null;teacherMirrorSelectStudent(button.dataset.key)}};
   $('detail').onchange=e=>{if(e.target.id==='teacherProgress')teacherDraftProgress=Number(e.target.value);};
   $('detail').onclick=e=>{
@@ -3505,6 +3708,8 @@ function renderTeacher(){
     else if(e.target.closest('#teacherBackup'))teacherSaveBackup(selectedKey);
     else if(e.target.closest('#teacherMoveButton'))teacherMoveStudent();
   };
+  tSetTab(tTab,false);
+  tCityWatch();
   watchPlayers(renderTeacherViews);liveSubscribe();
 }
 
@@ -3663,6 +3868,14 @@ function renderTeacherViews(all){
   teacherRenderControls(p);
   teacherPreviewInit(p);
 }
+/* 교사 화면: 기존 갱신 뒤에 탭 숫자·단계 목록·그림 사례 선택을 다시 그린다. 처음에는 학생이 가장 많은 단계 탭을 연다. */
+{const baseViews=renderTeacherViews;renderTeacherViews=function(all){
+ baseViews.apply(this,arguments);
+ if(!$('tTabs'))return;
+ const list=ranked(all);
+ if(!tTabChosen&&list.length){const c=tCounts(list),best=['s1','s2','s3','s4'].reduce((a,b)=>c[b]>c[a]?b:a,'s1');tTabChosen=true;if(best!==tTab)return tSetTab(best,false);}
+ tTabsRender(list);tStageRender(list);tGalleryFilter();
+};}
 async function start(){
   if(PREVIEW_ONLY){previewOnlyStart();return;}
   readClassLink();
