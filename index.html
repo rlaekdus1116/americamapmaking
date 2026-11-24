@@ -415,6 +415,10 @@ body.inquiryView .inquiryStep3 .cultureDrawFullScreen .cultureDrawingHeading>b{f
 #cultureDrawWorkspace .cultureCanvasTools button:disabled,#cultureDrawWorkspace .cultureCanvasTools input:disabled{opacity:.45;cursor:default}
 </style><style id="culture-drawing-fullscreen-fix">
 body.cultureDrawFullscreenOpen{overflow:hidden!important;touch-action:none}
+body.cultureDrawFullscreenOpen .inquiryRoot,body.cultureDrawFullscreenOpen .inquiryRoot *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;filter:none!important}
+body.cultureDrawFullscreenOpen .inquiryRoot{transform:none!important;contain:none!important;perspective:none!important}
+#cultureDrawWorkspace.cultureDrawFullScreen .cultureCanvasStage{position:relative!important;min-height:0!important;overflow:hidden!important}
+#cultureDrawWorkspace.cultureDrawFullScreen #cultureDrawCanvas{position:absolute!important;left:0!important;top:0!important;right:0!important;bottom:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important}
 body.inquiryView #cultureDrawWorkspace.cultureDrawFullScreen{
  position:fixed!important;inset:0!important;z-index:20000!important;
  display:grid!important;grid-template-columns:minmax(0,1fr)!important;
@@ -484,6 +488,72 @@ body.inquiryView .inquiryStep3 .cultureDrawWorkspace.cultureDrawFullScreen{grid-
 #cultureDrawWorkspace .cultureCanvasTools #cultureRestartDrawing{min-height:42px!important;padding:8px 14px!important;background:#fff1c9!important;border:2px solid #e6bf62!important;color:#624b20!important;font-weight:900!important}
 #cultureDrawWorkspace .cultureCanvasTools button:disabled{opacity:.5!important;cursor:not-allowed!important}
 @media(max-width:700px){#cultureDrawWorkspace.cultureDrawFullScreen .cultureCanvasTools{max-height:28vh!important;overflow:auto!important;padding-bottom:env(safe-area-inset-bottom,0px)!important}}
+</style><link id="unifiedFonts" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;600;700&display=swap"><style id="unified-theme">
+/* 5단계(공장 하나가 도시를 바꿨다)와 같은 분위기: 크림색 바탕, 진한 테두리, 납작한 색. 색·테두리·글꼴만 바꾸고 배치는 건드리지 않는다. */
+html body{background:#f7f8f3!important;color:#34445a!important;font-family:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif!important}
+html body *,html body *::before,html body *::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;text-shadow:none!important}
+html body h1,html body h2,html body h3{font-family:Jua,"Noto Sans KR",sans-serif!important;font-weight:400!important;letter-spacing:0!important;color:#34445a!important}
+html body header{background:#fffef9!important;border-bottom:1px solid #dce3e3!important;box-shadow:none!important}
+html body .card{background:#fffefa!important;border:1px solid #dce3e3!important;box-shadow:none!important}
+html body .card::before{display:none!important}
+html body .chip,html body .titleBadge,html body .smallPill,html body .piece{background:#fff!important;border:1px solid #dce3e3!important;box-shadow:none!important;color:#34445a!important}
+html body .piece.on{background:#d9f2e6!important;border-color:#9db8a4!important}
+html body button,html body .btn{box-shadow:none!important;background-image:none!important;font-family:inherit}
+html body .btn,html body .btn.secondary{background:#fff!important;color:#34445a!important;border:1.5px solid #46536a!important;border-radius:14px!important;font-weight:700!important;transform:none!important}
+html body .btn.mint{background:#50634e!important;color:#fff!important;border-color:#50634e!important}
+html body .btn:hover{background:#f1f5ee!important}html body .btn.mint:hover{background:#394e39!important}
+html body .btn:disabled,html body button:disabled{opacity:.5!important}
+html body input,html body textarea,html body select{background:#fff!important;border:1.5px solid #c3cfcf!important;box-shadow:none!important;color:#34445a!important;font-family:inherit!important}
+html body input:focus,html body textarea:focus,html body select:focus{border-color:#50634e!important;outline:3px solid #d9f2e6!important}
+html body .bar{background:#eef1ea!important;border:1px solid #dce3e3!important;box-shadow:none!important}
+html body .bar>div{background:#6e9b83!important;box-shadow:none!important}
+html body .waitBox,html body .fact,html body .rankItem{background:#fff!important;border:1px solid #dce3e3!important;box-shadow:none!important}
+html body .waitBox{background:#fff9e9!important}html body .fact{background:#dfeefa!important}html body .rankItem.me{background:#e9e3fa!important}
+html body #map,html body #photoWrap{border:2px solid #46536a!important;box-shadow:none!important}
+html body #qbox{background:#fff9e9!important;border:2px solid #46536a!important;box-shadow:none!important}
+html body #cap{background:#fffef9!important;border:1.5px solid #46536a!important;box-shadow:none!important}
+html body td{background:#fff!important;border-color:#dce3e3!important}
+html body .muted{color:#66758a!important}
+html body,html body.inquiryView,html body.mapLearningView{background-image:none!important}
+html body #inquiryRoot{background:#fffefa!important;box-shadow:none!important;border-color:#dce3e3!important}
+html body #inquiryRoot#inquiryRoot .inquiryMilestone.isDone{background:#d9f2e6!important;color:#3f6b4c!important;border-color:#9db8a4!important}
+html body #inquiryRoot#inquiryRoot .inquiryMilestone.isActive{background:#50634e!important;color:#fff!important;border-color:#50634e!important}
+html body #inquiryRoot#inquiryRoot .inquiryMilestone.isLocked{background:#fff!important;color:#8a96a6!important;border-color:#dce3e3!important}
+html body #inquiryRoot#inquiryRoot .inquiryData,html body #inquiryRoot#inquiryRoot .inquiryQuestion,html body #inquiryRoot#inquiryRoot .culturePicturePanel{background:#fffef9!important;border-color:#dce3e3!important;box-shadow:none!important}
+html body #inquiryRoot#inquiryRoot article{background:#fff!important;border-color:#dce3e3!important;box-shadow:none!important}
+html body #inquiryRoot#inquiryRoot .inquiryCultureResult,html body #inquiryRoot#inquiryRoot .inquiryEquationPanel{background:#fff9e9!important;border-color:#e6dcc0!important}
+html body #inquiryRoot#inquiryRoot .migrationMapInstruction,html body #inquiryRoot#inquiryRoot .migrationBigQuestion{background:#fff9e9!important;background-image:none!important;border-color:#46536a!important;color:#34445a!important;box-shadow:none!important}
+html body #inquiryRoot#inquiryRoot .migrationMap{box-shadow:none!important;border-color:#46536a!important}
+html body #inquiryRoot#inquiryRoot .migrationReasonChoice,html body #inquiryRoot#inquiryRoot .inquiryRootChip{background:#fff!important;border-color:#c3cfcf!important;color:#34445a!important}
+html body #inquiryRoot#inquiryRoot .migrationReasonChoice[aria-pressed="true"],html body #inquiryRoot#inquiryRoot .inquiryRootChip[aria-pressed="true"],html body #inquiryRoot#inquiryRoot .inquiryRootChip.selected,html body #inquiryRoot#inquiryRoot .migrationReasonChoice.selected{background:#d9f2e6!important;border-color:#50634e!important}
+html body #inquiryRoot#inquiryRoot #cultureQuizCheck{background:#50634e!important;border-color:#50634e!important;color:#fff!important}
+html body #inquiryRoot#inquiryRoot #cultureSaveReason{background:#e9e3fa!important;border-color:#46536a!important;color:#34445a!important}
+html body #inquiryRoot#inquiryRoot #cultureFullscreen{background:#fff;border-color:#46536a;color:#34445a}
+html body #inquiryRoot#inquiryRoot .cultureCanvasTools button:not(.cultureColor){color:#34445a;border-color:#c3cfcf}
+html body .cultureIntroCard{background:#fffefa!important;background-image:none!important;border:3px solid #46536a!important;box-shadow:6px 6px 0 #46536a33!important}
+html body .cultureIntroCard button{background:#50634e!important;color:#fff!important;border-color:#50634e!important;box-shadow:none!important}
+html body #inquiryRoot#inquiryRoot .inquiryChartPanel,html body #inquiryRoot#inquiryRoot .inquiryAnswerPanel{background:#fffef9!important}
+html body #inquiryRoot#inquiryRoot .migrationRouteProgress{background:#dfeefa!important;color:#34445a!important}
+html body #inquiryRoot#inquiryRoot .migrationQuestionCountry{background:#d9f2e6!important;color:#34445a!important}
+html body #inquiryRoot#inquiryRoot #migrationCheck{background:#fff!important;color:#34445a!important}
+html body:not(#_):not(#_){background:#f7f8f3!important;background-image:none!important}
+html body .cultureIntroOverlay{background:#263643aa!important}
+html body .missionCardPopup{text-align:left!important}
+html body .missionCardPopup .cultureIntroEyebrow{color:#6b806c!important;font-size:14px!important;letter-spacing:.04em!important}
+html body .missionTodoHead{display:block;margin:14px 0 8px;font-size:17px}
+html body .missionTodo{list-style:none;counter-reset:m;margin:0 0 20px;padding:0;display:grid;gap:9px}
+html body .missionTodo li{counter-increment:m;display:flex;align-items:center;gap:12px;padding:12px 14px;border:2px solid #dce3e3;border-radius:16px;background:#fff;font-size:18px;font-weight:600;line-height:1.4;word-break:keep-all}
+html body .missionTodo li::before{content:counter(m);flex:none;width:28px;height:28px;border-radius:9px;background:#d9f2e6;border:2px solid #46536a;display:grid;place-items:center;font-family:Jua,sans-serif;font-size:16px}
+html body .missionCardPopup #cultureIntroStart{width:100%;font-size:20px!important;padding:14px!important;border-radius:14px!important}
+html body .migrationChapterOverlay{background:#263643aa!important}
+html body .migrationChapterCard{background:#fffefa!important;background-image:none!important;border:3px solid #46536a!important;box-shadow:6px 6px 0 #46536a33!important}
+html body .migrationChapterEyebrow{color:#6b806c!important}
+html body .migrationChapterRoute{background:#fff9e9!important;background-image:none!important;border-color:#46536a!important;box-shadow:none!important;color:#34445a!important}
+html body .migrationChapterSteps>div{background:#fff!important;border-color:#dce3e3!important;box-shadow:none!important}
+html body .migrationStepNumber{background:#d9f2e6!important;color:#34445a!important;border:2px solid #46536a!important;box-shadow:none!important}
+html body .stage-panel,html body .photo-panel,html body .result-panel{background:#fffefa!important;background-image:none!important;border:3px solid #46536a!important;box-shadow:6px 6px 0 #46536a33!important}
+html body .stage-modal,html body .photo-modal{background:#263643aa!important}
+html body .puzzle-tile{box-shadow:none!important}
 </style></head>
 <body data-app-build="2026-11-17-culture-fullscreen-tools">
 <header>
@@ -776,7 +846,7 @@ function migrationShowChapter(region){
  if(store.get(key)==='yes'){migrationSetRegion(region);return;}
  const latin=region==='latin',title=latin?'라틴아메리카 인구':'앵글로아메리카 인구',route=MIGRATION_ROUTES.find(x=>x.region===region);
  const modal=document.createElement('div');modal.id='migrationChapterPopup';modal.className='migrationChapterOverlay';
- modal.innerHTML='<section class="migrationChapterCard migrationTapGuide" role="dialog" aria-modal="true" aria-labelledby="migrationChapterTitle"><div class="migrationChapterEyebrow">'+title+' · 지구본 활동 방법</div><h2 id="migrationChapterTitle">지구본에서 출발지와 도착지를<br>순서대로 눌러 주세요</h2><div class="migrationChapterRoute"><span>'+esc(route?.name||'출발지')+'</span><b>→</b><span>'+esc(route?.destination||'도착지')+'</span></div><div class="migrationChapterSteps"><div><span class="migrationStepNumber">1</span><span><b>보라색 점</b>을 눌러요.<br>출발지: '+esc(route?.name||'')+'</span></div><div><span class="migrationStepNumber">2</span><span><b>분홍색 점</b>을 눌러요.<br>도착지: '+esc(route?.destination||'')+'</span></div><div><span class="migrationStepNumber">3</span><span><b>오른쪽에서 이동 이유</b>를 골라<br>확인 버튼을 눌러요.</span></div><div><span class="migrationStepNumber">!</span><span>다른 경로는 왼쪽에서 고르고,<br>점이 안 보이면 지구본을 드래그해 돌려요.</span></div></div><p class="migrationChapterHint">경로를 볼 때마다 출발지 점을 먼저, 도착지 점을 다음에 한 번씩 눌러요.</p><button type="button" class="btn mint" id="migrationChapterStart">지구본에서 출발지 찍기 →</button></section>';
+ modal.innerHTML='<section class="migrationChapterCard migrationTapGuide" role="dialog" aria-modal="true" aria-labelledby="migrationChapterTitle"><div class="migrationChapterEyebrow">'+title+' · 지구본 활동 방법</div><h2 id="migrationChapterTitle">지구본에서 출발지와 도착지를<br>순서대로 눌러 주세요</h2><div class="migrationChapterRoute"><span>'+esc(route?.name||'출발지')+'</span><b>→</b><span>'+esc(route?.destination||'도착지')+'</span></div><div class="migrationChapterSteps"><div><span class="migrationStepNumber">1</span><span><b>보라색 점</b>을 눌러요.<br>출발지: '+esc(route?.name||'')+'</span></div><div><span class="migrationStepNumber">2</span><span><b>분홍색 점</b>을 눌러요.<br>도착지: '+esc(route?.destination||'')+'</span></div><div><span class="migrationStepNumber">3</span><span><b>오른쪽에서 이동 이유</b>를 골라<br>확인 버튼을 눌러요.</span></div><div><span class="migrationStepNumber">!</span><span>다른 경로는 왼쪽에서 고르고,<br>점이 안 보이면 지구본을 드래그해 돌려요.</span></div></div><button type="button" class="btn mint" id="migrationChapterStart">지구본에서 출발지 찍기 →</button></section>';
  document.body.appendChild(modal);
  $('migrationChapterStart').onclick=()=>{if(!PREVIEW_ONLY)store.set(key,'yes');modal.remove();migrationSetRegion(region);};
  $('migrationChapterStart').focus();
@@ -1027,19 +1097,27 @@ function cultureInitCanvas(){
  if(!window.cultureFullscreenEscapeBound){window.cultureFullscreenEscapeBound=true;document.addEventListener('keydown',e=>{if(e.key==='Escape'){const node=$('cultureDrawWorkspace'),button=$('cultureFullscreen');if(node?.classList.contains('cultureDrawFullScreen')){node.classList.remove('cultureDrawFullScreen');document.body.classList.remove('cultureDrawFullscreenOpen');if(button){button.textContent='전체 화면에서 그리기';button.setAttribute('aria-pressed','false');}requestAnimationFrame(()=>{cultureCanvasResize();cultureSaveLocal(cultureDraftSnapshot(true));});}}});}
  if($('culturePrevCase'))$('culturePrevCase').onclick=()=>cultureGoToCase(cultureActive-1);if($('cultureNextCase'))$('cultureNextCase').onclick=()=>cultureGoToCase(cultureActive+1);if($('cultureRestartDrawing'))$('cultureRestartDrawing').onclick=cultureRestartDrawing;cultureUpdateCaseNav();cultureCanvasResize();cultureStartDrawingClock();
 }
-function cultureIntroPopup(){
- if(PREVIEW_ONLY||!me)return;
- const key='amap-culture-intro-v1-'+ROOM+'-'+me.id;
+/* 단계에 처음 들어올 때 할 일만 짧게 보여 주는 미션 카드. 봤는지는 이 기기에만 기억한다(학생 기록은 그대로). */
+const INQUIRY_MISSIONS={
+ 2:{eyebrow:'2단계 · 인구 자료 분석',title:'아메리카 사람들은<br>어디에서 왔을까?',todo:['지구본에서 출발지와 도착지 잇기','이동한 이유 고르기','그래프를 보고 답 쓰기']},
+ 3:{eyebrow:'3단계 · 문화 혼종성',title:'서로 다른 문화가 만나면<br>무엇이 만들어질까?',todo:['사진을 찾아보고 그림 그리기 (사례마다 5분)','섞인 문화 요소 2개 고르기','이유를 쓰고 저장하기 · 사례 4개']},
+ 4:{eyebrow:'4단계 · 역사 탐정',title:'죽은 자의 날은<br>어떻게 만들어졌을까?',todo:['역사 자료 카드 살펴보기','질문 4개에 답 쓰기','탐정 보고서 제출하기']}
+};
+function missionPopup(step){
+ const m=INQUIRY_MISSIONS[step];if(PREVIEW_ONLY||!me||!m)return;
+ const key=(step===3?'amap-culture-intro-v1-':'amap-mission-v1-'+step+'-')+ROOM+'-'+me.id;
  if(store.get(key)==='yes'||$('cultureIntroOverlay'))return;
  const overlay=document.createElement('div');overlay.id='cultureIntroOverlay';overlay.className='cultureIntroOverlay';
- overlay.innerHTML='<section class="cultureIntroCard" role="dialog" aria-modal="true" aria-labelledby="cultureIntroTitle"><div class="cultureIntroEyebrow">3단계 · 문화 혼종성</div><h2 id="cultureIntroTitle">서로 다른 문화가 만나면<br>무엇이 만들어질까?</h2><p>과달루페 성모상, 탱고, 햄버거, 리우 카니발 사례를 살펴봐요.</p><strong>그림을 참고해 어떤 문화 요소들이 섞였는지 찾아보세요.</strong><p>그림은 사례마다 첫 획부터 5분 동안 그려요. 시간이 끝나도 그림은 저장되고, 더 그리려면 다시 그리기를 눌러요.</p><button type="button" id="cultureIntroStart">사례 살펴보기 →</button></section>';
+ overlay.innerHTML='<section class="cultureIntroCard missionCardPopup" role="dialog" aria-modal="true" aria-labelledby="cultureIntroTitle"><div class="cultureIntroEyebrow">'+m.eyebrow+'</div><h2 id="cultureIntroTitle">'+m.title+'</h2><b class="missionTodoHead">할 일</b><ol class="missionTodo">'+m.todo.map(t=>'<li>'+t+'</li>').join('')+'</ol><button type="button" id="cultureIntroStart">시작!</button></section>';
  document.body.appendChild(overlay);
- const close=()=>{store.set(key,'yes');overlay.remove();$('inqCultureCountry')?.focus();};
+ const close=()=>{store.set(key,'yes');overlay.remove();if(step===3)$('inqCultureCountry')?.focus();};
  $('cultureIntroStart').onclick=close;
  overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
  overlay.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
  $('cultureIntroStart').focus();
 }
+function cultureIntroPopup(){missionPopup(3)}
+{const baseInquiryRender=inquiryRender;inquiryRender=function(){baseInquiryRender.apply(this,arguments);try{const st=inquiryStep();if(me&&!me.pending&&me.cur>=PROBLEMS.length&&st===4)missionPopup(st)}catch(e){}}}
 if(!window.cultureDraftRecoveryBound){
  window.cultureDraftRecoveryBound=true;
  const flush=()=>{
