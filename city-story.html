@@ -439,7 +439,7 @@ body[data-step="6"] #panel{background:#fffdf4;background-image:radial-gradient(#
 .diagBars{display:grid;gap:3px}.diagBars i{display:block;height:9px;border-radius:5px;background:#c3cfcf;min-width:2px}.diagBars i.post{background:var(--accent)}
 @media print{header,.footer,.steps,.toast{display:none!important}.app{height:auto}}
 </style></head><body><header><div class="brand"><div class="logo" aria-hidden="true">N</div><h1>공장 하나가 도시를 바꿨다</h1></div><div class="tools"><span id="saveStatus" class="save" aria-live="polite">입장 후 자동 저장</span><button id="helpBtn" class="hidden helpBtn">선생님 챗봇</button><button id="sound" aria-pressed="false">소리 꺼짐</button><button id="fullscreen">화면 확대</button></div></header><div id="root"></div><div id="toast" class="toast hidden" role="status"></div>
-<dialog id="drawing" class="drawingDialog"><div class="drawLayout"><div class="drawHeader"><h3 id="drawTitle"></h3><button id="closeDraw" class="primary">저장하고 닫기</button></div><div class="drawTools" id="drawTools"><label style="margin:0">색 고르기 <input id="color" type="color" value="#34445a"></label><span id="swatches" class="row"></span><select id="width" aria-label="선 굵기"><option value="3">가는 선</option><option value="7" selected>보통 선</option><option value="15">굵은 선</option><option value="34">아주 굵은 선</option></select><button id="eraser">지우개</button><button id="undo">한 획 취소</button><button id="redo">다시 하기</button><button id="clear">모두 지우기</button></div><div class="canvasWrap"><canvas id="board" width="1000" height="600" aria-label="네 컷 만화 그림판"></canvas></div><small>그림은 획을 마칠 때마다 저장돼. 시간 제한 없이 다시 고칠 수 있어.</small></div></dialog>
+<dialog id="drawing" class="drawingDialog"><div class="drawLayout"><div class="drawHeader"><h3 id="drawTitle"></h3><button id="closeDraw" class="primary">저장하고 닫기</button></div><div class="drawTools" id="drawTools"><label style="margin:0">색 고르기 <input id="color" type="color" value="#34445a"></label><span id="swatches" class="row"></span><select id="width" aria-label="선 굵기"><option value="3">가는 선</option><option value="7" selected>보통 선</option><option value="15">굵은 선</option><option value="34">아주 굵은 선</option></select><button id="fillTool" aria-pressed="false">색 채우기</button><button id="eraser">지우개</button><button id="undo">한 획 취소</button><button id="redo">다시 하기</button><button id="clear">모두 지우기</button></div><div class="canvasWrap"><canvas id="board" width="1000" height="600" aria-label="네 컷 만화 그림판"></canvas></div><small>그림은 획을 마칠 때마다 저장돼. 시간 제한 없이 다시 고칠 수 있어.</small></div></dialog>
 <aside id="helpPanel" class="helpPanel hidden" aria-label="선생님 챗봇"><div class="helpHead"><b>선생님 챗봇</b><button id="helpClose" aria-label="선생님 챗봇 닫기">닫기</button></div><div id="helpLog" class="helpLog" aria-live="polite"></div><button id="helpNowBtn" class="primary">지금 뭐 해야 돼?</button><div class="row" id="helpLensRow"><button id="helpLensCo" style="flex:1">기업 담당자라면<br><small>어떤 결과를 예상할까?</small></button><button id="helpLensRe" style="flex:1">주민이라면<br><small>어떤 결과를 예상할까?</small></button></div><form id="helpForm" class="row"><input id="helpQ" maxlength="80" autocomplete="off" aria-label="선생님 챗봇에게 질문" placeholder="궁금한 걸 써 봐"><button id="helpSend">보내기</button></form><small>선생님 챗봇은 AI라서 틀릴 수 있어. 답을 대신 써 주지는 않아.</small></aside>
 <dialog id="presentDlg" class="presentDialog"><div id="presentBody"></div></dialog>
 <dialog id="gallery" class="bigGallery"><div class="drawHeader"><h3 id="galleryTitle"></h3><div class="row"><button id="galleryPrev">이전 학생</button><button id="galleryNext">다음 학생</button><button id="galleryClose">닫기</button></div></div><div id="galleryBody"></div></dialog>
@@ -719,7 +719,7 @@ function updateNext(){if(!$('next'))return;renderSteps();
  $('helpBtn')?.classList.toggle('hidden',!started||teacher&&!preview);
  document.querySelectorAll('#panel .task[data-k]').forEach(el=>{const k=+el.dataset.k,d=!!todo[k]?.[1]();el.classList.toggle('done',d);el.classList.toggle('now',k===li)});
  let hint=ok?(s.step===0?(diagDone(s.pre)||s.assigned?'':'[시작하기]를 누르면 깜짝 퀴즈 3개가 나와'):'다 했어! 다음으로 넘어가자'):s.step===0?'시작 전 확인 문제를 모두 골라 줘':li>=0?'지금 할 일: '+(li+1)+'번 '+todo[li][0]:'';
- if(s.step===7&&s.submitted&&!finalEdit){$('next').disabled=true;$('next').textContent='제출 완료';hint='선생님 화면에 기록됐어'}
+ if(s.step===7&&s.submitted&&!finalEdit){$('next').disabled=false;$('next').textContent='다음 · 네 컷 그리기 →';hint='제출 완료! 선생님 화면에 기록됐어'}
  if(s.step===7&&!ok&&firstMissing()<6)hint='아직 못 마친 활동: '+(STEPS.indexOf(firstMissing())+1)+'. '+titles[firstMissing()];
  $('footHint').textContent=hint}
 async function next(){if(!valid())return;if(s.step===0)s.assigned=true;
@@ -1238,6 +1238,78 @@ renderFinal=function(freshPol=''){const c=city();
 /* 역지사지 기록 보강 */
 {const baseHTML=reportHTML;reportHTML=function(v){let h=baseHTML(v);if(v&&!String(v.policyWhy||'').trim())h=h.replace('<p><b>대책 이유:</b> </p>','');return v&&v.debNew?h.replace('<p><b>대책:</b>',`<p><b>입장을 바꿔 보니:</b> ${esc(v.debNew)}</p><p><b>대책:</b>`):h};}
 PRESENT.splice(PRESENT.findIndex(p=>p.id==='pair')+1,0,{id:'sort',title:'이 변화, 좋은 변화일까?',ask:'좋은 변화라고 본 사람과 걱정된다고 본 사람이 갈린 카드는 무엇일까? 왜 갈렸을까?',rows:()=>[['shop','가게에 손님이 늘었어'],['rent','집세·임대료가 올랐어'],['truck','화물 트럭이 늘었어'],['tax','세금으로 도서관·공원이 생겼어'],['newcomer','이사 온 사람이 많아졌어']],has:(v,k)=>v.sort&&v.sort[k]==='good',quote:()=>''});
+
+/* ───────── 토론 순서 · 역할 교대 팝업 · 제출 화면 정리 · 색 채우기 (2026-11 추가) ───────── */
+TASKS[4]=[['짝과 역할 하나씩 맡기',()=>!!s.debRole],['내 역할의 주장 쓰기 (10자 이상)',()=>long(s.debA,10)],['짝과 말로 토론하기',()=>!!s.debTalked]];
+TASKS[5]=[['반대 입장이 되어 주장 쓰기 (10자 이상)',()=>long(s.debB,10)],['입장을 바꿔 보니 든 생각 쓰기 (10자 이상)',()=>long(s.debNew,10)]];
+STEP_HELP[4]='역지사지 토론 화면이야. 1번에서 짝과 역할(기업 담당자·주민 대표)을 하나씩 맡아. 2번에 내 역할의 주장을 10자 이상 써. 안 떠오르면 [선생님 챗봇에게 힌트 받기]를 눌러. 3번은 쓴 주장으로 짝과 말로 토론한 다음 버튼을 눌러.';
+renderDebate=function(){const c=city(),r=s.debRole,solo=s.pairName===SOLO||!s.pairName,wrote=long(s.debA,10);
+ $('sceneTitle').textContent=c.name+' · 공장을 더 크게 짓는다면';setArt(town({level:3,concern:true,people:true}),'town');
+ $('sceneBottom').innerHTML=`<b>새 소식</b> ${BRAND}가 ${esc(c.name)} 공장을 두 배로 넓히고 싶대.`;
+ $('panel').innerHTML=`<span class="eyebrow">역지사지 토론 · 1라운드</span><h2>공장을 더 크게 지어도 될까?</h2><p>공장을 넓히면 일자리도, 걱정도 함께 커져. ${solo?'먼저 한쪽 입장을 맡아 봐.':'짝과 역할을 하나씩 나눠 맡아 봐.'}</p>`
+ +T(0,solo?'맡을 역할 고르기':'짝과 역할 하나씩 맡기',`<div class="cards"><button data-debrole="co" class="choice ${r==='co'?'selected':''}" aria-pressed="${r==='co'}"><b>기업 담당자</b><small>공장을 넓히고 싶은 쪽${solo?'':' · 짝은 주민 대표'}</small></button><button data-debrole="re" class="choice ${r==='re'?'selected':''}" aria-pressed="${r==='re'}"><b>주민 대표</b><small>동네를 지키고 싶은 쪽${solo?'':' · 짝은 기업 담당자'}</small></button></div>`)
+ +T(1,r?`${ROLE[r]}로서 내 주장 쓰기`:'내 역할의 주장 쓰기',r?`<textarea id="debA" maxlength="240" placeholder="${ROLE_HINT[r]}">${esc(s.debA)}</textarea><button id="debHelp" style="margin-top:8px">주장이 안 떠오르면 · 선생님 챗봇에게 힌트 받기</button>`:'<small>역할을 고르면 쓰는 칸이 나와.</small>')
+ +T(2,solo?'반대쪽은 뭐라고 할지 생각하기':'쓴 주장으로 짝과 토론하기',`<ol style="margin:0 0 8px;padding-left:20px;line-height:1.7"><li>${solo?'내 주장을 소리 내어 읽어 봐.':'한 사람씩 자기가 쓴 주장을 말해.'}</li><li>${solo?'반대쪽 사람은 뭐라고 대답할지 떠올려 봐.':'짝의 말을 듣고 궁금한 것을 하나 물어봐.'}</li></ol><button id="debTalked" class="${s.debTalked?'selected':'primary'}" ${wrote?'':'disabled'}>${s.debTalked?(solo?'생각해 봤어 ✓':'짝과 토론했어 ✓'):(solo?'생각해 봤어':'짝과 토론했어')}</button>${wrote?'':'<br><small>2번 주장을 먼저 써 줘.</small>'}`);
+ $('panel').querySelectorAll('[data-debrole]').forEach(b=>b.onclick=()=>{if(s.debRole&&s.debRole!==b.dataset.debrole&&(s.debA||s.debB)){const t=s.debA;s.debA=s.debB;s.debB=t}s.debRole=b.dataset.debrole;history('토론 역할 선택');renderDebate();updateNext()});
+ $('debTalked').onclick=()=>{s.debTalked=true;history('짝과 토론');renderDebate();updateNext()};
+ if($('debA')){$('debA').oninput=e=>{s.debA=e.target.value;persist();updateNext();const ok=long(s.debA,10);if($('debTalked').disabled===ok){const top=$('panel').scrollTop,pos=e.target.selectionStart;renderDebate();$('panel').scrollTop=top;$('debA').focus();$('debA').setSelectionRange(pos,pos);updateNext()}};$('debHelp').onclick=()=>lensHelp(r==='co'?'company':'resident')}};
+/* 역할 교대 팝업 → 2라운드 */
+function swapPopup(o){document.querySelector('.quizPop')?.remove();const pop=document.createElement('div');pop.className='quizPop';pop.setAttribute('role','dialog');pop.setAttribute('aria-modal','true');
+ pop.innerHTML=`<div class="quizCard" style="text-align:center"><p class="hireTop" style="font-size:30px">여러분의 인생이 바뀌었습니다!</p><p class="quizQ" style="font-weight:500">방금까지 ${ROLE[o==='co'?'re':'co']}였던 당신,<br>지금부터는 <b style="font-family:Jua,sans-serif;font-weight:400;font-size:26px">${ROLE[o]}</b>입니다.</p><p style="font-size:18px;margin:0 0 14px">${ROLE[o]}로서 다시 주장해 보세요.</p><button id="swapGo" class="primary" style="width:100%;font-size:18px">${ROLE[o]}가 되기</button></div>`;
+ document.body.appendChild(pop);pop.querySelector('#swapGo').onclick=()=>{s.swapSeen=true;persist();pop.remove();$('debB')?.focus()};pop.querySelector('#swapGo').focus()}
+renderSwap=function(){const c=city(),r=s.debRole||'co',o=r==='co'?'re':'co',paired=!!s.pairName&&s.pairName!==SOLO;
+ $('sceneTitle').textContent=c.name+' · 입장을 바꿔서';setArt(town({level:3,concern:true,people:true}),'town');
+ $('sceneBottom').innerHTML=`<b>역할 교대!</b> 이번에는 ${ROLE[o]}가 되어 봐.`;
+ $('panel').innerHTML=`<span class="eyebrow">역지사지 토론 · 2라운드</span><h2>이번에는 ${ROLE[o]}가 되어 볼까?</h2><div class="myClaim"><small>방금 ${ROLE[r]}로서 한 주장</small><br>${esc(s.debA)||'아직 쓰지 않았어'}</div>`
+ +T(0,`${ROLE[o]}로서 다시 주장하기`,`<textarea id="debB" maxlength="240" placeholder="${ROLE_HINT[o]}">${esc(s.debB)}</textarea><button id="debHelp2" style="margin-top:8px">주장이 안 떠오르면 · 선생님 챗봇에게 힌트 받기</button>${paired?'<p class="instruction" style="margin:8px 0 0">다 썼으면 짝과 바뀐 역할로 한 번 더 토론해 봐.</p>':''}`)
+ +T(1,'입장을 바꿔 보니 든 생각 쓰기',`<p class="instruction" style="margin:0 0 6px">${paired?'다시 토론해 보니':'입장을 바꿔 생각해 보니'} 달라진 생각이 있다면 적어 줘.</p><textarea id="debNew" maxlength="240" placeholder="처음에는 ___라고 생각했는데, ${ROLE[o]}가 되어 보니 ___도 중요했다.">${esc(s.debNew||'')}</textarea>`);
+ $('debB').oninput=e=>{s.debB=e.target.value;persist();updateNext()};$('debNew').oninput=e=>{s.debNew=e.target.value;persist();updateNext()};
+ $('debHelp2').onclick=()=>lensHelp(o==='co'?'company':'resident');
+ if(!s.swapSeen&&!preview&&!teacher&&!s.debB)swapPopup(o)};
+/* 제출 화면: 결정과 주민 반응만. 네 컷은 아래 [다음 · 네 컷 그리기] 버튼으로 간다. */
+{const baseReport4=renderReport;renderReport=function(){baseReport4.apply(this,arguments);const P=$('panel');if(!P)return;
+ P.querySelectorAll('.diagReport,.conceptCard,.strip,#goComic,#export,#exportPng').forEach(el=>el.remove());
+ P.querySelectorAll('.report').forEach(el=>{if(/^\s*기업 담당자로서/.test(el.textContent))el.remove()})};}
+next=async function(){
+ if(s.step===7&&s.submitted&&!finalEdit)return setStep(6,true);
+ if(!valid())return;
+ if(s.step===0&&!diagDone(s.pre)&&!s.assigned&&!s.city)return openQuiz('pre',()=>next());
+ if(s.step===0)s.assigned=true;
+ if(s.step===7){if(!diagDone(s.post))return openQuiz('post',()=>next());
+  s.submitted=true;finalEdit=false;history('최종 결정 제출');render();await flush();beep('build');toast(dirty?'기기에 제출 내용 저장 · 서버 연결 시 다시 저장해':'제출 완료! 이제 [다음 · 네 컷 그리기]를 눌러.')}
+ else if(s.step===6){history('네 컷 완성');await flush();toast('네 컷까지 모두 끝냈어. 수고했어!');setStep(7,true)}
+ else setStep(STEPS[STEPS.indexOf(s.step)+1])};
+
+/* 색 채우기: 누른 곳과 이어진 같은 색 영역을 고른 색으로 채운다. 획 목록에 {fill:true}로 저장해 순서대로 다시 그린다. */
+function floodFill(canvas,fx,fy,hex){const w=canvas.width,h=canvas.height,ctx=canvas.getContext('2d'),x0=Math.max(0,Math.min(w-1,Math.round(fx*w))),y0=Math.max(0,Math.min(h-1,Math.round(fy*h)));
+ let img;try{img=ctx.getImageData(0,0,w,h)}catch(e){return}const d=img.data,n=parseInt(String(hex||'#000').slice(1),16),R=n>>16&255,G=n>>8&255,B=n&255,i0=(y0*w+x0)*4,r0=d[i0],g0=d[i0+1],b0=d[i0+2];
+ if(Math.abs(r0-R)+Math.abs(g0-G)+Math.abs(b0-B)<12)return;
+ const same=i=>Math.abs(d[i]-r0)+Math.abs(d[i+1]-g0)+Math.abs(d[i+2]-b0)<=90,seen=new Uint8Array(w*h),stack=[x0,y0];
+ while(stack.length){const y=stack.pop();let x=stack.pop();let p=y*w+x;if(seen[p]||!same(p*4))continue;
+  while(x>0&&!seen[p-1]&&same((p-1)*4)){x--;p--}
+  let up=false,dn=false;
+  for(;x<w&&!seen[p]&&same(p*4);x++,p++){seen[p]=1;const q=p*4;d[q]=R;d[q+1]=G;d[q+2]=B;d[q+3]=255;
+   if(y>0){const a=p-w;if(!seen[a]&&same(a*4)){if(!up){stack.push(x,y-1);up=true}}else up=false}
+   if(y<h-1){const a=p+w;if(!seen[a]&&same(a*4)){if(!dn){stack.push(x,y+1);dn=true}}else dn=false}}}
+ ctx.putImageData(img,0,0)}
+paint=function(canvas,strokes){const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.lineCap='round';ctx.lineJoin='round';
+ for(const st of strokes){const pts=toArr(st?.points);if(!pts.length)continue;
+  if(st.fill){floodFill(canvas,pts[0][0],pts[0][1],st.color);continue}
+  ctx.strokeStyle=st.erase?'#fff':st.color;ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=st.width;ctx.beginPath();const p=pts[0];ctx.moveTo(p[0]*canvas.width,p[1]*canvas.height);
+  for(const q of pts.slice(1))ctx.lineTo(q[0]*canvas.width,q[1]*canvas.height);
+  if(pts.length===1){ctx.arc(p[0]*canvas.width,p[1]*canvas.height,st.width/2,0,Math.PI*2);ctx.fill()}else ctx.stroke()}};
+let fillMode=false;
+function initFill(){const board=$('board'),btn=$('fillTool');if(!board||!btn||btn.dataset.ready)return;btn.dataset.ready='1';
+ const set=v=>{fillMode=v;btn.classList.toggle('selected',v);btn.setAttribute('aria-pressed',v);board.style.cursor=v?'cell':''};
+ btn.onclick=()=>{set(!fillMode);if(fillMode){erase=false;$('eraser').classList.remove('selected')}};
+ $('eraser').addEventListener('click',()=>set(false));
+ const baseDown=board.onpointerdown;
+ board.onpointerdown=e=>{if(!fillMode)return baseDown&&baseDown(e);if(e.button>0)return;e.preventDefault();finishStroke();
+  const r=board.getBoundingClientRect(),r3=v=>Math.round(Math.max(0,Math.min(1,v))*1000)/1000;
+  s.comic[drawIndex].strokes.push({fill:true,color:$('color').value,width:1,points:[[r3((e.clientX-r.left)/r.width),r3((e.clientY-r.top)/r.height)]]});redoStack=[];
+  paint(board,s.comic[drawIndex].strokes);persist()};
+ $('closeDraw').addEventListener('click',()=>set(false))}
+window.addEventListener('DOMContentLoaded',()=>setTimeout(initFill,0));
 
 /* ───────── 시작 ───────── */
 window.addEventListener('DOMContentLoaded',()=>{initDrawing();
