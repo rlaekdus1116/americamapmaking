@@ -718,7 +718,7 @@ function updateNext(){if(!$('next'))return;renderSteps();
  const todo=TASKS[s.step]||[],li=todo.findIndex(([,f])=>!f());
  $('helpBtn')?.classList.toggle('hidden',!started||teacher&&!preview);
  document.querySelectorAll('#panel .task[data-k]').forEach(el=>{const k=+el.dataset.k,d=!!todo[k]?.[1]();el.classList.toggle('done',d);el.classList.toggle('now',k===li)});
- let hint=ok?(s.step===0?(diagDone(s.pre)||s.assigned?'':'[시작하기]를 누르면 깜짝 퀴즈 3개가 나와'):'다 했어! 다음으로 넘어가자'):s.step===0?'시작 전 확인 문제를 모두 골라 줘':li>=0?'지금 할 일: '+(li+1)+'번 '+todo[li][0]:'';
+ let hint=ok?(s.step===0?'':'다 했어! 다음으로 넘어가자'):s.step===0?'시작 전 확인 문제를 모두 골라 줘':li>=0?'지금 할 일: '+(li+1)+'번 '+todo[li][0]:'';
  if(s.step===7&&s.submitted&&!finalEdit){$('next').disabled=false;$('next').textContent='다음 · 네 컷 그리기 →';hint='제출 완료! 선생님 화면에 기록됐어'}
  if(s.step===7&&!ok&&firstMissing()<6)hint='아직 못 마친 활동: '+(STEPS.indexOf(firstMissing())+1)+'. '+titles[firstMissing()];
  $('footHint').textContent=hint}
@@ -1311,6 +1311,63 @@ function initFill(){const board=$('board'),btn=$('fillTool');if(!board||!btn||bt
   paint(board,s.comic[drawIndex].strokes);persist()};
  $('closeDraw').addEventListener('click',()=>set(false))}
 window.addEventListener('DOMContentLoaded',()=>setTimeout(initFill,0));
+
+/* ───────── 퀴즈 없이 진행 · 교사 화면을 수업 흐름 순서로 (2026-11 추가) ───────── */
+next=async function(){
+ if(s.step===7&&s.submitted&&!finalEdit)return setStep(6,true);
+ if(!valid())return;
+ if(s.step===0)s.assigned=true;
+ if(s.step===7){s.submitted=true;finalEdit=false;history('최종 결정 제출');render();await flush();beep('build');toast(dirty?'기기에 제출 내용 저장 · 서버 연결 시 다시 저장해':'제출 완료! 이제 [다음 · 네 컷 그리기]를 눌러.')}
+ else if(s.step===6){history('네 컷 완성');await flush();toast('네 컷까지 모두 끝냈어. 수고했어!');setStep(7,true)}
+ else setStep(STEPS[STEPS.indexOf(s.step)+1])};
+STEP_HELP[0]='시작 화면이야. 합격 통지서와 첫 번째 임무를 읽고 오른쪽 아래 [시작하기] 버튼을 눌러.';
+STEP_HELP[7]='최종 결정 화면이야. 1번에서 예산 600억 원 안에서 대책 카드를 골라. 2번에서 결정 하나를 고르고, 3번에 이유를 15자 이상 써. 4번에서 AI 주민에게 내 결정을 들려주고 주민의 물음에 답해. 다 하면 [최종 결정 제출]을 눌러. 그다음 [다음 · 네 컷 그리기]로 넘어가.';
+document.head.insertAdjacentHTML('beforeend',`<style>
+.tHead{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0 4px}
+.tStat{background:#fffefa;border:2px solid var(--line);border-radius:18px;padding:10px 14px}.tStat small{display:block;color:var(--muted);font-weight:600}.tStat b{font-family:Jua,sans-serif;font-weight:400;font-size:30px}.tStat b small{display:inline;font-size:16px;font-family:inherit}
+.flowTitle{font-family:Jua,sans-serif;font-weight:400;font-size:21px;margin:16px 0 0}
+.summary .flowCard{position:relative;padding:14px 14px 12px}.flowCard .fStep{display:inline-block;background:var(--line);color:#fff;border-radius:999px;padding:2px 12px;font-size:13px;font-weight:700;margin-bottom:6px}
+.flowCard h3{font-size:17px;margin:0 0 8px}.flowCard .fNote{font-size:13px;color:var(--muted);margin:8px 0 0}
+.split{display:grid;grid-template-columns:minmax(90px,40%) 1fr;gap:8px;align-items:center;font-size:13.5px;margin:6px 0}.split .sb{display:flex;height:20px;border-radius:8px;overflow:hidden;background:#eef0ea}.split .sb i{display:flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;font-weight:700;color:#34445a;min-width:0}.split .sb .g{background:#a9d4b4}.split .sb .w{background:#f0bfb3}
+.legend{display:flex;gap:12px;font-size:12.5px;color:var(--muted);margin-bottom:4px}.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.roleBox{border-radius:12px;padding:8px 10px;margin:6px 0;font-size:14px;line-height:1.5}.roleBox small{display:block;font-weight:700;margin-bottom:2px}.roleBox.co{background:#e9f0fb;border-left:5px solid #7192c1}.roleBox.re{background:#fdf1e4;border-left:5px solid #dfa15f}.roleBox.nw{background:#f1f5ec;border-left:5px solid #8ca477}
+.roleBox p{margin:2px 0}.arrowLine{font-size:13.5px;margin:4px 0}
+.stuSec{border:1px solid var(--border);border-radius:16px;padding:10px 14px;margin:10px 0;background:#fffefa}.stuSec>h4{margin:0 0 6px;font-size:15.5px}.stuSec>h4 span{display:inline-block;background:var(--line);color:#fff;border-radius:999px;padding:1px 10px;font-size:12.5px;margin-right:6px}.stuSec p{margin:4px 0;overflow-wrap:anywhere}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:8px}#tTools{margin:10px 0}#tTools>summary{cursor:pointer;font-weight:700;padding:6px 2px}
+</style>`);
+const SORT_LABEL={job:'주민이 공장에서 일하게 됨',shop:'가게에 손님이 늘어남',concern:'도시별 변화',rent:'집세·임대료가 오름',noise:'밤에도 불빛과 기계 소리',truck:'화물 트럭이 늘고 도로가 닦임',smoke:'굴뚝에서 연기가 올라옴',tax:'세금으로 도서관·공원이 생김',newcomer:'이사 온 사람이 많아짐'};
+let hideNames=false;const maskName=(v,i)=>hideNames?'학생 '+(i+1):(v.name||'');
+function splitBar(label,g,w){const t=g+w;return `<div class="split"><span title="${esc(label)}">${esc(label)}</span><div class="sb">${g?`<i class="g" style="flex:${g}">${g}</i>`:''}${w?`<i class="w" style="flex:${w}">${w}</i>`:''}${t?'':'<i style="flex:1;color:#99a">–</i>'}</div></div>`}
+function flowSummary(vals){const n=vals.length,sub=vals.filter(v=>v.submitted),both=vals.filter(v=>String(v.debA||'').trim()&&String(v.debB||'').trim()),pr=vals.filter(v=>v.pairSame&&v.pairName!==SOLO),ai=vals.filter(v=>v.aiBefore&&v.submitted),re=vals.filter(reOf),chg=re.filter(v=>v.re.decision!==v.decision),moved={};
+ chg.forEach(v=>{const k=(v.decision||'미정')+' → '+v.re.decision;moved[k]=(moved[k]||0)+1});
+ const q=(side)=>vals.map(v=>debSide(v,side)).filter(t=>String(t).trim().length>=8).slice(0,2),sortIds=['shop','rent','truck','tax','newcomer','job'];
+ const aiEx=ai.find(v=>aiChange(v)==='why');
+ return `<div style="grid-column:1/-1"><div class="tHead"><div class="tStat"><small>참여한 학생</small><b>${n}<small>명</small></b></div><div class="tStat"><small>두 입장을 모두 주장한 학생</small><b>${both.length}<small>명</small></b></div><div class="tStat"><small>최종 결정을 제출한 학생</small><b>${sub.length}<small>명</small></b></div><div class="tStat"><small>반 토론 뒤 결정을 바꾼 학생</small><b>${chg.length}<small>명 / 응답 ${re.length}명</small></b></div></div><h3 class="flowTitle">수업 흐름에 따라 본 우리 반의 생각</h3></div>
+ <section class="flowCard"><span class="fStep">① 기업 담당자가 되어</span><h3>어느 도시에 공장을 지었을까?</h3>${barList(cities.map(c=>[c.name,vals.filter(v=>v.city===c.id).length]),n)}<p class="fNote">짝과 다른 도시를 고른 학생 ${pr.filter(v=>v.pairSame==='diff').length}명 / 짝과 비교한 학생 ${pr.length}명</p></section>
+ <section class="flowCard"><span class="fStep">② 공장이 생긴 뒤</span><h3>같은 변화를 어떻게 봤을까?</h3><div class="legend"><span><i style="background:#a9d4b4"></i>좋은 변화</span><span><i style="background:#f0bfb3"></i>걱정되는 변화</span></div>${sortIds.map(id=>splitBar(SORT_LABEL[id],vals.filter(v=>v.sort&&v.sort[id]==='good').length,vals.filter(v=>v.sort&&v.sort[id]==='bad').length)).join('')}</section>
+ <section class="flowCard"><span class="fStep">③ 역지사지 토론</span><h3>역할을 바꿔 가며 한 주장</h3><div class="roleBox co"><small>기업 담당자로서</small>${q('co').map(t=>`<p>“${esc(t)}”</p>`).join('')||'<p>아직 없어</p>'}</div><div class="roleBox re"><small>주민 대표로서</small>${q('re').map(t=>`<p>“${esc(t)}”</p>`).join('')||'<p>아직 없어</p>'}</div><p class="fNote">한 학생이 두 역할을 차례로 맡아 주장했어.</p></section>
+ <section class="flowCard"><span class="fStep">④ 주민 대표가 되어</span><h3>공장 확장, 우리 반의 결정은?</h3>${barList(decisions.map(d=>[d,vals.filter(v=>v.decision===d).length]),n)}<p class="fNote" style="margin-top:10px"><b>함께 고른 대책</b></p>${barList(policies.map(p=>[p.title,vals.filter(v=>toArr(v.policies).includes(p.id)).length]),n)}</section>
+ <section class="flowCard"><span class="fStep">⑤ AI 주민의 되물음</span><h3>AI 주민의 말을 듣고 무엇을 고쳤을까?</h3>${barList([['이유를 고쳐 씀',ai.filter(v=>aiChange(v)==='why').length],['결정을 바꿈',ai.filter(v=>aiChange(v)==='decision').length],['그대로 둠',ai.filter(v=>aiChange(v)==='keep').length]],ai.length)}${aiEx?`<div class="roleBox nw"><small>고쳐 쓴 예</small><p>처음: ${esc(aiEx.aiBefore.why)}</p><p>고친 뒤: ${esc(aiEx.finalWhy)}</p></div>`:''}</section>
+ <section class="flowCard"><span class="fStep">⑥ 반 전체 토론 뒤</span><h3>토론하고 나서 결정이 바뀌었을까?</h3>${barList([['처음 결정 유지',re.length-chg.length],['결정을 바꿈',chg.length]],re.length)}${Object.entries(moved).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,c])=>`<p class="arrowLine">${esc(k)} · <b>${c}</b>명</p>`).join('')||'<p class="fNote">발표 화면으로 토론한 뒤 [토론 후 다시 결정 열기]를 누르면 여기에 모여.</p>'}</section>`}
+reportHTML=function(v){if(!v)return '';const c=cities.find(x=>x.id===v.city),so=v.sort||{},lab=k=>k==='concern'?({water:'공장이 강물·지하수를 끌어다 씀',road:'트럭이 학교 앞 길을 지나다님',housing:'집세·임대료가 오름'}[c?.concern]||'도시별 변화'):(SORT_LABEL[k]||k),good=Object.keys(so).filter(k=>so[k]==='good').map(lab),bad=Object.keys(so).filter(k=>so[k]==='bad').map(lab),first=v.debRole==='re'?'re':'co',second=first==='co'?'re':'co',ch=aiChange(v);
+ const box=(side,order)=>`<div class="roleBox ${side}"><small>${ROLE[side]}로서 한 주장 <span style="font-weight:500">(${order})</span></small><p>${esc(debSide(v,side))||'아직 쓰지 않음'}</p></div>`;
+ return `<div class="stuSec"><h4><span>①</span>기업 담당자가 되어 · 공장 위치 정하기</h4><p><b>고른 도시:</b> ${esc(c?.name||'아직 고르지 않음')}${toArr(v.evidence).length?' · 근거: '+toArr(v.evidence).map(i=>factors[i]).join(', '):''}</p><p><b>이유:</b> ${esc(v.reason)}</p>${v.pairName&&v.pairName!==SOLO?`<p><b>짝과 비교:</b> ${v.pairSame==='same'?'짝과 같은 도시':v.pairSame==='diff'?'짝과 다른 도시':''} — ${esc(v.pairTalk||'')}</p>`:''}</div>
+ <div class="stuSec"><h4><span>②</span>공장이 생긴 뒤 · 변화 살펴보기</h4>${good.length||bad.length?`<p><b>좋은 변화로 본 것:</b> ${esc(good.join(', ')||'없음')}</p><p><b>걱정되는 변화로 본 것:</b> ${esc(bad.join(', ')||'없음')}</p>`:''}${toArr(v.interview).map(x=>`<p class="askLine"><b>주민에게 한 질문:</b> ${esc(x.q)}<br><b>주민(AI)의 대답:</b> ${esc(x.a)}</p>`).join('')}<p><b>주민을 만나고 새롭게 생각한 점:</b> ${esc(v.missed)}</p></div>
+ <div class="stuSec"><h4><span>③</span>역지사지 토론 · 역할을 바꿔 주장하기</h4>${v.debRole?`<div class="duo">${box(first,'먼저 맡은 역할')}${box(second,'바꿔 맡은 역할')}</div>${v.debNew?`<div class="roleBox nw"><small>입장을 바꿔 보니 든 생각</small><p>${esc(v.debNew)}</p></div>`:''}`:'<p>아직 하지 않음</p>'}</div>
+ <div class="stuSec"><h4><span>④</span>주민 대표가 되어 · 최종 결정</h4><p><b>고른 대책:</b> ${esc(toArr(v.policies).map(id=>policies.find(p=>p.id===id)?.title||'').join(', ')||'아직 없음')}${v.pairAgree?' · '+esc(AGREE[v.pairAgree]||''):''}</p><p><b>결정:</b> ${esc(v.decision||'아직 없음')}</p><p><b>이유:</b> ${esc(v.finalWhy)}</p></div>
+ ${v.aiReply?`<div class="stuSec"><h4><span>⑤</span>AI 주민의 되물음</h4><p><b>AI 주민:</b> ${esc(v.aiReply)}</p><p><b>학생의 답:</b> ${esc(v.aiAnswer||'')}</p>${ch&&ch!=='keep'?`<div class="roleBox nw"><small>${ch==='decision'?'듣고 나서 결정을 바꿈':'듣고 나서 이유를 고쳐 씀'}</small><p>처음: ${ch==='decision'?esc(v.aiBefore.decision)+' — ':''}${esc(v.aiBefore.why)}</p><p>고친 뒤: ${ch==='decision'?esc(v.decision)+' — ':''}${esc(v.finalWhy)}</p></div>`:ch==='keep'?'<p class="fNote">듣고 나서 결정과 이유를 그대로 둠</p>':''}</div>`:''}
+ ${reOf(v)?`<div class="stuSec"><h4><span>⑥</span>반 전체 토론 뒤 다시 결정</h4><p><b>${v.re.decision===v.decision?'처음 결정 유지':'결정을 바꿈'}:</b> ${v.re.decision===v.decision?esc(v.decision):esc(v.decision)+' → '+esc(v.re.decision)}</p><p><b>이유:</b> ${esc(v.re.why||'')}</p></div>`:''}
+ ${toArr(v.helpLog).length?`<details class="stuSec"><summary><b>선생님 챗봇에게 한 질문 ${toArr(v.helpLog).length}개</b></summary>${toArr(v.helpLog).map(x=>`<p class="askLine">Q. ${esc(x.q)}<br>A. ${esc(x.a)}</p>`).join('')}</details>`:''}`};
+{const baseUpd=updateTeacher;updateTeacher=function(){baseUpd.apply(this,arguments);if(!$('tSummary'))return;const entries=sortedStudents(),vals=entries.map(e=>e[1]);
+ $('tSummary').innerHTML=flowSummary(vals);if($('tCount'))$('tCount').classList.add('hidden');
+ if(hideNames){[...$('tRoster').querySelectorAll('[data-student] b')].forEach((b,i)=>b.textContent='학생 '+(i+1));const h=$('tDetail').querySelector('h3'),i=entries.findIndex(e=>e[0]===teacherSelected);if(h&&i>=0)h.textContent='학생 '+(i+1)+'의 기록'}
+ else{const h=$('tDetail').querySelector('h3'),v=students[teacherSelected];if(h&&v)h.textContent=(v.name||'')+'의 기록'}};}
+{const baseT=renderTeacher;renderTeacher=function(){baseT.apply(this,arguments);const main=document.querySelector('main.teacher');if(!main||$('tTools'))return;
+ const h2=main.querySelector('h2');if(h2)h2.textContent='공장 하나가 도시를 바꿨다 · 우리 반 기록';
+ const tools=document.createElement('details');tools.id='tTools';tools.open=true;tools.innerHTML='<summary>수업 진행 도구 · 학생 입장 주소 / 화면 함께 보기 / 토론 후 다시 결정</summary>';
+ const kids=[...main.children].filter(el=>el.classList.contains('hint')||(el.tagName==='DETAILS'&&el.id!=='tTools'));if(kids[0])main.insertBefore(tools,kids[0]);kids.forEach(k=>tools.appendChild(k));
+ const row=$('present')?.parentElement;if(row){row.insertAdjacentHTML('afterbegin','<button id="hideNamesBtn" aria-pressed="false">이름 가리기</button>');$('hideNamesBtn').onclick=()=>{hideNames=!hideNames;$('hideNamesBtn').textContent=hideNames?'이름 보기':'이름 가리기';$('hideNamesBtn').setAttribute('aria-pressed',hideNames);detailKey='';updateTeacher()}}
+ updateTeacher()};}
 
 /* ───────── 시작 ───────── */
 window.addEventListener('DOMContentLoaded',()=>{initDrawing();
