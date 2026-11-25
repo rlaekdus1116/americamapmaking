@@ -1213,6 +1213,13 @@ const INQUIRY_HELP={
  5:'모든 탐구 단계를 끝낸 화면이야. [공장 하나가 도시를 바꿨다 · 시작하기 →]를 누르면 다음 활동(5단계)으로 가.'
 };
 let helperChat=[],helperBusy=false;
+/* 정답을 맞히기 전에는 이 낱말이 두 개 이상 들어간 챗봇 답을 서버가 막는다. */
+const CULTURE_FORBID=[
+ ['유럽','에스파냐','스페인','가톨릭','종교','원주민','아스텍'],
+ ['유럽','이민자','이탈리아','스페인','아프리카','흑인','노예'],
+ ['독일','함부르크','유럽','미국','생활 방식','패스트푸드','이민자'],
+ ['유럽','포르투갈','가톨릭','사순절','아프리카','흑인','노예','타악기']
+];
 function helperTasks(st){
  if(st!==3)return [];
  const n=cultureActive,r=String(cultureReasons[n]||'');
@@ -1251,7 +1258,7 @@ async function helperAsk(){
  let a='';
  try{
   const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),25000),c=INQUIRY_CULTURES[cultureActive]||{};
-  const res=await fetch(HELPER_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},signal:ctl.signal,body:JSON.stringify({mode:'help',app:'아메리카 지도 만들기 탐구 (인구·문화 혼종성)',screen:inquiryLabel(st),topic:st===3?(c.name+' ('+c.country+')'):'',guide:INQUIRY_HELP[st]||'',tasks:helperTasks(st),question:q.slice(0,80)})});
+  const res=await fetch(HELPER_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},signal:ctl.signal,body:JSON.stringify({mode:'help',app:'아메리카 지도 만들기 탐구 (인구·문화 혼종성)',screen:inquiryLabel(st),topic:st===3?(c.name+' ('+c.country+')'):'',guide:INQUIRY_HELP[st]||'',tasks:helperTasks(st),forbid:st===3&&!cultureSolved[cultureActive]?CULTURE_FORBID[cultureActive]||[]:[],question:q.slice(0,80)})});
   clearTimeout(tm);const j=await res.json();if(!j.reply)throw Error(j.error||'empty');
   a=String(j.reply).replace(/\*\*/g,'').trim().slice(0,400);store.set(key,String(used+1));
  }catch(e){a='지금은 연결이 안 돼.\n'+helperNow();}
