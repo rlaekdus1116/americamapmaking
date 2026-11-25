@@ -457,8 +457,8 @@ let preview=false,room=params.get('room')||'',name='',studentId='';
 let db=null,base=null,studentRef=null,connected=false;
 let s,students={},teacherSelected='';
 
-const titles=['시작','입지 조사','도시의 변화','주민의 시선','대책 선택','변화 돌아보기','네 컷 기록','최종 결정'];
-const STEPS=[0,1,2,3,4,7,6];
+const titles=['시작','입지 조사','도시의 변화','주민의 시선','역지사지 토론','입장 바꿔 보기','네 컷 기록','최종 결정'];
+const STEPS=[0,1,2,3,4,5,7,6];
 const factors=['생산 비용','교통·운송','인력·교육','물 공급'];
 const factorGuides=['생산비 부담','북미 배송 부담','교육 준비 부담','물 확보 부담'];
 const labels=['지금의 도시','공장이 들어오는 모습','주민에게 생긴 좋은 변화','주민에게 생긴 나쁜 변화'];
@@ -504,22 +504,23 @@ const people=[
 const decisions=['공장 건설을 허용한다','조건을 붙여 허용한다','다른 지역을 다시 검토한다'];
 /* 사전·사후 확인: 같은 3문제를 시작 전과 마지막에 풀어 점수를 비교한다. 시작 전에는 정답을 알려 주지 않는다. */
 const DIAG=[
- {q:'초국적 기업이 해외 공장 위치를 정할 때 가장 알맞은 방법은?',a:['생산 비용이 가장 싼 곳만 고른다','생산 비용, 운송, 일할 사람, 물 같은 여러 조건을 함께 비교한다','본사에서 가장 먼 나라를 고른다','인구가 가장 많은 나라를 고른다'],c:1},
- {q:'공장이 들어온 동네에서 같은 변화를 사람마다 다르게 느끼는 예로 가장 알맞은 것은?',a:['모든 주민이 똑같이 반긴다','공장 직원만 영향을 받고 다른 주민은 상관없다','손님이 늘어 가게 주인은 반갑지만, 세 들어 사는 주민은 집세가 올라 걱정한다','공장은 동네 주민과 관계가 없다'],c:2},
- {q:'공장이 커지면서 생긴 문제를 줄이는 방법으로 가장 알맞은 것은?',a:['문제를 겪는 주민에게 이사를 가라고 한다','공장을 무조건 닫는다','기업이 알아서 하도록 그냥 둔다','문제에 맞는 대책을 고르고, 효과와 남는 문제를 함께 살핀다'],c:3}
+ {q:'A 도시는 임금이 싸지만 항구가 멀고, B 도시는 임금이 조금 비싸지만 항구가 가까워. 회사는 어떻게 할까?',a:['임금이 싼 A 도시로 바로 정한다','운송비까지 더해서 비교해 본다','항구 가까운 B 도시로 바로 정한다','두 도시 말고 본사 옆에 짓는다'],c:1},
+ {q:'공장이 생겨 동네에 사람이 늘었어. 가게 주인 준호와 월세 사는 하린의 마음은?',a:['둘 다 손님이 늘어서 반갑다','둘 다 시끄러워져서 속상하다','준호는 반갑고 하린은 걱정된다','준호는 걱정되고 하린은 반갑다'],c:2},
+ {q:'공장이 물을 많이 써서 동네 물이 모자라졌어. 주민 대표라면 어떻게 할까?',a:['물이 모자란 집을 이사 보낸다','공장 문을 당장 닫게 한다','회사가 알아서 하게 기다린다','물을 다시 쓰는 시설을 요구한다'],c:3}
 ];
-const DIAG_CONF='나는 공장이 들어온 지역에 어떤 변화가 생기는지 설명할 수 있다.';
+const DIAG_CONF='공장이 생기면 동네가 어떻게 바뀌는지 친구에게 설명할 수 있어?';
 const diagOf=v=>{const d=v&&typeof v==='object'?v:null;if(!d)return null;const a=toArr(d.a).slice(0,DIAG.length).map(x=>x==null?null:Number(x));while(a.length<DIAG.length)a.push(null);return {a,c:Number(d.c)||0,at:Number(d.at)||0}};
 const diagDone=d=>!!d&&d.a.every(x=>Number.isInteger(x))&&d.c>0;
 const diagScore=d=>d?d.a.filter((x,i)=>x===DIAG[i].c).length:0;
 /* 화면에 크게 붙는 번호(1, 2, 3 …)의 순서와 완료 조건. 이미 저장하던 기록으로만 판단한다. */
 const TASKS={
  1:[['도시 눌러서 자료 보기',()=>!!(s.inspected||s.city||s.evidence.length||Object.values(s.openCards||{}).some(v=>toArr(v).length))],['카드 뒤집고 근거 2개 고르기',()=>s.evidence.length>=2],['공장 지을 도시 정하기',()=>!!s.city],['고른 이유 쓰기 (10자 이상)',()=>long(s.reason,10)],['짝과 의논하고 기록하기',()=>pairOk()]],
- 2:[['공장 건설 시작하고 끝까지 보기',()=>!!(s.built&&s.year)],['좋은 변화 기록하기',()=>!!s.good],['걱정되는 변화 기록하기',()=>!!s.bad]],
+ 2:[['공장 건설 시작하고 끝까지 보기',()=>!!(s.built&&s.year)],['변화 카드를 모두 분류하기',()=>sortDone()]],
  3:[['주민을 눌러 이야기 듣기',()=>!!s.resident],['새롭게 생각한 점 쓰기 (10자 이상)',()=>long(s.missed,10)]],
- 4:[['역지사지 토론하기 (입장 바꿔 주장하기)',()=>debOk()],['예산 안에서 대책 고르기',()=>s.policies.length>0&&budget()>=0],['고른 이유 쓰기 (10자 이상)',()=>long(s.policyWhy,10)],['짝과 합의했는지 고르기',()=>agreeOk()]],
+ 4:[['짝과 역할 하나씩 맡기',()=>!!s.debRole],['짝과 말로 토론하기',()=>!!s.debTalked],['내 역할의 주장 쓰기 (10자 이상)',()=>long(s.debA,10)]],
+ 5:[['반대 입장이 되어 주장 쓰기 (10자 이상)',()=>long(s.debB,10)],['입장을 바꿔 보니 든 생각 쓰기 (10자 이상)',()=>long(s.debNew,10)]],
  6:[['네 칸 모두 그리기',()=>s.comic.every(p=>p.strokes.length>0)],['칸마다 설명 쓰기 (10자 이상)',()=>s.comic.every(p=>long(p.text,10))]],
- 7:[['결정 하나 고르기',()=>!!s.decision],['결정한 이유 쓰기 (15자 이상)',()=>long(s.finalWhy,15)],['AI 주민 말 듣고 물음에 답하기',()=>aiHeard()],['마지막 확인 3문제 풀기',()=>diagDone(s.post)]]
+ 7:[['예산 안에서 대책 고르기',()=>polOk()],['결정 하나 고르기',()=>!!s.decision],['결정한 이유 쓰기 (15자 이상)',()=>long(s.finalWhy,15)],['AI 주민 말 듣고 물음에 답하기',()=>aiHeard()]]
 };
 /* 번호가 붙은 할 일 한 덩어리 */
 const T=(k,title,inner)=>`<section class="task" data-k="${k}"><div class="taskNum" aria-hidden="true">${k+1}</div><div class="taskBody"><h3 class="taskTitle"><span class="sr">${k+1}번. </span>${title}</h3>${inner}</div></section>`;
@@ -535,7 +536,7 @@ function normalize(o){o=o&&typeof o==='object'?o:{};const r={...fresh(),...o};
  r.missionSeen=r.missionSeen&&typeof r.missionSeen==='object'&&!Array.isArray(r.missionSeen)?r.missionSeen:{};
  r.pre=diagOf(o.pre);r.post=diagOf(o.post);
  r.interview=toArr(r.interview).filter(x=>x&&x.q).slice(0,8);r.helpLog=toArr(r.helpLog).filter(x=>x&&x.q).slice(-12);
- r.step=Math.max(0,Math.min(7,Number(r.step)||0));if(r.step===5)r.step=6;
+ r.step=Math.max(0,Math.min(7,Number(r.step)||0));
  if(!cities.some(c=>c.id===r.inspect))r.inspect='monterrey';
  return r}
 s=fresh();
@@ -587,7 +588,7 @@ function connect(){try{if(!window.firebase)throw Error('firebase unavailable');
 function listenCommand(){if(!base)return;let first=true,seen=s.controlSeen||'';
  base.child('control').on('value',snap=>{const c=snap.val();if(first){first=false;if(c)seen=c.id;return}
   if(!c||c.id===seen||!(c.target==='all'||c.target===studentId))return;seen=c.id;s.controlSeen=c.id;closeDrawing();
-  let n=Math.max(0,Math.min(7,Number(c.step)||0));if(n===5)n=6;s.step=n;persist();render();toast('선생님이 함께 볼 화면으로 이동했어. 작성한 내용은 보관돼.')})}
+  let n=Math.max(0,Math.min(7,Number(c.step)||0));s.step=n;persist();render();toast('선생님이 함께 볼 화면으로 이동했어. 작성한 내용은 보관돼.')})}
 function history(action){if(s.history.length<300)s.history.push({at:Date.now(),step:s.step,action,city:s.city,evidence:[...s.evidence],policies:[...s.policies]});persist()}
 
 /* ───────── 공통 ───────── */
@@ -598,18 +599,19 @@ const checked=id=>s.policies.includes(id);
 const budget=()=>BUDGET-policies.filter(p=>checked(p.id)).reduce((a,p)=>a+p.cost,0);
 const long=(t,n)=>String(t||'').trim().length>=n;
 function validAt(step){switch(step){
- case 0:return diagDone(s.pre)||s.step>0||!!s.city||!!s.assigned;
+ case 0:return true;
  case 1:return !!s.city&&s.evidence.length>=2&&long(s.reason,10)&&(pairOk()||!!s.built);
  case 2:return !!(s.built&&s.year&&s.good&&s.bad);
  case 3:return !!s.resident&&long(s.missed,10);
- case 4:return s.policies.length>0&&budget()>=0&&long(s.policyWhy,10)&&((debOk()&&agreeOk())||!!s.submitted);
+ case 4:return (!!s.debRole&&!!s.debTalked&&long(s.debA,10))||!!s.submitted;
+ case 5:return (long(s.debB,10)&&long(s.debNew,10))||!!s.submitted;
  case 6:return s.comic.every(p=>p.strokes.length>0&&long(p.text,10));
- case 7:return !!s.decision&&long(s.finalWhy,15)&&(aiHeard()||!!s.submitted)&&(diagDone(s.post)||!!s.submitted)&&firstMissing()>=6;
+ case 7:return polOk()&&!!s.decision&&long(s.finalWhy,15)&&(aiHeard()||!!s.submitted)&&firstMissing()>=6;
  default:return true}}
 const valid=()=>validAt(s.step);
 /* 아직 끝내지 못한 가장 앞 단계. 여기까지만 탭으로 이동할 수 있다. */
 function firstMissing(){for(const st of STEPS)if(st!==7&&st!==6&&!validAt(st))return st;return s.submitted?6:7}
-function setStep(n,force=false){if(n===5)n=s.step>5?4:6;if(n<0||n>7)return;if(!force&&!preview&&STEPS.indexOf(n)>STEPS.indexOf(firstMissing()))return toast('앞 활동을 먼저 마쳐 줘.');s.step=n;history('화면 이동');render()}
+function setStep(n,force=false){if(!(n>=0&&n<=7))return;if(!force&&!preview&&STEPS.indexOf(n)>STEPS.indexOf(firstMissing()))return toast('앞 활동을 먼저 마쳐 줘.');s.step=n;history('화면 이동');render()}
 function bindInput(id,key){$(id).oninput=e=>{s[key]=e.target.value;persist();updateNext()}}
 function download(blobOrText,filename,type){const blob=blobOrText instanceof Blob?blobOrText:new Blob([blobOrText],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 
@@ -708,15 +710,15 @@ function renderSteps(){const nav=document.querySelector('.steps');if(!nav)return
  nav.innerHTML=STEPS.map((st,i)=>{const open=STEPS.indexOf(st)<=STEPS.indexOf(reach)||st===s.step;return `<button class="step ${st===s.step?'active':validAt(st)&&st!==7?'done':''}" data-step="${st}" ${open?'':'disabled'} ${st===s.step?'aria-current="step"':''}>${i+1} ${titles[st]}</button>`}).join('');
  nav.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{if(+b.dataset.step!==s.step)setStep(+b.dataset.step)})}
 let savedPreview=null,teacherStep=0,sceneTimer=null,sceneRun=0;
-function render(){clearTimeout(sceneTimer);sceneRun++;if(s.step===5)s.step=6;baseView();document.body.dataset.step=s.step;
- [renderIntro,renderMap,renderChanges,renderResidents,renderPolicy,null,renderComic,renderFinal][s.step]();updateNext()}
+function render(){clearTimeout(sceneTimer);sceneRun++;baseView();document.body.dataset.step=s.step;
+ [renderIntro,renderMap,renderChanges,renderResidents,renderDebate,renderSwap,renderComic,renderFinal][s.step]();updateNext()}
 function updateNext(){if(!$('next'))return;renderSteps();
  const ok=valid();$('next').disabled=!ok;
- $('next').textContent=s.step===7?(s.submitted?'수정한 결정 저장':'최종 결정 제출'):['시작하기','도시의 변화 보기','주민 만나기','짝과 토론하고 대책 세우기','최종 결정하기','','네 컷 완성하기'][s.step];
+ $('next').textContent=s.step===7?(s.submitted?'수정한 결정 저장':'최종 결정 제출'):['시작하기','도시의 변화 보기','주민 만나기','짝과 토론하기','입장 바꿔 보기','최종 결정하기','네 컷 완성하기'][s.step];
  const todo=TASKS[s.step]||[],li=todo.findIndex(([,f])=>!f());
  $('helpBtn')?.classList.toggle('hidden',!started||teacher&&!preview);
  document.querySelectorAll('#panel .task[data-k]').forEach(el=>{const k=+el.dataset.k,d=!!todo[k]?.[1]();el.classList.toggle('done',d);el.classList.toggle('now',k===li)});
- let hint=ok?(s.step===0?'':'다 했어! 다음으로 넘어가자'):s.step===0?'시작 전 확인 문제를 모두 골라 줘':li>=0?'지금 할 일: '+(li+1)+'번 '+todo[li][0]:'';
+ let hint=ok?(s.step===0?(diagDone(s.pre)||s.assigned?'':'[시작하기]를 누르면 깜짝 퀴즈 3개가 나와'):'다 했어! 다음으로 넘어가자'):s.step===0?'시작 전 확인 문제를 모두 골라 줘':li>=0?'지금 할 일: '+(li+1)+'번 '+todo[li][0]:'';
  if(s.step===7&&s.submitted&&!finalEdit){$('next').disabled=true;$('next').textContent='제출 완료';hint='선생님 화면에 기록됐어'}
  if(s.step===7&&!ok&&firstMissing()<6)hint='아직 못 마친 활동: '+(STEPS.indexOf(firstMissing())+1)+'. '+titles[firstMissing()];
  $('footHint').textContent=hint}
@@ -729,9 +731,9 @@ async function next(){if(!valid())return;if(s.step===0)s.assigned=true;
 function renderIntro(){
  $('sceneTitle').textContent=BRAND+' 운동화 · 뉴욕 본사';setArt(officeDrawing(),'office');
  $('sceneBottom').textContent='수업 속 가상 운동화 회사 '+BRAND+'(NICE) · 본사: 뉴욕 · 파는 곳: 미국·캐나다';
- const P=$('panel');P.classList.remove('chat');const showPre=s.step===0&&!s.city&&!s.assigned,needPre=showPre&&!diagDone(s.pre);
- P.innerHTML=`<span class="eyebrow">너의 역할</span><h2>${BRAND} 운동화<br>해외 공장 담당자</h2><div class="missionCard"><p class="missionLine">미국·캐나다에서 운동화가 너무 잘 팔려.<br><b>새 공장이 필요해!</b></p><p class="rival">경쟁사 ${RIVAL}는 벌써 새 공장을 짓고 있대.</p></div>${needPre?'':`<b>오늘 할 일</b><ol class="todayList"><li>공장 지을 도시 고르기</li><li>공장이 생긴 도시 살펴보기</li><li>주민의 입장에서 다시 결정하기</li></ol>`}${showPre?`<div id="diag-pre" class="diagBox"></div>`:''}${needPre?'':`<div class="conceptCard"><b>초국적 기업</b><p>본사는 한 나라에, 공장과 판매 시장은 여러 나라에 두는 기업. ${BRAND}는 뉴욕에서 기획하고, 해외 공장에서 만들고, 북미에서 팔아.</p></div>`}<p><small>도시 위치는 실제 지리 정보야. 회사·비용·주민 이야기는 수업용 가상 상황이야.</small></p>`;
- if(showPre)refreshDiag('pre');updateNext()}
+ const P=$('panel');P.classList.remove('chat');
+ P.innerHTML=`<div class="hireCard"><span class="hireBadge">합격 통지서</span><p class="hireTop">축하합니다!</p><p class="hireMain">당신은 세계적인 기업<br><b>${BRAND} 운동화</b>에 취직했습니다.</p><p class="hireRole">맡은 일 · <b>해외 공장 담당자</b></p></div><div class="missionCard"><p class="missionLine">첫 번째 임무가 도착했어.<br>미국·캐나다에서 운동화가 너무 잘 팔려.<br><b>다른 나라에 새 공장을 지어야 해!</b></p><p class="rival">경쟁사 ${RIVAL}는 벌써 새 공장을 짓고 있대.</p></div><div class="introBig"><b>오늘 할 일</b><ol class="todayList"><li>공장 지을 도시 고르기</li><li>공장이 생긴 도시 살펴보기</li><li>짝과 입장을 나눠 토론하기</li><li>주민의 입장에서 최종 결정하기</li></ol></div><div class="conceptCard introBig"><b>초국적 기업이란?</b><p>본사는 한 나라에 두고, 공장과 가게는 여러 나라에 두는 회사야. ${BRAND}는 뉴욕에서 계획하고, 다른 나라 공장에서 만들어서, 북미에서 팔아.</p></div><p><small>도시 위치는 실제 지리 정보야. 회사·비용·주민 이야기는 수업용 가상 상황이야.</small></p>`;
+ updateNext()}
 /* 사전·사후 확인 문제 칸 */
 function refreshDiag(kind){const box=$('diag-'+kind);if(!box)return;const d=diagOf(s[kind])||{a:DIAG.map(()=>null),c:0,at:0};
  const locked=kind==='pre'?s.step>0:!!s.submitted&&!finalEdit;
@@ -746,7 +748,7 @@ function refreshDiag(kind){const box=$('diag-'+kind);if(!box)return;const d=diag
 const STEP_HELP={
  0:'시작 화면이야. 내 역할(나이스 운동화 해외 공장 담당자)을 읽고, 시작 전 확인 문제 3개와 마지막 질문에 답한 다음 오른쪽 아래 [시작하기] 버튼을 누르면 돼. 확인 문제는 틀려도 괜찮아.',
  1:'입지 조사 화면이야. 1번의 도시 버튼(몬테레이·상파울루·토론토)을 누르면 그 도시의 자료 카드 4장이 2번에 나와. 카드를 눌러 뒤집고 [근거로 선택]을 2개 고른 다음, 3번 [○○에 공장 짓기]를 누르고, 4번에 고른 이유를 써. 왼쪽 지도의 도시 이름을 눌러도 돼.',
- 2:'도시의 변화 화면이야. 1번 [공장 건설 시작]을 누르고 [다음 장면]으로 끝까지 봐. 그러면 2번 [좋은 변화로 기록], 3번 [걱정되는 변화로 기록] 버튼이 나와.',
+ 2:'도시의 변화 화면이야. 1번 [공장 건설 시작]을 누르고 [다음 장면]으로 끝까지 봐. 그러면 2번에 변화 카드가 나와. 카드마다 [좋은 변화]인지 [걱정되는 변화]인지 골라. 정답이 하나로 정해져 있지 않은 카드도 있어.',
  3:'주민의 시선 화면이야. 왼쪽 그림 속 주민이나 1번의 이름 버튼을 누르면 주민의 이야기가 나와. 2번에는 이야기를 듣고 새롭게 생각한 점을 써. 주민에게 직접 물어보기 칸에 질문을 써도 돼.',
  4:'대책 선택 화면이야. 1번에서 짝과 역할(기업 담당자·주민 대표)을 나눠 주장하고, 역할을 바꿔 한 번 더 주장해. 2번에서 예산 600억 원 안에서 대책 카드를 고르고, 3번에 이유를 써. 4번에는 짝과 대책을 합의했는지 골라.',
  6:'네 컷 기록 화면이야. 최종 결정을 제출한 뒤, 도시의 변화를 그림으로 정리하는 마지막 활동이야. 그림 칸을 누르면 큰 그림판이 열려. 네 칸을 모두 그리고, 칸마다 말풍선에 설명을 10자 이상 써. 정답은 없어.',
@@ -793,7 +795,7 @@ function renderMap(){const sel=cities.find(c=>c.id===s.inspect)||cities[0],cmp=c
  svg.querySelectorAll('[data-city]').forEach(g=>{g.onclick=()=>inspect(g.dataset.city);g.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inspect(g.dataset.city)}}});
  $('sceneBottom').innerHTML=cities.map(c=>`<button class="chip ${s.inspect===c.id?'selected':''}" data-inspect="${c.id}">${c.name}${c.id===s.city?' · 선택한 도시':''}</button>`).join('');
  const meter=(v,g)=>`<span class="meter"><strong>${v}</strong><span>${[1,2,3,4,5].map(n=>`<i class="${n<=v?'on':''}"></i>`).join('')}</span><span>${g} ${v<=2?'낮음':v===3?'보통':'높음'}</span></span>`;
- $('panel').innerHTML=`<div class="conceptCard defCard"><b>입지 조사란?</b><p><b>입지</b>는 공장이나 가게가 자리 잡는 곳이야. <b>입지 조사</b>는 어디에 지으면 좋을지 여러 곳의 조건(비용, 교통, 일할 사람, 물)을 비교해 보는 일이야.</p></div>`+T(0,'도시를 눌러서 자료를 봐',`<div class="cityPick">${cities.map(c=>`<button class="cityBtn ${s.inspect===c.id?'selected':''}" data-inspect="${c.id}" aria-pressed="${s.inspect===c.id}"><b>${c.name}</b><small>${c.region.split(' · ')[0]}${c.id===s.city?' ✓':''}</small></button>`).join('')}</div><small>도시를 누르면 그 도시의 자료 카드가 아래에 나와. 세 도시를 모두 눌러서 비교해 봐.</small>`)
+ $('panel').innerHTML=`<div class="conceptCard defCard"><b>입지 조사란?</b><p><b>입지</b>는 공장이나 가게가 자리 잡는 곳이야. <b>입지 조사</b>는 어디에 지으면 좋을지 여러 곳의 조건(비용, 교통, 일할 사람, 물)을 비교해 보는 일이야.</p><p><small>물은 왜 볼까? 운동화 공장은 천을 물들이고 씻는 데 물을 많이 써. 그래서 물을 구하기 쉬운 곳인지도 따져 봐야 해.</small></p></div>`+T(0,'도시를 눌러서 자료를 봐',`<div class="cityPick">${cities.map(c=>`<button class="cityBtn ${s.inspect===c.id?'selected':''}" data-inspect="${c.id}" aria-pressed="${s.inspect===c.id}"><b>${c.name}</b><small>${c.region.split(' · ')[0]}${c.id===s.city?' ✓':''}</small></button>`).join('')}</div><small>도시를 누르면 그 도시의 자료 카드가 아래에 나와. 세 도시를 모두 눌러서 비교해 봐.</small>`)
  +T(1,`${sel.name} 카드를 뒤집고, 근거 2개 고르기`,`<div class="row between"><small>${sel.region} · 수업용 비교 지표 1~5 (낮을수록 부담이 적음, 실제 통계 아님)</small><select id="compare" aria-label="비교할 도시" style="width:auto;max-width:190px"><option value="">다른 도시와 비교</option>${cities.filter(c=>c.id!==sel.id).map(c=>`<option value="${c.id}" ${cmp?.id===c.id?'selected':''}>${c.name}와 비교</option>`).join('')}</select></div><div class="two" style="margin-top:8px">${factors.map((f,i)=>opened.includes(i)?`<div class="flipCard"><div class="cardFront"><div class="row"><b>${f}</b><button class="foldCard" data-fold="${i}" aria-label="${f} 카드 덮기">덮기</button></div>${meter(sel.index[i],factorGuides[i])}<p>${sel.desc[i]}</p>${cmp?`<small>${cmp.name}: ${factorGuides[i]} ${cmp.index[i]} / 5</small>`:''}<button class="pick ${s.evidence.includes(i)?'selected':''}" data-evidence="${i}" aria-pressed="${s.evidence.includes(i)}">${s.evidence.includes(i)?'근거로 선택됨':'근거로 선택'}</button></div></div>`:`<div class="flipCard"><button class="cardBack" data-flip="${i}"><span>조사 자료 ${i+1}</span><b>${f}</b><span>눌러서 뒤집기</span></button></div>`).join('')}</div><small>고른 근거: ${s.evidence.map(i=>factors[i]).join(' · ')||'아직 없음'}</small>`)
  +T(2,'공장 지을 도시 정하기',`<button id="chooseCity" class="${s.city===sel.id?'selected':'primary'}" style="width:100%">${s.city===sel.id?sel.name+' 선택됨':sel.name+'에 공장 짓기'}</button>${s.city&&s.city!==sel.id?`<small>지금 고른 도시: ${city().name}</small>`:''}`)
  +T(3,'고른 이유 쓰기',`<textarea id="reason" aria-label="이 도시를 고른 이유" maxlength="240" placeholder="나는 이 도시를 추천한다. 그 이유는 …">${esc(s.reason)}</textarea>`);
@@ -811,11 +813,11 @@ function renderChanges(){const run=sceneRun,c=city();let phase=0;
  const captions=['현장 소장: “새 공장이 완공됐습니다. 이제 지역 주민을 채용하고 생산을 준비하겠습니다.”','생산팀: “교육을 마친 주민들이 한 명씩 출근하고 있습니다. 이곳에서 운동화를 만들며 소득을 얻게 됩니다.”','가게 주인: “출근하는 손님이 늘었어요. 공장 주변에 가게와 주택도 생기기 시작했네요.”','운송 담당자: “완성된 운동화를 판매 시장으로 보냅니다. 운송 분야에도 일자리가 생겼습니다.”'];
  $('sceneBottom').textContent='건설 · 주민 채용 · 상권과 주거 · 제품 운송 · 1년 후';
  function after(){$('sceneTitle').textContent=c.name+' · 공장 건설 1년 후';setArt(town({level:3,concern:true}),'town');
-  $('panel').innerHTML=`<span class="eyebrow">현장 보고 · 1년 후</span><h2>누구에게 어떤 변화가 생겼을까?</h2>`+T(0,'공장이 들어서는 모습 보기',`<button id="replay">다시 보기</button>`)+T(1,'좋은 변화 기록하기',`<p><b>새로운 일자리와 소득</b><br>${c.good}</p><button id="good" class="${s.good?'selected':'primary'}">${s.good?'좋은 변화로 기록함':'좋은 변화로 기록'}</button>`)+T(2,'걱정되는 변화 기록하기',`<p><b>${c.risk}에 대한 걱정</b><br>${c.problem}</p><button id="bad" class="${s.bad?'selected':'primary'}">${s.bad?'걱정되는 변화로 기록함':'걱정되는 변화로 기록'}</button>`)+`<small>도시마다 나타날 수 있는 변화를 가정한 이야기야.</small>`;
-  ['good','bad'].forEach(k=>$(k).onclick=()=>{if(s[k])return;s[k]=true;history(k==='good'?'좋은 변화 기록':'걱정되는 변화 기록');beep();after();updateNext()});
+  $('panel').innerHTML=`<span class="eyebrow">현장 보고 · 1년 후</span><h2>누구에게 어떤 변화가 생겼을까?</h2>`+T(0,'공장이 들어서는 모습 보기',`<button id="replay">다시 보기</button>`)+T(1,'변화 카드를 좋은 변화와 걱정되는 변화로 나누기',sortHTML(c))+`<small>도시마다 나타날 수 있는 변화를 가정한 이야기야.</small>`;
+  sortBind(c,after);
   $('replay').onclick=()=>{phase=0;before();advance()}}
  function before(){$('sceneTitle').textContent=c.name+' · 새 공장과 주민들의 하루';setArt(town({level:0,site:true}),'town');
-  $('panel').innerHTML=`<span class="eyebrow">현장 보고 · 공장이 들어온 뒤</span><h2>도시는 어떻게 달라질까?</h2>`+T(0,'공장 건설 시작을 눌러 봐',`<div id="storyCaption" class="dialogue" aria-live="polite">${c.name}에 운동화 공장이 지어지는 모습이 차례로 나와.</div><p id="townProgress" class="muted"></p><div class="row"><button id="playTown" class="primary">공장 건설 시작</button><button id="skipScene" class="hidden">다음 장면</button></div>`)+T(1,'좋은 변화 기록하기','<small>공장이 다 지어지면 나와.</small>')+T(2,'걱정되는 변화 기록하기','<small>공장이 다 지어지면 나와.</small>');
+  $('panel').innerHTML=`<span class="eyebrow">현장 보고 · 공장이 들어온 뒤</span><h2>도시는 어떻게 달라질까?</h2>`+T(0,'공장 건설 시작을 눌러 봐',`<div id="storyCaption" class="dialogue" aria-live="polite">${c.name}에 운동화 공장이 지어지는 모습이 차례로 나와.</div><p id="townProgress" class="muted"></p><div class="row"><button id="playTown" class="primary">공장 건설 시작</button><button id="skipScene" class="hidden">다음 장면</button></div>`)+T(1,'변화 카드 나누기','<small>공장이 다 지어지면 변화 카드가 나와.</small>');
   $('playTown').onclick=()=>{phase=0;beep('build');advance()};$('skipScene').onclick=()=>{clearTimeout(sceneTimer);advance()}}
  function advance(){if(run!==sceneRun||s.step!==2)return;clearTimeout(sceneTimer);phase++;
   if(phase>4){s.built=true;s.year=1;history('공장 건설과 도시 변화 관찰');after();updateNext();return}
@@ -924,7 +926,7 @@ function renderReport(){const c=city(),rs=reactions(),okN=rs.filter(r=>r.ok).len
 /* AI 주민: 학생이 쓴 결정과 이유만 보내고(이름은 보내지 않음), 주민 입장의 되묻는 말을 받아 온다. 실패해도 제출에는 영향이 없다. */
 let aiBusy=false;
 async function askAI(){if(aiBusy||!AI_URL)return;const c=city();
- if(!s.decision||!long(s.finalWhy,15))return toast('1번, 2번을 먼저 하고 눌러 줘.');
+ if(!s.decision||!long(s.finalWhy,15))return toast('결정을 고르고 이유를 먼저 써 줘.');
  if((s.aiAsked||0)>=3)return toast('AI 주민에게는 세 번까지 물어볼 수 있어.');
  aiBusy=true;const b=$('askAI');b.disabled=true;b.textContent='주민이 생각하는 중…';
  try{const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),25000);
@@ -947,7 +949,7 @@ function renderFinal(){const c=city();
 
 /* ───────── 교사 화면 ───────── */
 let teacherTimer=null,detailKey='';
-const stepLabel=v=>v.submitted?'제출 완료':(STEPS.indexOf(v.step===5?6:v.step)+1)+'. '+(titles[v.step===5?6:v.step]||'활동 중');
+const stepLabel=v=>v.submitted?'제출 완료':(STEPS.indexOf(v.step)+1)+'. '+(titles[v.step]||'활동 중');
 function reportHTML(v){const pr=diagOf(v.pre),po=diagOf(v.post);return `<div class="report">${pr||po?`<p><b>확인 문제:</b> 처음 ${diagDone(pr)?diagScore(pr)+'/3':'안 함'} → 마지막 ${diagDone(po)?diagScore(po)+'/3':'안 함'}${diagDone(pr)&&diagDone(po)?` · 자신감 ${pr.c} → ${po.c}`:''}</p>`:''}<p><b>입지 선택:</b> ${esc(cities.find(c=>c.id===v.city)?.name||'미선택')} · ${toArr(v.evidence).map(i=>factors[i]).join(' / ')}</p><p><b>처음 근거:</b> ${esc(v.reason)}</p>${v.pairName?`<p><b>짝과 의논:</b> ${esc(v.pairName)}${v.pairSame?' · '+(v.pairSame==='same'?'같은 도시 선택':'다른 도시 선택'):''}</p><p>${esc(v.pairTalk||'')}</p>`:''}<p><b>새롭게 생각한 점:</b> ${esc(v.missed)}</p>${toArr(v.interview).length?`<p><b>AI 주민에게 한 질문:</b></p>${toArr(v.interview).map(x=>`<p class="askLine"><mark class=\"qMark\">Q. ${esc(x.q)}</mark><br>A. ${esc(x.a)}</p>`).join('')}`:''}${v.debA||v.debB?`<p><b>역지사지 토론:</b> 먼저 ${v.debRole==='re'?'주민 대표':'기업 담당자'} → 바꿔서 ${v.debRole==='re'?'기업 담당자':'주민 대표'}</p><p class="askLine">① ${esc(v.debA||'')}<br>② ${esc(v.debB||'')}</p>`:''}${v.pairAgree?`<p><b>짝과 대책 합의:</b> ${esc(AGREE[v.pairAgree]||'')}</p>`:''}<p><b>대책:</b> ${toArr(v.policies).map(id=>policies.find(p=>p.id===id)?.title||'').join(' · ')}</p><p><b>대책 이유:</b> ${esc(v.policyWhy)}</p><p><b>최종 결정:</b> ${esc(v.decision)}</p><p>${esc(v.finalWhy)}</p>${v.re&&v.re.decision?`<p class="askLine"><b>반 토론 후 다시 결정:</b> ${esc(v.re.decision)} (${v.re.decision===v.decision?'처음 결정 유지':'결정을 바꿈'})<br>${esc(v.re.why||'')}</p>`:''}${v.aiReply?`<p class="askLine"><b>AI 주민의 되물음:</b> ${esc(v.aiReply)}${v.aiAnswer?`<br><b>학생의 답:</b> ${esc(v.aiAnswer)}`:''}${v.aiBefore?`<br><b>들은 뒤:</b> ${aiChange(v)==='keep'?'결정과 이유를 그대로 둠':(aiChange(v)==='decision'?'결정을 바꿈 ('+esc(v.aiBefore.decision)+' → '+esc(v.decision)+')':'이유를 고쳐 씀')}${aiChange(v)!=='keep'?'<br><small>처음 쓴 이유: '+esc(v.aiBefore.why)+'</small>':''}`:''}</p>`:''}${toArr(v.helpLog).length?`<p><b>선생님 챗봇에게 한 질문:</b></p>${toArr(v.helpLog).map(x=>`<p class="askLine"><mark class=\"qMark\">Q. ${esc(x.q)}</mark><br>A. ${esc(x.a)}</p>`).join('')}`:''}</div>`}
 function sortedStudents(){return Object.entries(students).filter(([,v])=>v&&typeof v==='object').sort((a,b)=>String(a[1].name||'').localeCompare(String(b[1].name||''),'ko',{numeric:true}))}
 function renderTeacher(){$('helpBtn')?.classList.add('hidden');$('helpPanel')?.classList.add('hidden');document.body.dataset.step='teacher';detailKey='';const link=location.origin+location.pathname+'?room='+encodeURIComponent(room);
@@ -1003,7 +1005,7 @@ function renderPresent(){const tab=PRESENT.find(p=>p.id===presentTab),vals=sorte
   if(!rows.some(r=>r[0]===presentPick))presentPick='';
   const quotes=presentPick?vals.filter(v=>tab.has(v,presentPick)&&String(tab.quote(v)||'').trim()):[];
   body=`<div class="presentBars">${rows.map(([k,label,c])=>`<button class="pbar ${k===presentPick?'on':''}" data-pick="${esc(k)}"><span>${esc(label)}</span><div><i style="width:${c/max*100}%"></i></div><b>${c}<small>명</small></b></button>`).join('')}</div><div class="presentQuotes">${presentPick?(quotes.map(v=>`<blockquote>${esc(tab.quote(v))}${presentNames?`<cite>${esc(v.name)}</cite>`:''}</blockquote>`).join('')||'<p class="presentEmpty">아직 이유를 쓴 학생이 없어.</p>'):'<p class="presentEmpty">막대를 누르면 그 선택을 한 학생들의 이유가 나와.</p>'}</div>`}
- $('presentBody').innerHTML=`<div class="presentHead"><div><span class="eyebrow">${esc(roomTitle(room))} · ${n}명 참여 · ${vals.filter(v=>v.submitted).length}명 제출</span><h2>${tab.title}</h2></div><div class="row"><button id="presentNames" aria-pressed="${presentNames}">${presentNames?'이름 가리기':'이름 보기'}</button><button id="presentClose">닫기</button></div></div><div class="row presentTabs">${PRESENT.map(p=>`<button class="chip ${p.id===presentTab?'selected':''}" data-ptab="${p.id}">${{city:'도시 선택',pair:'짝 의논',debate:'역지사지 토론',policy:'대책',decision:'최종 결정',ai:'AI 주민 이후',revote:'토론 후 결정',comic:'네 컷'}[p.id]}</button>`).join('')}</div>${body}<p class="presentAsk"><b>함께 생각해 보기</b> ${tab.ask}</p>`;
+ $('presentBody').innerHTML=`<div class="presentHead"><div><span class="eyebrow">${esc(roomTitle(room))} · ${n}명 참여 · ${vals.filter(v=>v.submitted).length}명 제출</span><h2>${tab.title}</h2></div><div class="row"><button id="presentNames" aria-pressed="${presentNames}">${presentNames?'이름 가리기':'이름 보기'}</button><button id="presentClose">닫기</button></div></div><div class="row presentTabs">${PRESENT.map(p=>`<button class="chip ${p.id===presentTab?'selected':''}" data-ptab="${p.id}">${{city:'도시 선택',pair:'짝 의논',sort:'변화 분류',debate:'역지사지 토론',policy:'대책',decision:'최종 결정',ai:'AI 주민 이후',revote:'토론 후 결정',comic:'네 컷'}[p.id]}</button>`).join('')}</div>${body}<p class="presentAsk"><b>함께 생각해 보기</b> ${tab.ask}</p>`;
  if(tab.id==='comic'){const list=vals.filter(v=>toArr(v.comic?.[presentCut]?.strokes).length);$('presentBody').querySelectorAll('[data-pc]').forEach(c=>paint(c,toArr(list[+c.dataset.pc].comic[presentCut].strokes)));$('presentBody').querySelectorAll('[data-cut]').forEach(b=>b.onclick=()=>{presentCut=+b.dataset.cut;renderPresent()})}
  $('presentBody').querySelectorAll('[data-ptab]').forEach(b=>b.onclick=()=>{presentTab=b.dataset.ptab;presentPick='';renderPresent()});
  $('presentBody').querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{presentPick=presentPick===b.dataset.pick?'':b.dataset.pick;renderPresent()});
@@ -1099,7 +1101,7 @@ function aiHeard(){return !AI_URL||!!s.aiSkip||(!!s.aiReply&&long(s.aiAnswer,10)
 const debSide=(v,side)=>!v||!v.debRole?'':(v.debRole===side?v.debA:v.debB)||'';
 {const basePolicy=renderPolicy;renderPolicy=function(){basePolicy.apply(this,arguments);const first=$('panel')?.querySelector('.task');if(!first||$('debBox'))return;
  const r=s.debRole,o=r==='co'?'re':'co',solo=s.pairName===SOLO||!s.pairName;
- first.insertAdjacentHTML('beforebegin',T(0,'역지사지 토론하기',`<div id="debBox"><p class="instruction" style="margin:0 0 8px">${solo?'두 입장을 차례로 맡아 생각해 봐.':'짝과 역할을 나눠 주장하고, 역할을 바꿔서 한 번 더 주장해 봐.'}</p><div class="cards"><button data-debrole="co" class="choice ${r==='co'?'selected':''}" aria-pressed="${r==='co'}">나는 먼저 기업 담당자<br><small>${solo?'':'짝은 주민 대표'}</small></button><button data-debrole="re" class="choice ${r==='re'?'selected':''}" aria-pressed="${r==='re'}">나는 먼저 주민 대표<br><small>${solo?'':'짝은 기업 담당자'}</small></button></div>${r?`<label for="debA" style="display:block;margin-top:10px"><b>1라운드</b> · ${ROLE[r]}(으)로서 주장하기</label><textarea id="debA" maxlength="240" placeholder="${ROLE_HINT[r]}">${esc(s.debA)}</textarea><label for="debB" style="display:block;margin-top:10px"><b>2라운드</b> · 역할을 바꿔 ${ROLE[o]}(으)로서 주장하기</label><textarea id="debB" maxlength="240" placeholder="${ROLE_HINT[o]}">${esc(s.debB)}</textarea><small>주장이 잘 안 떠오르면 위의 [선생님 챗봇]에서 입장별 버튼을 눌러 봐.</small>`:'<small>역할을 고르면 주장 쓰는 칸이 나와.</small>'}</div>`));
+ first.insertAdjacentHTML('beforebegin',T(0,'역지사지 토론하기',`<div id="debBox"><p class="instruction" style="margin:0 0 8px">${solo?'두 입장을 차례로 맡아 생각해 봐.':'짝과 역할을 나눠 주장하고, 역할을 바꿔서 한 번 더 주장해 봐.'}</p><div class="cards"><button data-debrole="co" class="choice ${r==='co'?'selected':''}" aria-pressed="${r==='co'}">나는 먼저 기업 담당자<br><small>${solo?'':'짝은 주민 대표'}</small></button><button data-debrole="re" class="choice ${r==='re'?'selected':''}" aria-pressed="${r==='re'}">나는 먼저 주민 대표<br><small>${solo?'':'짝은 기업 담당자'}</small></button></div>${r?`<label for="debA" style="display:block;margin-top:10px"><b>1라운드</b> · ${ROLE[r]}로서 주장하기</label><textarea id="debA" maxlength="240" placeholder="${ROLE_HINT[r]}">${esc(s.debA)}</textarea><label for="debB" style="display:block;margin-top:10px"><b>2라운드</b> · 역할을 바꿔 ${ROLE[o]}로서 주장하기</label><textarea id="debB" maxlength="240" placeholder="${ROLE_HINT[o]}">${esc(s.debB)}</textarea><small>주장이 잘 안 떠오르면 위의 [선생님 챗봇]에서 입장별 버튼을 눌러 봐.</small>`:'<small>역할을 고르면 주장 쓰는 칸이 나와.</small>'}</div>`));
  $('panel').insertAdjacentHTML('beforeend',solo?'':T(3,'짝과 대책을 합의했는지 고르기',`<p class="instruction" style="margin:0 0 8px">토론한 뒤 짝과 대책을 맞춰 봤어? 꼭 같지 않아도 괜찮아.</p><div class="cards">${Object.entries(AGREE).map(([k,t])=>`<button data-agree="${k}" class="choice ${s.pairAgree===k?'selected':''}" aria-pressed="${s.pairAgree===k}">${t}</button>`).join('')}</div>`));
  const keep=()=>{const top=$('panel').scrollTop;renderPolicy();$('panel').scrollTop=top;updateNext()};
  $('panel').querySelectorAll('[data-debrole]').forEach(b=>b.onclick=()=>{if(s.debRole&&s.debRole!==b.dataset.debrole){const t=s.debA;s.debA=s.debB;s.debB=t}s.debRole=b.dataset.debrole;history('토론 역할 선택');keep()});
@@ -1122,6 +1124,120 @@ const aiChange=v=>!v||!v.aiBefore?'':(v.aiBefore.decision!==v.decision?'decision
 {const baseSum2=pairRevoteSummary;pairRevoteSummary=function(vals){const a=vals.filter(v=>v.aiBefore&&v.submitted);
  return baseSum2(vals)+`<section><h3>AI 주민 말을 들은 뒤 (${a.length}명)</h3>${barList([['이유를 고쳐 씀',a.filter(v=>aiChange(v)==='why').length],['결정을 바꿈',a.filter(v=>aiChange(v)==='decision').length],['그대로 둠',a.filter(v=>aiChange(v)==='keep').length]],a.length)}</section>`};}
 PRESENT.splice(PRESENT.findIndex(p=>p.id==='revote'),0,{id:'ai',title:'AI 주민의 말을 듣고, 무엇을 고쳤을까?',ask:'주민의 물음 가운데 가장 답하기 어려웠던 것은 무엇일까?',rows:()=>[['why','이유를 고쳐 씀'],['decision','결정을 바꿈'],['keep','그대로 둠']],has:(v,k)=>!!v.submitted&&aiChange(v)===k,quote:v=>(aiChange(v)==='keep'?'':'[처음] '+(v.aiBefore.why||'')+'  →  [고친 뒤] ')+(v.finalWhy||'')+(v.aiAnswer?'  · 주민에게 한 답: '+v.aiAnswer:'')});
+
+/* ───────── 흐름 재구성 (2026-11 추가) ─────────
+   시작(취직·팝업 퀴즈) → 입지 조사 → 도시의 변화(카드 분류) → 주민의 시선 → 역지사지 토론 → 입장 바꿔 보기
+   → 최종 결정(대책 고르기 포함) → 마무리 퀴즈(팝업) → 네 컷 기록 */
+document.head.insertAdjacentHTML('beforeend',`<style>
+.hireCard{position:relative;border:3px solid var(--line);border-radius:20px;background:#fff8e1;padding:22px 18px 16px;margin:6px 0 12px;text-align:center}
+.hireBadge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--line);color:#fff;border-radius:999px;padding:3px 14px;font-size:14px;font-weight:700;white-space:nowrap}
+.hireTop{font-family:Jua,sans-serif;font-size:34px;margin:0;color:#c4524f}.hireMain{font-size:21px;line-height:1.5;margin:6px 0}.hireMain b{font-family:Jua,sans-serif;font-weight:400;font-size:30px}
+.hireRole{display:inline-block;margin:6px 0 0;background:#fff;border:2px solid var(--line);border-radius:999px;padding:6px 16px;font-size:19px}
+.missionLine{font-size:20px}.introBig{font-size:18px;line-height:1.7}.introBig .todayList{font-size:19px}.introBig p{margin:4px 0}
+.quizPop{position:fixed;inset:0;z-index:900;background:#34445acc;display:grid;place-items:center;padding:16px}
+.quizCard{width:min(560px,100%);max-height:calc(100dvh - 32px);overflow:auto;background:#fffefa;border:3px solid var(--line);border-radius:24px;padding:20px;box-shadow:8px 8px 0 #0003}
+.quizCard h3{font-family:Jua,sans-serif;font-weight:400;font-size:24px;margin:0 0 4px}.quizDots{display:flex;gap:6px;margin:8px 0 12px}.quizDots i{flex:1;height:8px;border-radius:9px;background:#dce3e3}.quizDots i.on{background:#6e9b83}
+.quizQ{font-size:20px;line-height:1.55;font-weight:700;margin:6px 0 12px}.quizOpts{display:grid;gap:8px}.quizOpts button{text-align:left;font-size:18px;padding:12px 14px;min-height:54px}.quizOpts button.selected{background:var(--mint);border-color:#6e9b83}
+.sortCard{border:2px solid var(--border);border-radius:16px;padding:10px 12px;margin:8px 0;background:#fffefa}.sortCard p{margin:0 0 8px;line-height:1.5}.sortCard .row button{flex:1}
+.sortCard[data-v=good]{background:#eef8f0;border-color:#9dc7a8}.sortCard[data-v=bad]{background:#fdf1ee;border-color:#e3b3a8}
+.askChips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.askChips button{min-height:38px;padding:6px 12px;font-weight:500;font-size:15px;border-radius:999px;background:#fff}
+.myClaim{background:#f5f6ef;border-radius:14px;padding:10px 12px;margin:8px 0;line-height:1.55}
+</style>`);
+function polOk(){return s.policies.length>0&&budget()>=0&&agreeOk()}
+
+/* 팝업 퀴즈: 한 번에 한 문제. 시작 전(pre)과 마지막(post)에 같은 문제를 푼다. 맞았는지는 알려 주지 않는다. */
+function openQuiz(kind,done){document.querySelector('.quizPop')?.remove();
+ const d=diagOf(s[kind])||{a:DIAG.map(()=>null),c:0,at:0};let i=d.a.findIndex(x=>!Number.isInteger(x));if(i<0)i=DIAG.length;
+ const pop=document.createElement('div');pop.className='quizPop';pop.setAttribute('role','dialog');pop.setAttribute('aria-modal','true');document.body.appendChild(pop);
+ const save=()=>{d.at=Date.now();s[kind]={a:[...d.a],c:d.c,at:d.at};persist()};
+ const draw=()=>{const n=DIAG.length,conf=i>=n;
+  pop.innerHTML=`<div class="quizCard"><h3>${kind==='pre'?'출근 전 깜짝 퀴즈':'퇴근 전 마무리 퀴즈'}</h3><small class="muted">${kind==='pre'?'아는 만큼만 골라. 틀려도 괜찮아!':'처음에 풀었던 문제야. 오늘 한 일을 떠올려 봐.'}</small><div class="quizDots">${DIAG.map((_,k)=>`<i class="${k<Math.min(i+1,n)?'on':''}"></i>`).join('')}</div>${conf?`<p class="quizQ">마지막으로 하나만! ${DIAG_CONF}</p><div class="quizOpts">${['전혀 못 해','잘 못 해','조금 할 수 있어','할 수 있어','자신 있어'].map((t,k)=>`<button data-c="${k+1}">${t}</button>`).join('')}</div>`:`<p class="quizQ">${i+1}. ${DIAG[i].q}</p><div class="quizOpts">${DIAG[i].a.map((t,k)=>`<button data-a="${k}">${t}</button>`).join('')}</div>`}</div>`;
+  pop.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{d.a[i]=+b.dataset.a;b.classList.add('selected');save();beep();setTimeout(()=>{i++;draw()},260)});
+  pop.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{d.c=+b.dataset.c;b.classList.add('selected');save();history(kind==='pre'?'시작 전 확인 완료':'마지막 확인 완료');setTimeout(()=>{pop.remove();done&&done()},260)});
+  pop.querySelector('button')?.focus()};
+ draw()}
+next=async function(){if(!valid())return;
+ if(s.step===0&&!diagDone(s.pre)&&!s.assigned&&!s.city)return openQuiz('pre',()=>next());
+ if(s.step===0)s.assigned=true;
+ if(s.step===7){if(!diagDone(s.post)&&!s.submitted)return openQuiz('post',()=>next());
+  const first=!s.everSubmitted;s.submitted=true;s.everSubmitted=true;finalEdit=false;history('최종 결정 제출');await flush();beep('build');
+  if(first&&!validAt(6)){setStep(6,true);toast('최종 결정을 저장했어. 마지막으로 도시의 변화를 네 컷으로 그려 보자!')}else{render();toast(dirty?'기기에 제출 내용 저장 · 서버 연결 시 다시 저장해':'최종 결정을 저장했어.')}}
+ else if(s.step===6){history('네 컷 완성');await flush();toast('네 컷까지 모두 끝냈어. 수고했어!');setStep(7,true)}
+ else setStep(STEPS[STEPS.indexOf(s.step)+1])};
+
+/* 도시의 변화: 여러 변화 카드를 좋은 변화 / 걱정되는 변화로 나눈다. 사람에 따라 다르게 볼 수 있는 카드가 섞여 있다. */
+function sortStories(c){return [
+ ['job',c.good],
+ ['shop','공장 주변 식당과 편의점에 손님이 늘었어.'],
+ ['concern',c.problem],
+ c.concern==='housing'?['noise','밤에도 공장 불빛과 소리가 나서 잠들기 어려운 집이 생겼어.']:['rent','사람이 몰리면서 집세와 가게 임대료가 올랐어.'],
+ c.concern==='road'?['smoke','공장 굴뚝이 생겨서 빨래를 밖에 널기 꺼려진대.']:['truck','화물 트럭이 늘어서 학교 앞 길이 복잡해졌어.'],
+ ['tax','공장이 낸 세금으로 동네에 도서관과 공원이 생겼어.'],
+ ['newcomer','일하러 이사 온 사람이 많아져서 동네가 북적여.']]}
+function sortDone(){const c=city(),so=s.sort||{};return (!!s.good&&!!s.bad&&!Object.keys(so).length)||sortStories(c).every(([id])=>so[id]==='good'||so[id]==='bad')}
+function sortHTML(c){const so=s.sort||{},list=sortStories(c),n=list.filter(([id])=>so[id]).length;
+ return `<p class="instruction" style="margin:0 0 6px">공장이 생긴 뒤 들려온 이야기야. 카드마다 골라 봐. <small>(${n} / ${list.length})</small></p>${list.map(([id,t])=>`<div class="sortCard" data-v="${so[id]||''}"><p>${esc(t)}</p><div class="row"><button data-sort="${id}:good" class="${so[id]==='good'?'selected':''}" aria-pressed="${so[id]==='good'}">좋은 변화</button><button data-sort="${id}:bad" class="${so[id]==='bad'?'selected':''}" aria-pressed="${so[id]==='bad'}">걱정되는 변화</button></div></div>`).join('')}${n===list.length?`<div class="conceptCard"><b>잠깐!</b><p>친구와 다르게 나눈 카드가 있을 거야. 같은 변화도 누구의 입장이냐에 따라 좋게도, 걱정스럽게도 보여.</p></div>`:''}`}
+function sortBind(c,redraw){$('panel').querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{const [id,v]=b.dataset.sort.split(':');s.sort={...(s.sort||{}),[id]:v};
+ if(sortStories(c).every(([k])=>s.sort[k])){s.good=true;s.bad=true}history('변화 카드 분류');beep();const top=$('panel').scrollTop;redraw();$('panel').scrollTop=top;updateNext()})}
+
+/* 주민의 시선: 무엇을 물어볼지 모를 때 누르는 질문 예시 */
+const ASK_IDEAS=['공장이 생기고 뭐가 제일 달라졌어요?','요즘 가장 걱정되는 게 뭐예요?','회사에 바라는 점이 있어요?','공장이 더 커지면 어떨 것 같아요?'];
+{const baseRes=renderResidents;renderResidents=function(){baseRes.apply(this,arguments);const f=$('askForm');if(!f||$('askChips'))return;
+ const g=$('panel').querySelector('.askGuide');if(g)g.textContent='뭘 물어볼지 모르겠으면 아래 질문을 눌러 봐. 눌러서 고쳐 써도 돼.';
+ f.insertAdjacentHTML('beforebegin',`<div id="askChips" class="askChips">${ASK_IDEAS.map((t,i)=>`<button type="button" data-idea="${i}">${t}</button>`).join('')}</div>`);
+ $('askChips').querySelectorAll('[data-idea]').forEach(b=>b.onclick=()=>{if(!s.resident)return toast('먼저 위에서 주민을 골라 줘.');$('askQ').value=ASK_IDEAS[+b.dataset.idea];$('askQ').focus()})};}
+
+/* 역지사지 토론 ①: 짝과 역할을 하나씩 맡아 말로 토론하고, 내 역할의 주장을 쓴다. */
+function lensHelp(kind){$('helpPanel').classList.remove('hidden');helpRender();helpLens(kind)}
+function renderDebate(){const c=city(),r=s.debRole,solo=s.pairName===SOLO||!s.pairName;
+ $('sceneTitle').textContent=c.name+' · 공장을 더 크게 짓는다면';setArt(town({level:3,concern:true,people:true}),'town');
+ $('sceneBottom').innerHTML=`<b>새 소식</b> ${BRAND}가 ${esc(c.name)} 공장을 두 배로 넓히고 싶대.`;
+ $('panel').innerHTML=`<span class="eyebrow">역지사지 토론 · 1라운드</span><h2>공장을 더 크게 지어도 될까?</h2><p>공장을 넓히면 일자리도, 걱정도 함께 커져. ${solo?'먼저 한쪽 입장을 맡아 봐.':'짝과 역할을 하나씩 나눠 맡아 토론해 봐.'}</p>`
+ +T(0,solo?'맡을 역할 고르기':'짝과 역할 하나씩 맡기',`<div class="cards"><button data-debrole="co" class="choice ${r==='co'?'selected':''}" aria-pressed="${r==='co'}"><b>기업 담당자</b><small>공장을 넓히고 싶은 쪽${solo?'':' · 짝은 주민 대표'}</small></button><button data-debrole="re" class="choice ${r==='re'?'selected':''}" aria-pressed="${r==='re'}"><b>주민 대표</b><small>동네를 지키고 싶은 쪽${solo?'':' · 짝은 기업 담당자'}</small></button></div>`)
+ +T(1,solo?'내 역할이 되어 생각하기':'짝과 말로 토론하기',`<ol style="margin:0 0 8px;padding-left:20px;line-height:1.7"><li>${solo?'내 역할이라면 무엇이 가장 중요할지 떠올려 봐.':'한 사람씩 자기 역할의 생각을 말해.'}</li><li>${solo?'반대쪽은 뭐라고 할지도 생각해 봐.':'짝의 말을 듣고 궁금한 것을 하나 물어봐.'}</li></ol><button id="debTalked" class="${s.debTalked?'selected':'primary'}" ${r?'':'disabled'}>${s.debTalked?(solo?'생각해 봤어 ✓':'짝과 토론했어 ✓'):(solo?'생각해 봤어':'짝과 토론했어')}</button>`)
+ +T(2,r?`${ROLE[r]}로서 내 주장 쓰기`:'내 역할의 주장 쓰기',r?`<textarea id="debA" maxlength="240" placeholder="${ROLE_HINT[r]}">${esc(s.debA)}</textarea><button id="debHelp" style="margin-top:8px">주장이 안 떠오르면 · 선생님 챗봇에게 힌트 받기</button>`:'<small>역할을 고르면 쓰는 칸이 나와.</small>');
+ $('panel').querySelectorAll('[data-debrole]').forEach(b=>b.onclick=()=>{if(s.debRole&&s.debRole!==b.dataset.debrole&&(s.debA||s.debB)){const t=s.debA;s.debA=s.debB;s.debB=t}s.debRole=b.dataset.debrole;history('토론 역할 선택');renderDebate();updateNext()});
+ $('debTalked').onclick=()=>{s.debTalked=true;history('짝과 토론');renderDebate();updateNext()};
+ if($('debA')){$('debA').oninput=e=>{s.debA=e.target.value;persist();updateNext()};$('debHelp').onclick=()=>lensHelp(r==='co'?'company':'resident')}}
+/* 역지사지 토론 ②: 입장을 바꿔 반대쪽 주장을 쓰고, 바꿔 보니 든 생각을 남긴다. */
+function renderSwap(){const c=city(),r=s.debRole||'co',o=r==='co'?'re':'co';
+ $('sceneTitle').textContent=c.name+' · 입장을 바꿔서';setArt(town({level:3,concern:true,people:true}),'town');
+ $('sceneBottom').innerHTML=`<b>역할 교대!</b> 이번에는 ${ROLE[o]}가 되어 봐.`;
+ $('panel').innerHTML=`<span class="eyebrow">역지사지 토론 · 2라운드</span><h2>이번에는 ${ROLE[o]}가 되어 볼까?</h2><div class="myClaim"><small>방금 ${ROLE[r]}로서 한 주장</small><br>${esc(s.debA)||'아직 쓰지 않았어'}</div>`
+ +T(0,`${ROLE[o]}로서 주장 쓰기`,`<p class="instruction" style="margin:0 0 6px">${s.pairName&&s.pairName!==SOLO?'짝과 역할을 바꿔서 한 번 더 이야기한 다음 써 봐.':'반대쪽 사람이 되어 생각해 봐.'}</p><textarea id="debB" maxlength="240" placeholder="${ROLE_HINT[o]}">${esc(s.debB)}</textarea><button id="debHelp2" style="margin-top:8px">주장이 안 떠오르면 · 선생님 챗봇에게 힌트 받기</button>`)
+ +T(1,'입장을 바꿔 보니 든 생각 쓰기',`<textarea id="debNew" maxlength="240" placeholder="처음에는 ___라고 생각했는데, ${ROLE[o]}가 되어 보니 ___도 중요했다.">${esc(s.debNew||'')}</textarea>`);
+ $('debB').oninput=e=>{s.debB=e.target.value;persist();updateNext()};$('debNew').oninput=e=>{s.debNew=e.target.value;persist();updateNext()};
+ $('debHelp2').onclick=()=>lensHelp(o==='co'?'company':'resident')}
+STEP_HELP[4]='역지사지 토론 화면이야. 1번에서 짝과 역할(기업 담당자·주민 대표)을 하나씩 맡아. 2번은 짝과 말로 토론한 다음 버튼을 눌러. 3번에는 내 역할의 주장을 10자 이상 써. 안 떠오르면 [선생님 챗봇에게 힌트 받기]를 눌러.';
+STEP_HELP[5]='입장 바꿔 보기 화면이야. 방금과 반대 역할이 되어 1번에 주장을 쓰고, 2번에는 입장을 바꿔 보니 새로 든 생각을 써.';
+STEP_HELP[7]='최종 결정 화면이야. 1번에서 예산 600억 원 안에서 대책 카드를 골라. 2번에서 결정 하나를 고르고, 3번에 이유를 15자 이상 써. 4번에서 AI 주민에게 내 결정을 들려주고 주민의 물음에 답해. 다 하면 [최종 결정 제출]을 눌러. 마무리 퀴즈가 나온 다음 네 컷 그리기로 넘어가.';
+
+/* 최종 결정: 대책 고르기 → 결정 → 이유 → AI 주민. 확인 문제는 제출할 때 팝업으로 푼다. */
+renderFinal=function(freshPol=''){const c=city();
+ if(s.submitted&&!finalEdit)return renderReport();
+ const left=budget(),paired=!!s.pairName&&s.pairName!==SOLO;
+ $('sceneTitle').textContent=c.name+' · 주민 대표의 최종 결정';setArt(town({level:3,concern:true,pol:true,freshPol:typeof freshPol==='string'?freshPol:''}),'town');
+ $('sceneBottom').innerHTML=s.policies.length?'<b>대책을 고르면 도시의 모습이 달라져.</b> 그림에서 달라진 곳을 찾아봐.':`<b>걱정되는 변화</b> ${c.problem}`;
+ $('panel').innerHTML=`<span class="eyebrow">이제 주민 대표로서</span><h2>우리 도시는 이렇게 결정했어</h2><p>토론에서 나온 두 입장을 모두 떠올리면서 정해 봐.</p>`
+ +T(0,'예산 안에서 대책 고르기',`<div class="hint"><div class="budget"><b>남은 예산 ${won(left)}</b><div class="budgetBar" aria-hidden="true"><i style="width:${left/BUDGET*100}%"></i></div><small>총 ${won(BUDGET)}</small></div></div><div class="cards policyGrid">${policies.map(p=>`<button class="choice ${checked(p.id)?'selected':''}" data-policy="${p.id}" aria-pressed="${checked(p.id)}" ${!checked(p.id)&&p.cost>left?'disabled':''}><span class="cost">${won(p.cost)}</span><b>${p.title}</b><small>${p.desc}</small></button>`).join('')}</div>${s.policies.length?`<div class="report"><b>주민들의 반응</b>${reactions().map((r,i)=>`<div class="reaction">${face(i,r.ok)}<p><b>${r.n} · ${r.role}</b><br>${r.text}</p></div>`).join('')}</div>`:'<p class="muted">대책을 고르면 그림이 바뀌고 주민들의 반응이 나와.</p>'}${paired?`<p class="instruction" style="margin:10px 0 6px">짝과 대책을 맞춰 봤어? 꼭 같지 않아도 괜찮아.</p><div class="cards">${Object.entries(AGREE).map(([k,t])=>`<button data-agree="${k}" class="choice ${s.pairAgree===k?'selected':''}" aria-pressed="${s.pairAgree===k}">${t}</button>`).join('')}</div>`:''}`)
+ +T(1,'공장 확장 제안, 어떻게 할까?',`<div class="cards">${decisions.map(v=>`<button data-decision="${v}" class="choice ${s.decision===v?'selected':''}" aria-pressed="${s.decision===v}">${v}</button>`).join('')}</div>`)
+ +T(2,'결정한 이유 쓰기',`<textarea id="finalWhy" aria-label="누구에게 생길 영향을 고려해서 결정했는지" maxlength="400" placeholder="___에게 ___이 생길 수 있으므로 ___하기로 결정했다.">${esc(s.finalWhy)}</textarea>`)
+ +(AI_URL?T(3,'AI 주민에게 내 결정 들려주기',`<p class="instruction" style="margin:0 0 8px">내 결정을 들은 주민이 뭐라고 할까? 버튼을 눌러 들어 봐.</p><button id="askAI" class="primary" style="width:100%">${s.aiReply?'다시 물어보기':'주민에게 내 결정 들려주기'}</button><div id="aiReply" class="residentSpeech ${s.aiReply?'':'hidden'}" style="margin-top:10px" aria-live="polite">${s.aiReply?`<b>AI 주민 하린</b><br>${esc(s.aiReply)}`:''}</div><small>AI가 만든 말이라 틀릴 수 있어. 이름은 보내지 않아.</small><div id="aiAnsWrap" class="${s.aiReply?'':'hidden'}" style="margin-top:10px"><label for="aiAnswer"><b>주민의 물음에 답해 봐</b> (10자 이상)</label><textarea id="aiAnswer" maxlength="300" placeholder="그 주민에게는 ___ 문제가 생길 수 있다. 그래서 나는 …">${esc(s.aiAnswer||'')}</textarea><small>답을 쓰다가 생각이 바뀌면 위의 대책·결정·이유를 고쳐도 돼. 처음 쓴 내용도 선생님 화면에 함께 남아.</small></div>`):'');
+ const keep=fp=>{const top=$('panel').scrollTop,w=$('finalWhy').value,a=$('aiAnswer')?.value;s.finalWhy=w;if(a!=null)s.aiAnswer=a;renderFinal(fp||'');$('panel').scrollTop=top;updateNext()};
+ $('panel').querySelectorAll('[data-policy]').forEach(b=>b.onclick=()=>{const p=policies.find(x=>x.id===b.dataset.policy);
+  if(checked(p.id))s.policies=s.policies.filter(x=>x!==p.id);else if(p.cost<=budget())s.policies.push(p.id);else return;
+  s.submitted=false;history('대책 선택');beep('build');keep(checked(p.id)?p.id:'')});
+ $('panel').querySelectorAll('[data-agree]').forEach(b=>b.onclick=()=>{s.pairAgree=b.dataset.agree;history('짝과 대책 합의 여부');keep()});
+ $('panel').querySelectorAll('[data-decision]').forEach(b=>b.onclick=()=>{s.decision=b.dataset.decision;s.submitted=false;history('최종 결정 선택');keep()});
+ $('finalWhy').oninput=e=>{s.finalWhy=e.target.value;if(s.submitted)s.submitted=false;persist();updateNext()};
+ if($('askAI'))$('askAI').onclick=askAI;
+ if($('aiAnswer'))$('aiAnswer').oninput=e=>{s.aiAnswer=e.target.value;persist();updateNext()}};
+/* 제출 후 보고서: 네 컷 버튼을 맨 위에 크게, 파일 보관 버튼은 숨긴다. */
+{const baseReport3=renderReport;renderReport=function(){baseReport3.apply(this,arguments);if(!$('panel'))return;
+ ['export','exportPng'].forEach(id=>{const b=$(id);if(b)b.classList.add('hidden')})};}
+/* 역지사지 기록 보강 */
+{const baseHTML=reportHTML;reportHTML=function(v){let h=baseHTML(v);if(v&&!String(v.policyWhy||'').trim())h=h.replace('<p><b>대책 이유:</b> </p>','');return v&&v.debNew?h.replace('<p><b>대책:</b>',`<p><b>입장을 바꿔 보니:</b> ${esc(v.debNew)}</p><p><b>대책:</b>`):h};}
+PRESENT.splice(PRESENT.findIndex(p=>p.id==='pair')+1,0,{id:'sort',title:'이 변화, 좋은 변화일까?',ask:'좋은 변화라고 본 사람과 걱정된다고 본 사람이 갈린 카드는 무엇일까? 왜 갈렸을까?',rows:()=>[['shop','가게에 손님이 늘었어'],['rent','집세·임대료가 올랐어'],['truck','화물 트럭이 늘었어'],['tax','세금으로 도서관·공원이 생겼어'],['newcomer','이사 온 사람이 많아졌어']],has:(v,k)=>v.sort&&v.sort[k]==='good',quote:()=>''});
 
 /* ───────── 시작 ───────── */
 window.addEventListener('DOMContentLoaded',()=>{initDrawing();
