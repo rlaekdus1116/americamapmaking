@@ -1166,17 +1166,18 @@ next=async function(){if(!valid())return;
  else setStep(STEPS[STEPS.indexOf(s.step)+1])};
 
 /* 도시의 변화: 여러 변화 카드를 좋은 변화 / 걱정되는 변화로 나눈다. 사람에 따라 다르게 볼 수 있는 카드가 섞여 있다. */
-function sortStories(c){return [
- ['job',c.good],
+function sortStories(c){const own={water:'공장이 강물과 지하수를 끌어다 쓰기 시작했어.',road:'화물 트럭이 학교 앞 길을 지나다니게 됐어.',housing:'공장 주변의 집세와 가게 임대료가 올랐어.'}[c.concern]||'공장 주변의 모습이 달라졌어.';
+ return [
+ ['job','이 동네 주민 여러 명이 공장에서 일하게 됐어.'],
  ['shop','공장 주변 식당과 편의점에 손님이 늘었어.'],
- ['concern',c.problem],
- c.concern==='housing'?['noise','밤에도 공장 불빛과 소리가 나서 잠들기 어려운 집이 생겼어.']:['rent','사람이 몰리면서 집세와 가게 임대료가 올랐어.'],
- c.concern==='road'?['smoke','공장 굴뚝이 생겨서 빨래를 밖에 널기 꺼려진대.']:['truck','화물 트럭이 늘어서 학교 앞 길이 복잡해졌어.'],
+ ['concern',own],
+ c.concern==='housing'?['noise','밤에도 공장에 불이 켜져 있고 기계 소리가 나.']:['rent','공장 주변의 집세와 가게 임대료가 올랐어.'],
+ c.concern==='road'?['smoke','공장 굴뚝에서 하루 종일 연기가 올라와.']:['truck','화물 트럭이 늘어났고, 큰 도로가 새로 닦였어.'],
  ['tax','공장이 낸 세금으로 동네에 도서관과 공원이 생겼어.'],
- ['newcomer','일하러 이사 온 사람이 많아져서 동네가 북적여.']]}
+ ['newcomer','다른 지역에서 일하러 이사 온 사람이 많아졌어.']]}
 function sortDone(){const c=city(),so=s.sort||{};return (!!s.good&&!!s.bad&&!Object.keys(so).length)||sortStories(c).every(([id])=>so[id]==='good'||so[id]==='bad')}
 function sortHTML(c){const so=s.sort||{},list=sortStories(c),n=list.filter(([id])=>so[id]).length;
- return `<p class="instruction" style="margin:0 0 6px">공장이 생긴 뒤 들려온 이야기야. 카드마다 골라 봐. <small>(${n} / ${list.length})</small></p>${list.map(([id,t])=>`<div class="sortCard" data-v="${so[id]||''}"><p>${esc(t)}</p><div class="row"><button data-sort="${id}:good" class="${so[id]==='good'?'selected':''}" aria-pressed="${so[id]==='good'}">좋은 변화</button><button data-sort="${id}:bad" class="${so[id]==='bad'?'selected':''}" aria-pressed="${so[id]==='bad'}">걱정되는 변화</button></div></div>`).join('')}${n===list.length?`<div class="conceptCard"><b>잠깐!</b><p>친구와 다르게 나눈 카드가 있을 거야. 같은 변화도 누구의 입장이냐에 따라 좋게도, 걱정스럽게도 보여.</p></div>`:''}`}
+ return `<p class="instruction" style="margin:0 0 6px">공장이 생긴 뒤 동네에 일어난 일이야. 네가 주민이라면 어떻게 느낄지 골라 봐. <small>(${n} / ${list.length})</small></p>${list.map(([id,t])=>`<div class="sortCard" data-v="${so[id]||''}"><p>${esc(t)}</p><div class="row"><button data-sort="${id}:good" class="${so[id]==='good'?'selected':''}" aria-pressed="${so[id]==='good'}">좋은 변화</button><button data-sort="${id}:bad" class="${so[id]==='bad'?'selected':''}" aria-pressed="${so[id]==='bad'}">걱정되는 변화</button></div></div>`).join('')}${n===list.length?`<div class="conceptCard"><b>잠깐!</b><p>친구와 다르게 나눈 카드가 있을 거야. 같은 변화도 누구의 입장이냐에 따라 좋게도, 걱정스럽게도 보여.</p></div>`:''}`}
 function sortBind(c,redraw){$('panel').querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{const [id,v]=b.dataset.sort.split(':');s.sort={...(s.sort||{}),[id]:v};
  if(sortStories(c).every(([k])=>s.sort[k])){s.good=true;s.bad=true}history('변화 카드 분류');beep();const top=$('panel').scrollTop;redraw();$('panel').scrollTop=top;updateNext()})}
 
@@ -1237,7 +1238,7 @@ renderFinal=function(freshPol=''){const c=city();
  ['export','exportPng'].forEach(id=>{const b=$(id);if(b)b.classList.add('hidden')})};}
 /* 역지사지 기록 보강 */
 {const baseHTML=reportHTML;reportHTML=function(v){let h=baseHTML(v);if(v&&!String(v.policyWhy||'').trim())h=h.replace('<p><b>대책 이유:</b> </p>','');return v&&v.debNew?h.replace('<p><b>대책:</b>',`<p><b>입장을 바꿔 보니:</b> ${esc(v.debNew)}</p><p><b>대책:</b>`):h};}
-PRESENT.splice(PRESENT.findIndex(p=>p.id==='pair')+1,0,{id:'sort',title:'이 변화, 좋은 변화일까?',ask:'좋은 변화라고 본 사람과 걱정된다고 본 사람이 갈린 카드는 무엇일까? 왜 갈렸을까?',rows:()=>[['shop','가게에 손님이 늘었어'],['rent','집세·임대료가 올랐어'],['truck','화물 트럭이 늘었어'],['tax','세금으로 도서관·공원이 생겼어'],['newcomer','이사 온 사람이 많아졌어']],has:(v,k)=>v.sort&&v.sort[k]==='good',quote:()=>''});
+PRESENT.splice(PRESENT.findIndex(p=>p.id==='pair')+1,0,{id:'sort',title:'이 변화, 좋은 변화일까?',ask:'좋은 변화라고 본 사람과 걱정된다고 본 사람이 갈린 카드는 무엇일까? 왜 갈렸을까?',rows:()=>[['shop','가게에 손님이 늘었어'],['rent','집세·임대료가 올랐어'],['truck','화물 트럭이 늘고 도로가 닦였어'],['tax','세금으로 도서관·공원이 생겼어'],['newcomer','이사 온 사람이 많아졌어']],has:(v,k)=>v.sort&&v.sort[k]==='good',quote:()=>''});
 
 /* ───────── 토론 순서 · 역할 교대 팝업 · 제출 화면 정리 · 색 채우기 (2026-11 추가) ───────── */
 TASKS[4]=[['짝과 역할 하나씩 맡기',()=>!!s.debRole],['내 역할의 주장 쓰기 (10자 이상)',()=>long(s.debA,10)],['짝과 말로 토론하기',()=>!!s.debTalked]];
