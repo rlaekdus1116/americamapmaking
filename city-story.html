@@ -707,9 +707,13 @@ function baseView(){
 const BG={town:'linear-gradient(#dff1fb 0 50%,#c3e2bd 50%)',office:'linear-gradient(#eef3ee 0 50%,#dcd3c2 50%)',map:'#e5f1f5',plain:'#eef2f6'};
 function setArt(html,bg){$('art').innerHTML=html;$('art').style.background=BG[bg]||''}
 function renderSteps(){const nav=document.querySelector('.steps');if(!nav)return;const reach=preview?7:firstMissing();
- nav.innerHTML=STEPS.map((st,i)=>{const open=STEPS.indexOf(st)<=STEPS.indexOf(reach)||st===s.step;return `<button class="step ${st===s.step?'active':validAt(st)&&st!==7?'done':''}" data-step="${st}" ${open?'':'disabled'} ${st===s.step?'aria-current="step"':''}>${i+1} ${titles[st]}</button>`}).join('');
+ const html=STEPS.map((st,i)=>{const open=STEPS.indexOf(st)<=STEPS.indexOf(reach)||st===s.step;return `<button class="step ${st===s.step?'active':validAt(st)&&st!==7?'done':''}" data-step="${st}" ${open?'':'disabled'} ${st===s.step?'aria-current="step"':''}>${i+1} ${titles[st]}</button>`}).join('');
+ if(nav.dataset.sig===html)return;nav.dataset.sig=html;nav.innerHTML=html;
  nav.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{if(+b.dataset.step!==s.step)setStep(+b.dataset.step)})}
 let savedPreview=null,teacherStep=0,sceneTimer=null,sceneRun=0;
+/* 학생이 글을 쓰고 있을 때(특히 한글 조합 중) 화면 전체를 다시 그리면 글자가 쪼개진다. 쓰는 중이면 칸에서 나온 뒤에 다시 그린다. */
+function typingNow(){const a=document.activeElement;return !!a&&(a.tagName==='TEXTAREA'||a.tagName==='INPUT'&&a.type==='text')&&!!a.closest('#panel')}
+function renderWhenIdle(){if(!typingNow())return render();const a=document.activeElement;if(a.dataset.waitRender)return;a.dataset.waitRender='1';a.addEventListener('blur',()=>{delete a.dataset.waitRender;setTimeout(()=>{if(!typingNow())render()},0)},{once:true})}
 function render(){clearTimeout(sceneTimer);sceneRun++;baseView();document.body.dataset.step=s.step;
  [renderIntro,renderMap,renderChanges,renderResidents,renderDebate,renderSwap,renderComic,renderFinal][s.step]();updateNext()}
 function updateNext(){if(!$('next'))return;renderSteps();
@@ -1033,7 +1037,7 @@ function listenRevote(){if(!base||revoteOn)return;revoteOn=true;
  base.child('revote').on('value',snap=>{const was=!!revoteState?.open;revoteState=snap.val();
   if(teacher){revoteButton();return}
   if(!started||preview)return;
-  if(s.step===7&&s.submitted&&!finalEdit)render();
+  if(s.step===7&&s.submitted&&!finalEdit)renderWhenIdle();
   if(!was&&revoteState?.open&&s.submitted)toast('반 토론이 끝났어. 다시 한번 결정해 보자!')},()=>{})}
 {const baseReport=renderReport;renderReport=function(){baseReport.apply(this,arguments);
  if(preview||teacher||!s.submitted||!$('panel'))return;
@@ -1250,10 +1254,10 @@ renderDebate=function(){const c=city(),r=s.debRole,solo=s.pairName===SOLO||!s.pa
  $('panel').innerHTML=`<span class="eyebrow">역지사지 토론 · 1라운드</span><h2>공장을 더 크게 지어도 될까?</h2><p>공장을 넓히면 일자리도, 걱정도 함께 커져. ${solo?'먼저 한쪽 입장을 맡아 봐.':'짝과 역할을 하나씩 나눠 맡아 봐.'}</p>`
  +T(0,solo?'맡을 역할 고르기':'짝과 역할 하나씩 맡기',`<div class="cards"><button data-debrole="co" class="choice ${r==='co'?'selected':''}" aria-pressed="${r==='co'}"><b>기업 담당자</b><small>공장을 넓히고 싶은 쪽${solo?'':' · 짝은 주민 대표'}</small></button><button data-debrole="re" class="choice ${r==='re'?'selected':''}" aria-pressed="${r==='re'}"><b>주민 대표</b><small>동네를 지키고 싶은 쪽${solo?'':' · 짝은 기업 담당자'}</small></button></div>`)
  +T(1,r?`${ROLE[r]}로서 내 주장 쓰기`:'내 역할의 주장 쓰기',r?`<textarea id="debA" maxlength="240" placeholder="${ROLE_HINT[r]}">${esc(s.debA)}</textarea><button id="debHelp" style="margin-top:8px">주장이 안 떠오르면 · 선생님 챗봇에게 힌트 받기</button>`:'<small>역할을 고르면 쓰는 칸이 나와.</small>')
- +T(2,solo?'반대쪽은 뭐라고 할지 생각하기':'쓴 주장으로 짝과 토론하기',`<ol style="margin:0 0 8px;padding-left:20px;line-height:1.7"><li>${solo?'내 주장을 소리 내어 읽어 봐.':'한 사람씩 자기가 쓴 주장을 말해.'}</li><li>${solo?'반대쪽 사람은 뭐라고 대답할지 떠올려 봐.':'짝의 말을 듣고 궁금한 것을 하나 물어봐.'}</li></ol><button id="debTalked" class="${s.debTalked?'selected':'primary'}" ${wrote?'':'disabled'}>${s.debTalked?(solo?'생각해 봤어 ✓':'짝과 토론했어 ✓'):(solo?'생각해 봤어':'짝과 토론했어')}</button>${wrote?'':'<br><small>2번 주장을 먼저 써 줘.</small>'}`);
+ +T(2,solo?'반대쪽은 뭐라고 할지 생각하기':'쓴 주장으로 짝과 토론하기',`<ol style="margin:0 0 8px;padding-left:20px;line-height:1.7"><li>${solo?'내 주장을 소리 내어 읽어 봐.':'한 사람씩 자기가 쓴 주장을 말해.'}</li><li>${solo?'반대쪽 사람은 뭐라고 대답할지 떠올려 봐.':'짝의 말을 듣고 궁금한 것을 하나 물어봐.'}</li></ol><button id="debTalked" class="${s.debTalked?'selected':'primary'}" ${wrote?'':'disabled'}>${s.debTalked?(solo?'생각해 봤어 ✓':'짝과 토론했어 ✓'):(solo?'생각해 봤어':'짝과 토론했어')}</button><small id="debWait" class="${wrote?'hidden':''}" style="display:block;margin-top:4px">2번 주장을 먼저 써 줘.</small>`);
  $('panel').querySelectorAll('[data-debrole]').forEach(b=>b.onclick=()=>{if(s.debRole&&s.debRole!==b.dataset.debrole&&(s.debA||s.debB)){const t=s.debA;s.debA=s.debB;s.debB=t}s.debRole=b.dataset.debrole;history('토론 역할 선택');renderDebate();updateNext()});
  $('debTalked').onclick=()=>{s.debTalked=true;history('짝과 토론');renderDebate();updateNext()};
- if($('debA')){$('debA').oninput=e=>{s.debA=e.target.value;persist();updateNext();const ok=long(s.debA,10);if($('debTalked').disabled===ok){const top=$('panel').scrollTop,pos=e.target.selectionStart;renderDebate();$('panel').scrollTop=top;$('debA').focus();$('debA').setSelectionRange(pos,pos);updateNext()}};$('debHelp').onclick=()=>lensHelp(r==='co'?'company':'resident')}};
+ if($('debA')){$('debA').oninput=e=>{s.debA=e.target.value;persist();updateNext();const ok=long(s.debA,10);if(!s.debTalked&&$('debTalked'))$('debTalked').disabled=!ok;$('debWait')?.classList.toggle('hidden',ok)};$('debHelp').onclick=()=>lensHelp(r==='co'?'company':'resident')}};
 /* 역할 교대 팝업 → 2라운드 */
 function swapPopup(o){document.querySelector('.quizPop')?.remove();const pop=document.createElement('div');pop.className='quizPop';pop.setAttribute('role','dialog');pop.setAttribute('aria-modal','true');
  pop.innerHTML=`<div class="quizCard" style="text-align:center"><p class="hireTop" style="font-size:30px">여러분의 인생이 바뀌었습니다!</p><p class="quizQ" style="font-weight:500">방금까지 ${ROLE[o==='co'?'re':'co']}였던 당신,<br>지금부터는 <b style="font-family:Jua,sans-serif;font-weight:400;font-size:26px">${ROLE[o]}</b>입니다.</p><p style="font-size:18px;margin:0 0 14px">${ROLE[o]}로서 다시 주장해 보세요.</p><button id="swapGo" class="primary" style="width:100%;font-size:18px">${ROLE[o]}가 되기</button></div>`;

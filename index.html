@@ -641,6 +641,14 @@ html body .tQrUrl{margin:10px 0 0;font-size:14px;color:#66758a;word-break:break-
 html body .tQrClose{position:absolute;right:16px;top:16px}
 @media(max-width:1000px){html body .tTabs{grid-template-columns:repeat(3,minmax(0,1fr))}html body .tMain{grid-template-columns:1fr}html body .tCaseBody{grid-template-columns:1fr}}
 html body .tDlg #teacherClassControl>h2,html body .tDlg .teacherMirrorHeader h2+*{} html body .tDlg #teacherClassControl>h2{display:none}
+html body .tTab{flex-direction:column;gap:2px;min-height:76px}
+html body .tTab .tTabNo{position:absolute;left:10px;top:50%;transform:translateY(-50%)}
+html body .tTab{position:relative;padding-left:48px}
+html body .tTabName{font-size:16px}
+html body .tTabInfo{display:flex;flex-direction:column;align-items:center;line-height:1.25}
+html body .tTabInfo b{font-size:14px}
+html body .tTabInfo small{font-size:12px}
+html body .tRow.done:not(.here){background:#fbfcfa}
 </style></head>
 <body data-app-build="2026-11-17-culture-fullscreen-tools">
 <header>
@@ -3572,15 +3580,24 @@ function tAccessRender(){
  $('tQrBigBtn').onclick=()=>{tQrBackup($('tQrBigImg'),a.url,640);$('tQrBigImg').src=tQrImg(a.url,640);$('tQrBigTitle').textContent=roomTitle(ROOM)+' · '+a.title;$('tQrBigUrl').textContent=a.url;$('tQrDlg').showModal();};
  $('tCopyBtn').onclick=async()=>{try{await navigator.clipboard.writeText(a.url);$('tAccessMsg').textContent='주소를 복사했어요.';}catch(e){const i=$('tAccessLink');i.focus();i.select();$('tAccessMsg').textContent='주소를 선택해 두었어요. Ctrl+C로 복사해 주세요.';}};
 }
+/* 탭 숫자: "완료"는 그 단계를 제출(지도는 33문제 완료)한 학생, "지금"은 지금 그 단계 화면에 있는 학생.
+   선생님이 진도를 되돌려도 완료 기록은 남는다. */
+function tDone(p,st){const i=p.inquiry||{};
+ if(st===1)return !p.pending&&p.cur>=PROBLEMS.length;
+ if(st===2)return !!i.demography?.submittedAt;
+ if(st===3)return !!i.culture?.submittedAt;
+ if(st===4)return !!i.reflection?.submittedAt;
+ return false;}
 function tCounts(list){
- const c={s1:0,s2:0,s3:0,s4:0,s5:0,quiz:0};
- list.forEach(p=>{const st=tStageOf(p);if(st<5)c['s'+st]++;});
- c.s5=Object.keys(tCityAll||{}).length;
+ const c={};['s1','s2','s3','s4'].forEach((id,n)=>{c[id]={done:list.filter(p=>tDone(p,n+1)).length,here:list.filter(p=>tStageOf(p)===n+1).length};});
+ const city=Object.values(tCityAll||{});c.s5={done:city.filter(v=>v?.submitted).length,here:city.length,city:true};
  return c;
 }
 function tTabsRender(list){
- const nav=$('tTabs');if(!nav)return;const c=tCounts(list);
- nav.innerHTML=T_TABS.map(t=>'<button type="button" role="tab" class="tTab'+(t.id===tTab?' on':'')+'" data-tab="'+t.id+'" aria-selected="'+(t.id===tTab)+'"><span class="tTabNo">'+t.n+'</span>'+esc(t.label)+(t.id==='quiz'?'':'<small>'+c[t.id]+'명</small>')+'</button>').join('');
+ const nav=$('tTabs');if(!nav)return;const c=tCounts(list),total=list.length;
+ nav.innerHTML=T_TABS.map(t=>{const x=c[t.id];
+  const info=!x?'':x.city?'<span class="tTabInfo"><b>제출 '+x.done+'명</b><small>들어온 학생 '+x.here+'명</small></span>':'<span class="tTabInfo"><b>완료 '+x.done+'/'+total+'</b><small>지금 여기 '+x.here+'명</small></span>';
+  return '<button type="button" role="tab" class="tTab'+(t.id===tTab?' on':'')+'" data-tab="'+t.id+'" aria-selected="'+(t.id===tTab)+'"><span class="tTabNo">'+t.n+'</span><span class="tTabName">'+esc(t.label)+'</span>'+info+'</button>';}).join('');
 }
 function tSetTab(id,chosen){
  tTab=id;if(chosen){tTabChosen=true;store.set('amap-teacher-tab-'+ROOM,id);}
@@ -3630,10 +3647,11 @@ function tStageDetail(p,st){
 function tStageRender(list){
  const st=Number(String(tTab).slice(1));if(!(st>=2&&st<=4))return;
  const box=$('tStageList'),det=$('tStageDetail');if(!box||!det)return;
- $('tStageTitle').textContent=T_TABS[st-1].label+' · 학생 '+list.length+'명';
- const order=[...list].sort((a,b)=>(tStageOf(b)===st)-(tStageOf(a)===st));
- box.innerHTML=order.length?order.map(p=>{const here=tStageOf(p)===st,before=tStageOf(p)<st;
-  return '<button type="button" class="tRow'+(p.id===tStageKey?' on':'')+(here?' here':'')+'" data-stage-key="'+esc(p.id)+'"><b>'+esc(p.name)+'</b><span class="tWhere">'+(here?'이 단계 진행 중':before?'아직 앞 단계':'이 단계 끝냄')+'</span><span class="tChips">'+(before?'':tStageSummary(p,st))+'</span></button>';}).join(''):'<p class="muted">아직 참여한 학생이 없어요.</p>';
+ $('tStageTitle').textContent=T_TABS[st-1].label+' · 완료 '+list.filter(p=>tDone(p,st)).length+'/'+list.length+'명';
+ const rank=p=>tStageOf(p)===st?0:tDone(p,st)?2:1,order=[...list].sort((a,b)=>rank(a)-rank(b));
+ const doneN=list.filter(p=>tDone(p,st)).length;
+ box.innerHTML=order.length?order.map(p=>{const here=tStageOf(p)===st,done=tDone(p,st),before=!here&&!done&&tStageOf(p)<st;
+  return '<button type="button" class="tRow'+(p.id===tStageKey?' on':'')+(here?' here':'')+(done?' done':'')+'" data-stage-key="'+esc(p.id)+'"><b>'+esc(p.name)+'</b><span class="tWhere">'+(done?(here?'제출함 · 지금 여기':'제출함'):here?'진행 중 (제출 전)':before?'아직 앞 단계':'건너뜀 (제출 기록 없음)')+'</span><span class="tChips">'+(before?'':tStageSummary(p,st))+'</span></button>';}).join(''):'<p class="muted">아직 참여한 학생이 없어요.</p>';
  const p=order.find(x=>x.id===tStageKey);
  det.innerHTML=p?tStageDetail(p,st):'<h2>학생 기록</h2><p class="muted">왼쪽에서 학생을 누르면 이 단계에서 한 활동이 여기에 나와요.</p>';
 }
@@ -3880,7 +3898,7 @@ function renderTeacherViews(all){
  baseViews.apply(this,arguments);
  if(!$('tTabs'))return;
  const list=ranked(all);
- if(!tTabChosen&&list.length){const c=tCounts(list),best=['s1','s2','s3','s4'].reduce((a,b)=>c[b]>c[a]?b:a,'s1');tTabChosen=true;if(best!==tTab)return tSetTab(best,false);}
+ if(!tTabChosen&&list.length){const c=tCounts(list),best=['s1','s2','s3','s4'].reduce((a,b)=>c[b].here>c[a].here?b:a,'s1');tTabChosen=true;if(best!==tTab)return tSetTab(best,false);}
  tTabsRender(list);tStageRender(list);tGalleryFilter();
 };}
 async function start(){
